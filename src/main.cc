@@ -1,9 +1,16 @@
+#include <cstdio>
 #include "utils/yaml.h"
 
-using game::read_yaml_file;
+using game::yaml_read_file;
+using game::yaml_get_f;
+using game::yaml_free;
+using game::YAML_NODE;
 
 int main()
 {
-    read_yaml_file("./data/window.yaml");
+    YAML_NODE * window_config = yaml_read_file("./data/window.yaml");
+    float test = yaml_get_f(window_config, "test.test1.test2");
+    printf("test.test1.test2: %.2f\n", test);
+    yaml_free(window_config);
     return 0;
 }
