@@ -31,7 +31,7 @@ void sys_init()
 
     if(!glfwInit())
     {
-        util_error_exit("failed to initialize", "GLFW");
+        util_error_exit("failed to initialize", "GLFW", nullptr);
     }
 
     // Required for Vulkan.
@@ -45,7 +45,7 @@ void sys_create_window(int width, int height, const char * title)
 
     if(!window)
     {
-        util_error_exit("failed to create window", "GLFW");
+        util_error_exit("failed to create window", "GLFW", nullptr);
     }
 
     glfwSetKeyCallback(window, key_callback);
@@ -66,7 +66,7 @@ void sys_create_window(int width, int height, const char * title)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 static void error_callback(int error, const char* description)
 {
-    util_error_exit(description, "GLFW");
+    util_error_exit(description, "GLFW", nullptr);
 }
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
