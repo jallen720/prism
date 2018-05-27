@@ -1,36 +1,29 @@
-all: bin/game
+all: lib/libprism.a bin/test
 	@:
 
-import_game_libs: 
+import_prism_libs: 
 	@:
 
-obj/src/game/test.o: src/game/test.cc src/game/test.h
+obj/src/prism/system.o: src/prism/system.cc src/prism/system.h
 	@echo compiling $<
-	@mkdir -p obj/src/game
-	@g++ -std=c++14 -ggdb -Wall -Wextra -pedantic-errors -c -Isrc $< -o $@
+	@mkdir -p obj/src/prism
+	@g++ -std=c++14 -ggdb -Wall -Wextra -pedantic-errors -c -Isrc -I/home/joel/Desktop/projects/ctk/src $< -o $@
 
-obj/src/engine/window.o: src/engine/window.cc src/engine/window.h
-	@echo compiling $<
-	@mkdir -p obj/src/engine
-	@g++ -std=c++14 -ggdb -Wall -Wextra -pedantic-errors -c -Isrc $< -o $@
+lib/libprism.a: obj/src/prism/system.o
+	@echo linking $@
+	@mkdir -p lib
+	@ar rvs $@ $^
 
-obj/src/utils/file.o: src/utils/file.cc src/utils/file.h
-	@echo compiling $<
-	@mkdir -p obj/src/utils
-	@g++ -std=c++14 -ggdb -Wall -Wextra -pedantic-errors -c -Isrc $< -o $@
+import_test_libs: 
+	@:
 
-obj/src/utils/yaml.o: src/utils/yaml.cc src/utils/yaml.h
-	@echo compiling $<
-	@mkdir -p obj/src/utils
-	@g++ -std=c++14 -ggdb -Wall -Wextra -pedantic-errors -c -Isrc $< -o $@
-
-obj/src/main.o: src/main.cc 
+obj/src/main.o: src/main.cc src/prism/system.h
 	@echo compiling $<
 	@mkdir -p obj/src
-	@g++ -std=c++14 -ggdb -Wall -Wextra -pedantic-errors -c -Isrc $< -o $@
+	@g++ -std=c++14 -ggdb -Wall -Wextra -pedantic-errors -c -Isrc -I/home/joel/Desktop/projects/ctk/src $< -o $@
 
-bin/game: obj/src/game/test.o obj/src/engine/window.o obj/src/utils/file.o obj/src/utils/yaml.o obj/src/main.o
+bin/test: obj/src/main.o lib/libprism.a /home/joel/Desktop/projects/ctk/lib/libctk.a
 	@echo linking $@
 	@mkdir -p bin
-	@g++ $^ -l:libyaml.a -Wl,-rpath,'$$ORIGIN/lib' -o $@
+	@g++ $^ -Llib -L/home/joel/Desktop/projects/ctk/lib -l:libyaml.a -lprism -lctk -Wl,-rpath,'$$ORIGIN/lib' -o $@
 

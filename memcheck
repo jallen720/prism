@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-./build && clear && valgrind --tool=memcheck --leak-check=yes --show-reachable=yes --num-callers=20 --track-fds=yes ./bin/game
+./build && clear && valgrind --tool=memcheck --leak-check=yes --show-reachable=yes --num-callers=20 --track-fds=yes ./bin/$1

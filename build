@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-cpp_make && make && make import_game_libs
+cpp_make && make && make import_prism_libs

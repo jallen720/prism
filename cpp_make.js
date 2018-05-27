@@ -1,7 +1,5 @@
-const COMPILER_OPTIONS = [ "std=c++14", "ggdb", "Wall", "Wextra", "pedantic-errors", "c" ];
-
-// game
-const GAME_SRC_DIR = "src";
+const PRISM_SRC_DIR = "src";
+const CTK_DIR = "<PROJECTS>/ctk";
 
 module.exports =
 {
@@ -9,30 +7,49 @@ module.exports =
     "header_extension": "h",
     "targets":
     {
-        "game":
+        "prism":
         {
-            "type": "application",
-            "main": `${ GAME_SRC_DIR }/main`,
+            "type": "static_library",
             "source_dirs":
             [
-                `${ GAME_SRC_DIR }/game`,
-                `${ GAME_SRC_DIR }/engine`,
-                `${ GAME_SRC_DIR }/utils`,
+                `${ PRISM_SRC_DIR }/prism`,
             ],
             "include_dirs":
             [
-                GAME_SRC_DIR,
+                PRISM_SRC_DIR,
+                `${ CTK_DIR }/src`,
+            ],
+            "library_dirs": [],
+            "libraries": [],
+            "internal_static_library_paths": [],
+            "library_import_paths": [],
+            "pkg_config": [],
+            "compiler_options": [ "std=c++14", "ggdb", "Wall", "Wextra", "pedantic-errors", "c" ],
+            "linker_options": [ "Wl,-rpath,'$$ORIGIN/lib'" ],
+        },
+        "test":
+        {
+            "type": "application",
+            "main": `${ PRISM_SRC_DIR }/main`,
+            "source_dirs": [],
+            "include_dirs":
+            [
+                PRISM_SRC_DIR,
+                `${ CTK_DIR }/src`,
             ],
             "library_dirs": [],
             "libraries":
             [
-                "libyaml.a"
+                "libyaml.a",
             ],
-            "library_import_paths":
+            "internal_static_library_paths":
             [
+                "lib/libprism.a",
+                `${ CTK_DIR }/lib/libctk.a`,
             ],
+            "library_import_paths": [],
             "pkg_config": [],
-            "compiler_options": COMPILER_OPTIONS,
+            "compiler_options": [ "std=c++14", "ggdb", "Wall", "Wextra", "pedantic-errors", "c" ],
             "linker_options": [ "Wl,-rpath,'$$ORIGIN/lib'" ],
         },
     }
