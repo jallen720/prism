@@ -12,6 +12,7 @@ module.exports =
         "prism":
         {
             "type": "static_library",
+            "debug": true,
             "source_dirs":
             [
                 `${ PRISM_SRC_DIR }/prism`,
@@ -32,6 +33,7 @@ module.exports =
         "test":
         {
             "type": "application",
+            "debug": false,
             "main": `${ PRISM_SRC_DIR }/test`,
             "source_dirs": [],
             "include_dirs":

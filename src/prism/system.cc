@@ -5,6 +5,7 @@
 #include <GLFW/glfw3.h>
 
 #include "prism/system.h"
+#include "prism/utilities.h"
 
 namespace prism
 {
@@ -30,8 +31,7 @@ void sys_init()
 
     if(!glfwInit())
     {
-        fputs("failed to initialize GLFW", stderr);
-        exit(EXIT_FAILURE);
+        util_error_exit("failed to initialize", "GLFW");
     }
 
     // Required for Vulkan.
@@ -40,22 +40,22 @@ void sys_init()
 
 void sys_create_window(int width, int height, const char * title)
 {
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     GLFWwindow * window = glfwCreateWindow(width, height, title, nullptr, nullptr);
 
     if(!window)
     {
-        fputs("failed to create GLFW window", stderr);
-        exit(EXIT_FAILURE);
+        util_error_exit("failed to create window", "GLFW");
     }
 
     glfwSetKeyCallback(window, key_callback);
 
-    while(!glfwWindowShouldClose(window))
-    {
-        glfwPollEvents();
-    }
+    // while(!glfwWindowShouldClose(window))
+    // {
+    //     glfwPollEvents();
+    // }
 
-    glfwDestroyWindow(window);
+    // glfwDestroyWindow(window);
 }
 
 
@@ -66,8 +66,7 @@ void sys_create_window(int width, int height, const char * title)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 static void error_callback(int error, const char* description)
 {
-    fprintf(stderr, "GLFW ERROR (%d): %s\n", error, description);
-    exit(EXIT_FAILURE);
+    util_error_exit(description, "GLFW");
 }
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
