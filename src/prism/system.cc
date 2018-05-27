@@ -36,10 +36,6 @@ void sys_init()
 
     // Required for Vulkan.
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-    unsigned int extensionCount = 0;
-    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-    printf("%d extensions supported\n", extensionCount);
 }
 
 void sys_create_window(int width, int height, const char * title)
