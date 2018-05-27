@@ -3,6 +3,7 @@
 namespace prism
 {
 
-void create_window(int width, int height, const char * title);
+void sys_init();
+void sys_create_window(int width, int height, const char * title);
 
 } // namespace prism

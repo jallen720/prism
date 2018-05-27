@@ -1,9 +1,3 @@
 width: 1280
 height: 720
 title: Test Window
-
-test:
-    test1:
-        test2: 2040221.12
-
-test4: test5_value
