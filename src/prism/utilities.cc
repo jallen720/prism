@@ -5,19 +5,34 @@
 namespace prism
 {
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Macros
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #define VK_RESULT_NAME_CASE(VK_RESULT) case VK_RESULT: return #VK_RESULT;
+#define ANSI_RESET "\x1b[0m"
+#define ANSI_BOLD "\033[1m"
+#define ANSI_COLOR_RED "\x1b[31m"
+// #define ANSI_COLOR_GREEN "\x1b[32m"
+// #define ANSI_COLOR_YELLOW "\x1b[33m"
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Interface
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void util_error_exit(const char * message, const char * subsystem, const char * error_name)
 {
     const char * system = subsystem ? subsystem : "PRISM";
 
     if(error_name)
     {
-        fprintf(stderr, "%s ERROR -> %s: %s\n", system, error_name, message);
+        fprintf(stderr, ANSI_BOLD ANSI_COLOR_RED "%s ERROR -> %s" ANSI_RESET ": %s\n", system, error_name, message);
     }
     else
     {
-        fprintf(stderr, "%s ERROR: %s\n", system, message);
+        fprintf(stderr, ANSI_BOLD ANSI_COLOR_RED "%s ERROR" ANSI_RESET ": %s\n", system, message);
     }
 
     exit(EXIT_FAILURE);
