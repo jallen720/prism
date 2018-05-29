@@ -1,8 +1,10 @@
-// #pragma once
+#pragma once
 
-// namespace prism
-// {
+#include "ctk/vector.h"
 
-// void graphics_init();
+namespace prism
+{
 
-// } // namespace prism
+void gfx_init(ctk::VECTOR<const char *> * extension_names);
+
+} // namespace prism

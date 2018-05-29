@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <cstdio>
+#include <cstdarg>
 #include "prism/utilities.h"
 
 namespace prism
@@ -16,6 +17,12 @@ namespace prism
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
 #define ANSI_COLOR_YELLOW "\x1b[33m"
+
+#define OUTPUT_MESSAGE(OUTPUT)       \
+    va_list args;                    \
+    va_start(args, message);         \
+    vfprintf(OUTPUT, message, args); \
+    va_end(args);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -80,20 +87,27 @@ static const size_t VK_RESULT_NAMES_COUNT = sizeof(VK_RESULT_NAMES) / sizeof(VK_
 // Interface
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void util_error_exit(const char * message, const char * subsystem, const char * error_name)
+void util_error_exit(const char * subsystem, const char * error_name, const char * message, ...)
 {
     const char * system = subsystem ? subsystem : "PRISM";
 
     if(error_name)
     {
-        fprintf(stderr, ANSI_BOLD ANSI_COLOR_RED "%s ERROR -> %s" ANSI_RESET ": %s\n", system, error_name, message);
+        fprintf(stderr, ANSI_BOLD ANSI_COLOR_RED "%s ERROR -> %s" ANSI_RESET ": ", system, error_name);
     }
     else
     {
-        fprintf(stderr, ANSI_BOLD ANSI_COLOR_RED "%s ERROR" ANSI_RESET ": %s\n", system, message);
+        fprintf(stderr, ANSI_BOLD ANSI_COLOR_RED "%s ERROR" ANSI_RESET ": ", system);
     }
 
+    OUTPUT_MESSAGE(stderr)
     exit(EXIT_FAILURE);
+}
+
+void util_log(const char * subsystem, const char * message, ...)
+{
+    fprintf(stdout, ANSI_BOLD ANSI_COLOR_GREEN "%s LOG" ANSI_RESET ": ", subsystem ? subsystem : "PRISM");
+    OUTPUT_MESSAGE(stdout)
 }
 
 const char * util_vk_result_name(VkResult result)

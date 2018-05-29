@@ -59,6 +59,7 @@ module.exports =
             ],
             "include_dirs":
             [
+                `${ CTK_DIR }/src`,
                 PRISM_SRC_DIR,
                 VULKAN_INCLUDE_DIR,
             ],
