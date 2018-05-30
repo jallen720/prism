@@ -9,7 +9,7 @@ obj/src/prism/graphics.o: src/prism/graphics.cc /home/joel/Desktop/packages/Vulk
 	@mkdir -p obj/src/prism
 	@g++ -std=c++14 -ggdb -Wall -Wextra -pedantic-errors -c -DPRISM_DEBUG -I/home/joel/Desktop/projects/ctk/src -Isrc -I/home/joel/Desktop/packages/VulkanSDK/1.1.73.0/x86_64/include $< -o $@
 
-obj/src/prism/utilities.o: src/prism/utilities.cc src/prism/utilities.h
+obj/src/prism/utilities.o: src/prism/utilities.cc src/prism/utilities.h /home/joel/Desktop/projects/ctk/src/ctk/data.h
 	@echo compiling $<
 	@mkdir -p obj/src/prism
 	@g++ -std=c++14 -ggdb -Wall -Wextra -pedantic-errors -c -DPRISM_DEBUG -I/home/joel/Desktop/projects/ctk/src -Isrc -I/home/joel/Desktop/packages/VulkanSDK/1.1.73.0/x86_64/include $< -o $@
@@ -32,7 +32,7 @@ bin/lib/libvulkan.so.1: /home/joel/Desktop/packages/VulkanSDK/1.1.73.0/x86_64/li
 import_test_libs: bin/lib/libvulkan.so.1
 	@:
 
-obj/src/test.o: src/test.cc src/prism/system.h src/prism/graphics.h /home/joel/Desktop/projects/ctk/src/ctk/yaml.h /home/joel/Desktop/projects/ctk/src/ctk/vector.h
+obj/src/test.o: src/test.cc src/prism/system.h src/prism/graphics.h /home/joel/Desktop/projects/ctk/src/ctk/yaml.h /home/joel/Desktop/projects/ctk/src/ctk/data.h
 	@echo compiling $<
 	@mkdir -p obj/src
 	@g++ -std=c++14 -ggdb -Wall -Wextra -pedantic-errors -c -Isrc -I/home/joel/Desktop/projects/ctk/src $< -o $@

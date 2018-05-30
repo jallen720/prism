@@ -2,6 +2,9 @@
 #include <cstdio>
 #include <cstdarg>
 #include "prism/utilities.h"
+#include "ctk/data.h"
+
+using ctk::PAIR;
 
 namespace prism
 {
@@ -26,21 +29,10 @@ namespace prism
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Data Structures
-//
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-struct VK_RESULT_NAME
-{
-    const VkResult value;
-    const char * name;
-};
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
 // Data
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static const VK_RESULT_NAME VK_RESULT_NAMES[] =
+static const PAIR<VkResult, const char *> VK_RESULT_NAMES[] =
 {
     VK_RESULT_NAME_ENTRY(VK_SUCCESS),
     VK_RESULT_NAME_ENTRY(VK_NOT_READY),
@@ -80,7 +72,7 @@ static const VK_RESULT_NAME VK_RESULT_NAMES[] =
     VK_RESULT_NAME_ENTRY(VK_ERROR_NOT_PERMITTED_EXT),
 };
 
-static const size_t VK_RESULT_NAMES_COUNT = sizeof(VK_RESULT_NAMES) / sizeof(VK_RESULT_NAME);
+static const size_t VK_RESULT_NAMES_COUNT = sizeof(VK_RESULT_NAMES) / sizeof(PAIR<VkResult, const char *>);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -114,11 +106,11 @@ const char * util_vk_result_name(VkResult result)
 {
     for(size_t i = 0; i < VK_RESULT_NAMES_COUNT; i++)
     {
-        const VK_RESULT_NAME * vk_result_name = VK_RESULT_NAMES + i;
+        const PAIR<VkResult, const char *> * vk_result_name = VK_RESULT_NAMES + i;
 
-        if(vk_result_name->value == result)
+        if(vk_result_name->key == result)
         {
-            return vk_result_name->name;
+            return vk_result_name->value;
         }
     }
 

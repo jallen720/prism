@@ -4,7 +4,7 @@
 #include "prism/system.h"
 #include "prism/graphics.h"
 #include "ctk/yaml.h"
-#include "ctk/vector.h"
+#include "ctk/data.h"
 
 using prism::sys_init;
 using prism::sys_create_window;

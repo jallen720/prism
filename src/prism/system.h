@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include "ctk/vector.h"
+#include "ctk/data.h"
 
 namespace prism
 {
