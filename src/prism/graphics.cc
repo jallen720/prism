@@ -21,35 +21,11 @@ namespace prism
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Macros
+// Typedefs
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifdef PRISM_DEBUG
-#define LOG_AVAILABLE_PROP_NAMES(PROP) \
-    util_log(nullptr, "available " #PROP " names (%i):", available_ ## PROP ## _count); \
- \
-    if(available_ ## PROP ## _count == 0) \
-    { \
-        fprintf(stdout, " none\n"); \
-    } \
-    else \
-    { \
-        fprintf(stdout, "\n"); \
- \
-        for(uint32_t i = 0; i < available_ ## PROP ## _count; i++) \
-        { \
-            util_log(nullptr, "    %s\n", available_ ## PROP ## _props[i].PROP ## Name); \
-        } \
-    }
-
-#define LOG_REQUESTED_PROP_NAMES(PROP) \
-    util_log(nullptr, "requested " #PROP " names (%i):\n", requested_ ## PROP ## _count); \
- \
-    for(size_t i = 0; i < requested_ ## PROP ## _count; i++) \
-    { \
-        util_log(nullptr, "    %s\n", requested_ ## PROP ## _names[i]); \
-    }
-#endif
+template<typename T>
+using COMPONENT_PROPS_NAME_ACCESSOR = const char * (*)(const T *);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -66,6 +42,37 @@ namespace prism
 //     const char * layer_prefix,
 //     const char * msg,
 //     void * user_data);
+#endif
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Utilities
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+const char * layer_props_name_accessor(const VkLayerProperties * layer_properties);
+const char * extension_props_name_accessor(const VkExtensionProperties * extension_properties);
+
+template<typename T>
+void validate_requested_component(
+    const char * requested_component_type,
+    const char ** requested_component_names,
+    uint32_t requested_component_count,
+    T * available_component_props,
+    uint32_t available_component_count,
+    COMPONENT_PROPS_NAME_ACCESSOR<T> component_props_name_accessor);
+
+#ifdef PRISM_DEBUG
+void log_requested_component_names(
+    const char * requested_component_type,
+    const char ** requested_component_names,
+    uint32_t requested_component_count);
+
+template<typename T>
+void log_available_component_names(
+    const char * available_component_type,
+    T * available_component_props,
+    uint32_t available_component_count,
+    COMPONENT_PROPS_NAME_ACCESSOR<T> component_props_name_accessor);
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -138,15 +145,34 @@ void gfx_init(const char ** requested_extension_names, uint32_t requested_extens
     requested_layer_count = DEBUG_LAYER_COUNT;
 
     // Log requested and available extensions and layers.
-    LOG_REQUESTED_PROP_NAMES(extension)
-    LOG_AVAILABLE_PROP_NAMES(extension)
-    LOG_REQUESTED_PROP_NAMES(layer)
-    LOG_AVAILABLE_PROP_NAMES(layer)
+    log_requested_component_names("extension", requested_extension_names, requested_extension_count);
+
+    log_available_component_names(
+        "extension",
+        available_extension_props,
+        available_extension_count,
+        extension_props_name_accessor);
+
+    log_requested_component_names("layer", requested_layer_names, requested_layer_count);
+    log_available_component_names("layer", available_layer_props, available_layer_count, layer_props_name_accessor);
 #endif
 
-    // // Validate requested extensions and layers are available.
-    // VALIDATE_REQUESTED_PROP_NAMES(extension)
-    // VALIDATE_REQUESTED_PROP_NAMES(layer)
+    // Validate requested extensions and layers are available.
+    validate_requested_component(
+        "extension",
+        requested_extension_names,
+        requested_extension_count,
+        available_extension_props,
+        available_extension_count,
+        extension_props_name_accessor);
+
+    validate_requested_component(
+        "layer",
+        requested_layer_names,
+        requested_layer_count,
+        available_layer_props,
+        available_layer_count,
+        layer_props_name_accessor);
 
     // Initialize application info.
     VkApplicationInfo app_info = {};
@@ -197,6 +223,95 @@ void gfx_init(const char ** requested_extension_names, uint32_t requested_extens
 //     util_log(nullptr, "validation layer: %s\n", msg);
 //     return VK_FALSE;
 // }
+#endif
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Utilities
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+const char * layer_props_name_accessor(const VkLayerProperties * layer_properties)
+{
+    return layer_properties->layerName;
+}
+
+const char * extension_props_name_accessor(const VkExtensionProperties * extension_properties)
+{
+    return extension_properties->extensionName;
+}
+
+template<typename T>
+void validate_requested_component(
+    const char * requested_component_type,
+    const char ** requested_component_names,
+    uint32_t requested_component_count,
+    T * available_component_props,
+    uint32_t available_component_count,
+    COMPONENT_PROPS_NAME_ACCESSOR<T> component_props_name_accessor)
+{
+    for(size_t i = 0; i < requested_component_count; i++)
+    {
+        const char * requested_component_name = requested_component_names[i];
+        bool component_available = false;
+
+        for(size_t j = 0; j < available_component_count; j++)
+        {
+            if(strcmp(requested_component_name, component_props_name_accessor(available_component_props + j)) == 0)
+            {
+                component_available = true;
+                break;
+            }
+        }
+
+        if(!component_available)
+        {
+            util_error_exit(
+                "VULKAN",
+                nullptr,
+                "requested %s \"%s\" is not available\n",
+                requested_component_type,
+                requested_component_name);
+        }
+    }
+}
+
+#ifdef PRISM_DEBUG
+void log_requested_component_names(
+    const char * requested_component_type,
+    const char ** requested_component_names,
+    uint32_t requested_component_count)
+{
+    util_log(nullptr, "requested %s names (%i):\n", requested_component_type, requested_component_count);
+
+    for(size_t i = 0; i < requested_component_count; i++)
+    {
+        util_log(nullptr, "    %s\n", requested_component_names[i]);
+    }
+}
+
+template<typename T>
+void log_available_component_names(
+    const char * available_component_type,
+    T * available_component_props,
+    uint32_t available_component_count,
+    COMPONENT_PROPS_NAME_ACCESSOR<T> component_props_name_accessor)
+{
+    util_log(nullptr, "available %s names (%i):", available_component_type, available_component_count);
+
+    if(available_component_count == 0)
+    {
+        fprintf(stdout, " none\n");
+    }
+    else
+    {
+        fprintf(stdout, "\n");
+
+        for(uint32_t i = 0; i < available_component_count; i++)
+        {
+            util_log(nullptr, "    %s\n", component_props_name_accessor(available_component_props + i));
+        }
+    }
+}
 #endif
 
 } // namespace prism
