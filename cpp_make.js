@@ -18,6 +18,7 @@ module.exports =
             "include_dirs":
             [
                 PRISM_SRC_DIR,
+                VULKAN_INCLUDE_DIR,
             ],
             "library_dirs": [],
             "libraries":
@@ -93,10 +94,7 @@ module.exports =
         {
             "partial": "prism_test",
             "main": `${ PRISM_SRC_DIR }/sandbox`,
-            "include_dirs":
-            [
-                VULKAN_INCLUDE_DIR,
-            ],
+            "include_dirs": [],
             "compiler_options": [ "mavx2", "O3" ],
         },
     }
