@@ -4,7 +4,6 @@
 #include "prism/system.h"
 #include "prism/graphics.h"
 #include "ctk/yaml.h"
-#include "ctk/data.h"
 
 using prism::sys_init;
 using prism::sys_create_window;
@@ -15,9 +14,6 @@ using ctk::yaml_read_file;
 using ctk::yaml_get_s;
 using ctk::yaml_get_i;
 using ctk::yaml_free;
-using ctk::VECTOR;
-using ctk::vec_init;
-using ctk::vec_free;
 
 int main()
 {
@@ -35,11 +31,9 @@ int main()
     yaml_free(window_config);
 
     // Initialize graphics module.
-    VECTOR<const char *> required_extension_names;
-    vec_init(&required_extension_names, 4);
-    sys_required_extension_names(&required_extension_names);
-    gfx_init(&required_extension_names);
-    vec_free(&required_extension_names);
+    uint32_t required_extension_count = 0;
+    const char ** required_extension_names = sys_required_extension_names(&required_extension_count);
+    gfx_init(required_extension_names, required_extension_count);
 
     return EXIT_SUCCESS;
 }

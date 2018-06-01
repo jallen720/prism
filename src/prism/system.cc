@@ -1,14 +1,8 @@
-#include <cstdlib>
-#include <cstdio>
-
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
 #include "prism/system.h"
 #include "prism/utilities.h"
-
-using ctk::VECTOR;
-using ctk::vec_write;
 
 namespace prism
 {
@@ -59,12 +53,9 @@ void sys_create_window(int width, int height, const char * title)
     // glfwDestroyWindow(window);
 }
 
-void sys_required_extension_names(VECTOR<const char *> * required_extension_names)
+const char ** sys_required_extension_names(uint32_t * required_extension_count)
 {
-    // Get GLFW's required extension names.
-    uint32_t glfw_required_extension_count = 0;
-    const char ** glfw_required_extension_names = glfwGetRequiredInstanceExtensions(&glfw_required_extension_count);
-    vec_write(required_extension_names, glfw_required_extension_names, (size_t)glfw_required_extension_count);
+    return glfwGetRequiredInstanceExtensions(required_extension_count);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

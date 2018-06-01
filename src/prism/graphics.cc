@@ -1,3 +1,10 @@
+/*
+
+TODO:
+    setup debug callbacks
+
+*/
+
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
@@ -7,8 +14,6 @@
 #include "ctk/memory.h"
 
 using ctk::mem_concat;
-using ctk::VECTOR;
-using ctk::vec_push;
 
 namespace prism
 {
@@ -43,15 +48,15 @@ namespace prism
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifdef PRISM_DEBUG
-static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
-    VkDebugReportFlagsEXT flags,
-    VkDebugReportObjectTypeEXT obj_type,
-    uint64_t obj,
-    size_t location,
-    int32_t code,
-    const char * layer_prefix,
-    const char * msg,
-    void * user_data);
+// static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
+//     VkDebugReportFlagsEXT flags,
+//     VkDebugReportObjectTypeEXT obj_type,
+//     uint64_t obj,
+//     size_t location,
+//     int32_t code,
+//     const char * layer_prefix,
+//     const char * msg,
+//     void * user_data);
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -59,17 +64,43 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
 // Interface
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void gfx_init(VECTOR<const char *> * extension_names)
+void gfx_init(const char ** extension_names, uint32_t extension_count)
 {
 #ifdef PRISM_DEBUG
-    vec_push(extension_names, VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+    static const char * DEBUG_EXTENSION_NAMES[]
+    {
+        VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
+    };
+
+    static const size_t DEBUG_EXTENSION_COUNT = sizeof(DEBUG_EXTENSION_NAMES) / sizeof(void *);
+    static const size_t MAX_EXTENSION_COUNT = 16;
+    const char * all_extension_names[MAX_EXTENSION_COUNT];
+    const size_t all_extension_count = DEBUG_EXTENSION_COUNT + extension_count;
+
+    if(all_extension_count > MAX_EXTENSION_COUNT)
+    {
+        util_error_exit(
+            "VULKAN",
+            nullptr,
+            "extension count %i exceeds max of %i:\n"
+            "    requested extensions: %i\n"
+            "    debug extensions: %i\n",
+            all_extension_count,
+            MAX_EXTENSION_COUNT,
+            extension_count,
+            DEBUG_EXTENSION_COUNT);
+    }
+
+    mem_concat(extension_names, DEBUG_EXTENSION_NAMES, extension_count, DEBUG_EXTENSION_COUNT, all_extension_names);
+    extension_names = all_extension_names;
+    extension_count = all_extension_count;
 
     // Log requested extensions.
     util_log(nullptr, "requested extension names:\n");
 
-    CTK_VEC_PTR_FOR(extension_names, i)
+    for(size_t i = 0; i < extension_count; i++)
     {
-        util_log(nullptr, "    %s\n", extension_names->data[i]);
+        util_log(nullptr, "    %s\n", extension_names[i]);
     }
 
     // Check available extensions.
@@ -108,8 +139,8 @@ void gfx_init(VECTOR<const char *> * extension_names)
     VkInstanceCreateInfo instance_create_info = {};
     instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instance_create_info.pApplicationInfo = &app_info;
-    instance_create_info.enabledExtensionCount = extension_names->count;
-    instance_create_info.ppEnabledExtensionNames = extension_names->data;
+    instance_create_info.enabledExtensionCount = extension_count;
+    instance_create_info.ppEnabledExtensionNames = extension_names;
 
 #if PRISM_DEBUG
     static const char * VALIDATION_LAYERS[] =
@@ -141,19 +172,19 @@ void gfx_init(VECTOR<const char *> * extension_names)
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifdef PRISM_DEBUG
-static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
-    VkDebugReportFlagsEXT flags,
-    VkDebugReportObjectTypeEXT obj_type,
-    uint64_t obj,
-    size_t location,
-    int32_t code,
-    const char * layer_prefix,
-    const char * msg,
-    void * user_data)
-{
-    util_log(nullptr, "validation layer: %s\n", msg);
-    return VK_FALSE;
-}
+// static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
+//     VkDebugReportFlagsEXT flags,
+//     VkDebugReportObjectTypeEXT obj_type,
+//     uint64_t obj,
+//     size_t location,
+//     int32_t code,
+//     const char * layer_prefix,
+//     const char * msg,
+//     void * user_data)
+// {
+//     util_log(nullptr, "validation layer: %s\n", msg);
+//     return VK_FALSE;
+// }
 #endif
 
 } // namespace prism

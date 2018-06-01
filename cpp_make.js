@@ -97,6 +97,7 @@ module.exports =
             [
                 VULKAN_INCLUDE_DIR,
             ],
+            "compiler_options": [ "mavx2", "O3" ],
         },
     }
 };
