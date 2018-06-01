@@ -26,6 +26,7 @@ namespace prism
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 static const size_t MAX_INSTANCE_COMPONENT_COUNT = 16;
+static const size_t MAX_PHYSICAL_DEVICE_COUNT = 16;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -237,6 +238,72 @@ void gfx_init(
         util_error_exit("VULKAN", util_vk_result_name(create_debug_callback_result), "failed to create debug callback");
     }
 #endif
+
+    // Ensure physical devices can be found.
+    uint32_t physical_device_count = 0;
+    vkEnumeratePhysicalDevices(*instance, &physical_device_count, nullptr);
+
+    if(physical_device_count == 0)
+    {
+        util_error_exit("VULKAN", nullptr, "no physical devices found\n");
+    }
+
+    // Find a suitable device for rendering and store handle in context.
+    VkPhysicalDevice physical_devices[MAX_PHYSICAL_DEVICE_COUNT];
+    vkEnumeratePhysicalDevices(*instance, &physical_device_count, physical_devices);
+    VkPhysicalDevice *rendering_device = &context->rendering_device;
+
+#if PRISM_DEBUG
+    static const char * PHYSICAL_DEVICE_TYPE_NAMES[]
+    {
+        "VK_PHYSICAL_DEVICE_TYPE_OTHER",
+        "VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU",
+        "VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU",
+        "VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU",
+        "VK_PHYSICAL_DEVICE_TYPE_CPU",
+    };
+
+    for(size_t i = 0; i < physical_device_count; i++)
+    {
+        VkPhysicalDevice physical_device = physical_devices[i];
+        VkPhysicalDeviceProperties physical_device_properties;
+        vkGetPhysicalDeviceProperties(physical_device, &physical_device_properties);
+
+        util_log("VULKAN", "device \"%s\":\n", physical_device_properties.deviceName);
+        util_log("VULKAN", "    api_version:    %i\n", physical_device_properties.apiVersion);
+        util_log("VULKAN", "    driver_version: %i\n", physical_device_properties.driverVersion);
+        util_log("VULKAN", "    vendor_id:      %#006x\n", physical_device_properties.vendorID);
+        util_log("VULKAN", "    device_id:      %#006x\n", physical_device_properties.deviceID);
+
+        util_log("VULKAN", "    device_type:    %s\n",
+            PHYSICAL_DEVICE_TYPE_NAMES[(size_t)physical_device_properties.deviceType]);
+
+        // util_log("VULKAN", "    pipelineCacheUUID: %?\n", physical_device_properties.pipelineCacheUUID);
+        // util_log("VULKAN", "    limits:            %?\n", physical_device_properties.limits);
+        // util_log("VULKAN", "    sparseProperties:  %?\n", physical_device_properties.sparseProperties);
+    }
+#endif
+
+    for(size_t i = 0; i < physical_device_count; i++)
+    {
+        VkPhysicalDevice physical_device = physical_devices[i];
+        VkPhysicalDeviceProperties physical_device_properties;
+        VkPhysicalDeviceFeatures physical_device_features;
+        vkGetPhysicalDeviceProperties(physical_device, &physical_device_properties);
+        vkGetPhysicalDeviceFeatures(physical_device, &physical_device_features);
+
+        // TODO: implement robust device requirements specification.
+        if(physical_device_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+        {
+            *rendering_device = physical_device;
+            break;
+        }
+    }
+
+    if(*rendering_device == VK_NULL_HANDLE)
+    {
+        util_error_exit("VULKAN", nullptr, "failed to find a suitable rendering device\n");
+    }
 }
 
 void gfx_destroy(GFX_CONTEXT * context)

@@ -14,6 +14,7 @@ namespace prism
 struct GFX_CONTEXT
 {
     VkInstance instance = VK_NULL_HANDLE;
+    VkPhysicalDevice rendering_device = VK_NULL_HANDLE;
 
 #ifdef PRISM_DEBUG
     VkDebugReportCallbackEXT debug_callback = VK_NULL_HANDLE;
