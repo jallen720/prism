@@ -19,6 +19,7 @@ module.exports =
             [
                 PRISM_SRC_DIR,
                 VULKAN_INCLUDE_DIR,
+                `${ CTK_DIR }/src`,
             ],
             "library_dirs": [],
             "libraries":
@@ -34,10 +35,14 @@ module.exports =
                 "Xau",
                 "Xdmcp",
                 "vulkan",
+
+                // ctk dependencies
+                "libyaml.a",
             ],
             "internal_static_library_paths":
             [
                 "lib/libprism.a",
+                `${ CTK_DIR }/lib/libctk.a`,
             ],
             "library_import_paths":
             [
@@ -76,26 +81,17 @@ module.exports =
         {
             "partial": "prism_test",
             "main": `${ PRISM_SRC_DIR }/test`,
-            "include_dirs":
-            [
-                `${ CTK_DIR }/src`,
-            ],
-            "libraries":
-            [
-                // ctk dependencies
-                "libyaml.a",
-            ],
-            "internal_static_library_paths":
-            [
-                `${ CTK_DIR }/lib/libctk.a`,
-            ],
+        },
+        "simd":
+        {
+            "partial": "prism_test",
+            "main": `${ PRISM_SRC_DIR }/simd`,
+            "compiler_options": [ "mavx2", "O3" ],
         },
         "sandbox":
         {
             "partial": "prism_test",
             "main": `${ PRISM_SRC_DIR }/sandbox`,
-            "include_dirs": [],
-            "compiler_options": [ "mavx2", "O3" ],
         },
     }
 };
