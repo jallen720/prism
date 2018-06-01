@@ -10,8 +10,11 @@ TODO:
 #include <cstring>
 #include "prism/graphics.h"
 #include "prism/utilities.h"
+#include "prism/macros.h"
 #include "ctk/memory.h"
+#include "ctk/data.h"
 
+using ctk::PAIR;
 using ctk::mem_concat;
 
 namespace prism
@@ -24,6 +27,7 @@ namespace prism
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename T>
 using COMPONENT_PROPS_NAME_ACCESSOR = const char * (*)(const T *);
+using DEBUG_FLAG_NAME = PAIR<VkDebugReportFlagBitsEXT, const char *>;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -196,9 +200,9 @@ void gfx_init(GFX_CONTEXT * context, const char ** requested_extension_names, ui
     debug_callback_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
 
     debug_callback_create_info.flags =
-        // VK_DEBUG_REPORT_INFORMATION_BIT_EXT |
-        // VK_DEBUG_REPORT_WARNING_BIT_EXT |
-        // VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT |
+        VK_DEBUG_REPORT_INFORMATION_BIT_EXT |
+        VK_DEBUG_REPORT_WARNING_BIT_EXT |
+        VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT |
         VK_DEBUG_REPORT_ERROR_BIT_EXT |
         VK_DEBUG_REPORT_DEBUG_BIT_EXT;
 
@@ -242,19 +246,19 @@ void gfx_destroy(GFX_CONTEXT * context)
     VkInstance vk_instance = context->vk_instance;
 
 #ifdef PRISM_DEBUG
-    // Destroy debug callback.
-    auto destroy_debug_callback =
-        (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(vk_instance, "vkDestroyDebugReportCallbackEXT");
+    // // Destroy debug callback.
+    // auto destroy_debug_callback =
+    //     (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(vk_instance, "vkDestroyDebugReportCallbackEXT");
 
-    if(destroy_debug_callback == nullptr)
-    {
-        util_error_exit(
-            "VULKAN",
-            util_vk_result_name(VK_ERROR_EXTENSION_NOT_PRESENT),
-            "extension for destroying debug callback is not available\n");
-    }
+    // if(destroy_debug_callback == nullptr)
+    // {
+    //     util_error_exit(
+    //         "VULKAN",
+    //         util_vk_result_name(VK_ERROR_EXTENSION_NOT_PRESENT),
+    //         "extension for destroying debug callback is not available\n");
+    // }
 
-    destroy_debug_callback(vk_instance, context->vk_debug_callback, nullptr);
+    // destroy_debug_callback(vk_instance, context->vk_debug_callback, nullptr);
 #endif
 
     vkDestroyInstance(vk_instance, nullptr);
@@ -276,7 +280,40 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     const char * msg,
     void * user_data)
 {
-    util_log(nullptr, "validation layer: %s\n", msg);
+    static const DEBUG_FLAG_NAME DEBUG_FLAG_NAMES[]
+    {
+        PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_INFORMATION_BIT_EXT),
+        PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_WARNING_BIT_EXT),
+        PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT),
+        PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_ERROR_BIT_EXT),
+        PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_DEBUG_BIT_EXT),
+    };
+
+    static const size_t DEBUG_FLAG_COUNT = sizeof(DEBUG_FLAG_NAMES) / sizeof(DEBUG_FLAG_NAME);
+    util_log("VULKAN", "validation layer:\n");
+
+    // Log the list of flags passed to callback.
+    util_log("VULKAN", "    flags:\n");
+
+    for(size_t i = 0; i < DEBUG_FLAG_COUNT; i++)
+    {
+        const DEBUG_FLAG_NAME * debug_flag_name = DEBUG_FLAG_NAMES + i;
+        const VkDebugReportFlagBitsEXT debug_flag_bit = debug_flag_name->key;
+
+        if((debug_flag_bit & flags) == debug_flag_bit)
+        {
+            util_log("VULKAN", "        %s\n", debug_flag_name->value);
+        }
+    }
+
+    // Log remaining callback args.
+    util_log("VULKAN", "    obj_type:     %i\n", obj_type);
+    util_log("VULKAN", "    obj:          %i\n", obj);
+    util_log("VULKAN", "    location:     %i\n", location);
+    util_log("VULKAN", "    code:         %i\n", code);
+    util_log("VULKAN", "    layer_prefix: %s\n", layer_prefix);
+    util_log("VULKAN", "    msg:          \"%s\"\n", msg);
+    util_log("VULKAN", "    user_data:    %p\n", user_data);
 
     // Should the call being validated be aborted?
     return VK_FALSE;
@@ -339,11 +376,11 @@ void log_requested_component_names(
     const char ** requested_component_names,
     uint32_t requested_component_count)
 {
-    util_log(nullptr, "requested %s names (%i):\n", requested_component_type, requested_component_count);
+    util_log("VULKAN", "requested %s names (%i):\n", requested_component_type, requested_component_count);
 
     for(size_t i = 0; i < requested_component_count; i++)
     {
-        util_log(nullptr, "    %s\n", requested_component_names[i]);
+        util_log("VULKAN", "    %s\n", requested_component_names[i]);
     }
 }
 
@@ -354,7 +391,7 @@ void log_available_component_names(
     uint32_t available_component_count,
     COMPONENT_PROPS_NAME_ACCESSOR<T> access_component_name)
 {
-    util_log(nullptr, "available %s names (%i):", available_component_type, available_component_count);
+    util_log("VULKAN", "available %s names (%i):", available_component_type, available_component_count);
 
     if(available_component_count == 0)
     {
@@ -366,7 +403,7 @@ void log_available_component_names(
 
         for(uint32_t i = 0; i < available_component_count; i++)
         {
-            util_log(nullptr, "    %s\n", access_component_name(available_component_props + i));
+            util_log("VULKAN", "    %s\n", access_component_name(available_component_props + i));
         }
     }
 }
