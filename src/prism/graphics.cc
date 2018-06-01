@@ -53,7 +53,7 @@ const char * layer_props_name_accessor(const VkLayerProperties * layer_propertie
 const char * extension_props_name_accessor(const VkExtensionProperties * extension_properties);
 
 template<typename T>
-void validate_requested_component(
+void validate_requested_component_names(
     const char * requested_component_type,
     const char ** requested_component_names,
     uint32_t requested_component_count,
@@ -158,7 +158,7 @@ void gfx_init(const char ** requested_extension_names, uint32_t requested_extens
 #endif
 
     // Validate requested extensions and layers are available.
-    validate_requested_component(
+    validate_requested_component_names(
         "extension",
         requested_extension_names,
         requested_extension_count,
@@ -166,7 +166,7 @@ void gfx_init(const char ** requested_extension_names, uint32_t requested_extens
         available_extension_count,
         extension_props_name_accessor);
 
-    validate_requested_component(
+    validate_requested_component_names(
         "layer",
         requested_layer_names,
         requested_layer_count,
@@ -241,7 +241,7 @@ const char * extension_props_name_accessor(const VkExtensionProperties * extensi
 }
 
 template<typename T>
-void validate_requested_component(
+void validate_requested_component_names(
     const char * requested_component_type,
     const char ** requested_component_names,
     uint32_t requested_component_count,
