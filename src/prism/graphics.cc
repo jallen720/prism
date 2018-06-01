@@ -22,12 +22,36 @@ namespace prism
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
+// Constants
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+static const size_t MAX_INSTANCE_COMPONENT_COUNT = 16;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
 // Typedefs
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename T>
 using COMPONENT_PROPS_NAME_ACCESSOR = const char * (*)(const T *);
+
 using DEBUG_FLAG_NAME = PAIR<VkDebugReportFlagBitsEXT, const char *>;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Data Structures
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+template<typename COMPONENT_PROPS>
+struct INSTANCE_COMPONENT_INFO
+{
+    const char * type;
+    const char ** requested_names;
+    uint32_t requested_count;
+    COMPONENT_PROPS available_props[MAX_INSTANCE_COMPONENT_COUNT];
+    uint32_t available_count;
+    COMPONENT_PROPS_NAME_ACCESSOR<COMPONENT_PROPS> props_name_accessor;
+};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -55,26 +79,11 @@ const char * layer_props_name_accessor(const VkLayerProperties * layer_propertie
 const char * extension_props_name_accessor(const VkExtensionProperties * extension_properties);
 
 template<typename T>
-void validate_requested_component_names(
-    const char * requested_component_type,
-    const char ** requested_component_names,
-    uint32_t requested_component_count,
-    T * available_component_props,
-    uint32_t available_component_count,
-    COMPONENT_PROPS_NAME_ACCESSOR<T> access_component_name);
+void validate_requested_component_names(const INSTANCE_COMPONENT_INFO<T> * component_info);
 
 #ifdef PRISM_DEBUG
-void log_requested_component_names(
-    const char * requested_component_type,
-    const char ** requested_component_names,
-    uint32_t requested_component_count);
-
 template<typename T>
-void log_available_component_names(
-    const char * available_component_type,
-    T * available_component_props,
-    uint32_t available_component_count,
-    COMPONENT_PROPS_NAME_ACCESSOR<T> access_component_name);
+void log_component_names(const INSTANCE_COMPONENT_INFO<T> * component_info);
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -82,25 +91,13 @@ void log_available_component_names(
 // Interface
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void gfx_init(GFX_CONTEXT * context, const char ** requested_extension_names, uint32_t requested_extension_count)
+void gfx_init(
+    GFX_CONTEXT * context,
+    const char ** requested_extension_names,
+    uint32_t requested_extension_count,
+    const char ** requested_layer_names,
+    uint32_t requested_layer_count)
 {
-    static const size_t MAX_EXTENSION_COUNT = 16;
-    static const size_t MAX_LAYER_COUNT = 16;
-    const char ** requested_layer_names;
-    uint32_t requested_layer_count = 0;
-
-    // Check available extensions.
-    uint32_t available_extension_count = 0;
-    vkEnumerateInstanceExtensionProperties(nullptr, &available_extension_count, nullptr);
-    VkExtensionProperties available_extension_props[MAX_EXTENSION_COUNT];
-    vkEnumerateInstanceExtensionProperties(nullptr, &available_extension_count, available_extension_props);
-
-    // Check available layers.
-    uint32_t available_layer_count = 0;
-    vkEnumerateInstanceLayerProperties(&available_layer_count, nullptr);
-    VkLayerProperties available_layer_props[MAX_LAYER_COUNT];
-    vkEnumerateInstanceLayerProperties(&available_layer_count, available_layer_props);
-
 #ifdef PRISM_DEBUG
     // Concatenate requested and debug extension names.
     static const char * DEBUG_EXTENSION_NAMES[]
@@ -109,10 +106,10 @@ void gfx_init(GFX_CONTEXT * context, const char ** requested_extension_names, ui
     };
 
     static const size_t DEBUG_EXTENSION_COUNT = sizeof(DEBUG_EXTENSION_NAMES) / sizeof(void *);
-    const char * all_extension_names[MAX_EXTENSION_COUNT];
+    const char * all_extension_names[MAX_INSTANCE_COMPONENT_COUNT];
     const size_t all_extension_count = DEBUG_EXTENSION_COUNT + requested_extension_count;
 
-    if(all_extension_count > MAX_EXTENSION_COUNT)
+    if(all_extension_count > MAX_INSTANCE_COMPONENT_COUNT)
     {
         util_error_exit(
             "VULKAN",
@@ -121,7 +118,7 @@ void gfx_init(GFX_CONTEXT * context, const char ** requested_extension_names, ui
             "    requested extensions: %i\n"
             "    debug extensions: %i\n",
             all_extension_count,
-            MAX_EXTENSION_COUNT,
+            MAX_INSTANCE_COMPONENT_COUNT,
             requested_extension_count,
             DEBUG_EXTENSION_COUNT);
     }
@@ -145,36 +142,37 @@ void gfx_init(GFX_CONTEXT * context, const char ** requested_extension_names, ui
     static const size_t DEBUG_LAYER_COUNT = sizeof(DEBUG_LAYER_NAMES) / sizeof(void *);
     requested_layer_names = DEBUG_LAYER_NAMES;
     requested_layer_count = DEBUG_LAYER_COUNT;
+#endif
 
-    // Log requested and available extensions and layers.
-    log_requested_component_names("extension", requested_extension_names, requested_extension_count);
+    // Initialize extension_info with requested extension names and available extension properties.
+    INSTANCE_COMPONENT_INFO<VkExtensionProperties> extension_info = {};
+    extension_info.type = "extension";
+    extension_info.requested_names = requested_extension_names;
+    extension_info.requested_count = requested_extension_count;
+    extension_info.props_name_accessor = extension_props_name_accessor;
+    uint32_t * available_extension_count = &extension_info.available_count;
+    vkEnumerateInstanceExtensionProperties(nullptr, available_extension_count, nullptr);
+    vkEnumerateInstanceExtensionProperties(nullptr, available_extension_count, extension_info.available_props);
 
-    log_available_component_names(
-        "extension",
-        available_extension_props,
-        available_extension_count,
-        extension_props_name_accessor);
+    // Initialize layer_info with requested layer names and available layer properties.
+    INSTANCE_COMPONENT_INFO<VkLayerProperties> layer_info = {};
+    layer_info.type = "layer";
+    layer_info.requested_names = requested_layer_names;
+    layer_info.requested_count = requested_layer_count;
+    layer_info.props_name_accessor = layer_props_name_accessor;
+    uint32_t * available_layer_count = &layer_info.available_count;
+    vkEnumerateInstanceLayerProperties(available_layer_count, nullptr);
+    vkEnumerateInstanceLayerProperties(available_layer_count, layer_info.available_props);
 
-    log_requested_component_names("layer", requested_layer_names, requested_layer_count);
-    log_available_component_names("layer", available_layer_props, available_layer_count, layer_props_name_accessor);
+#ifdef PRISM_DEBUG
+    // Log requested and available component names before validation.
+    log_component_names(&extension_info);
+    log_component_names(&layer_info);
 #endif
 
     // Validate requested extensions and layers are available.
-    validate_requested_component_names(
-        "extension",
-        requested_extension_names,
-        requested_extension_count,
-        available_extension_props,
-        available_extension_count,
-        extension_props_name_accessor);
-
-    validate_requested_component_names(
-        "layer",
-        requested_layer_names,
-        requested_layer_count,
-        available_layer_props,
-        available_layer_count,
-        layer_props_name_accessor);
+    validate_requested_component_names(&extension_info);
+    validate_requested_component_names(&layer_info);
 
     // Initialize application info.
     VkApplicationInfo app_info = {};
@@ -189,10 +187,10 @@ void gfx_init(GFX_CONTEXT * context, const char ** requested_extension_names, ui
     VkInstanceCreateInfo instance_create_info = {};
     instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instance_create_info.pApplicationInfo = &app_info;
-    instance_create_info.enabledExtensionCount = requested_extension_count;
-    instance_create_info.ppEnabledExtensionNames = requested_extension_names;
-    instance_create_info.enabledLayerCount = requested_layer_count;
-    instance_create_info.ppEnabledLayerNames = requested_layer_names;
+    instance_create_info.ppEnabledExtensionNames = extension_info.requested_names;
+    instance_create_info.enabledExtensionCount = extension_info.requested_count;
+    instance_create_info.ppEnabledLayerNames = layer_info.requested_names;
+    instance_create_info.enabledLayerCount = layer_info.requested_count;
 
 #ifdef PRISM_DEBUG
     // Initialize debug callback.
@@ -200,9 +198,9 @@ void gfx_init(GFX_CONTEXT * context, const char ** requested_extension_names, ui
     debug_callback_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
 
     debug_callback_create_info.flags =
-        VK_DEBUG_REPORT_INFORMATION_BIT_EXT |
-        VK_DEBUG_REPORT_WARNING_BIT_EXT |
-        VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT |
+        // VK_DEBUG_REPORT_INFORMATION_BIT_EXT |
+        // VK_DEBUG_REPORT_WARNING_BIT_EXT |
+        // VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT |
         VK_DEBUG_REPORT_ERROR_BIT_EXT |
         VK_DEBUG_REPORT_DEBUG_BIT_EXT;
 
@@ -246,19 +244,19 @@ void gfx_destroy(GFX_CONTEXT * context)
     VkInstance vk_instance = context->vk_instance;
 
 #ifdef PRISM_DEBUG
-    // // Destroy debug callback.
-    // auto destroy_debug_callback =
-    //     (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(vk_instance, "vkDestroyDebugReportCallbackEXT");
+    // Destroy debug callback.
+    auto destroy_debug_callback =
+        (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(vk_instance, "vkDestroyDebugReportCallbackEXT");
 
-    // if(destroy_debug_callback == nullptr)
-    // {
-    //     util_error_exit(
-    //         "VULKAN",
-    //         util_vk_result_name(VK_ERROR_EXTENSION_NOT_PRESENT),
-    //         "extension for destroying debug callback is not available\n");
-    // }
+    if(destroy_debug_callback == nullptr)
+    {
+        util_error_exit(
+            "VULKAN",
+            util_vk_result_name(VK_ERROR_EXTENSION_NOT_PRESENT),
+            "extension for destroying debug callback is not available\n");
+    }
 
-    // destroy_debug_callback(vk_instance, context->vk_debug_callback, nullptr);
+    destroy_debug_callback(vk_instance, context->vk_debug_callback, nullptr);
 #endif
 
     vkDestroyInstance(vk_instance, nullptr);
@@ -336,14 +334,14 @@ const char * extension_props_name_accessor(const VkExtensionProperties * extensi
 }
 
 template<typename T>
-void validate_requested_component_names(
-    const char * requested_component_type,
-    const char ** requested_component_names,
-    uint32_t requested_component_count,
-    T * available_component_props,
-    uint32_t available_component_count,
-    COMPONENT_PROPS_NAME_ACCESSOR<T> access_component_name)
+void validate_requested_component_names(const INSTANCE_COMPONENT_INFO<T> * component_info)
 {
+    const char ** requested_component_names = component_info->requested_names;
+    uint32_t requested_component_count = component_info->requested_count;
+    const T * available_component_props = component_info->available_props;
+    uint32_t available_component_count = component_info->available_count;
+    COMPONENT_PROPS_NAME_ACCESSOR<T> access_component_name = component_info->props_name_accessor;
+
     for(size_t i = 0; i < requested_component_count; i++)
     {
         const char * requested_component_name = requested_component_names[i];
@@ -364,34 +362,30 @@ void validate_requested_component_names(
                 "VULKAN",
                 nullptr,
                 "requested %s \"%s\" is not available\n",
-                requested_component_type,
+                component_info->type,
                 requested_component_name);
         }
     }
 }
 
 #ifdef PRISM_DEBUG
-void log_requested_component_names(
-    const char * requested_component_type,
-    const char ** requested_component_names,
-    uint32_t requested_component_count)
+template<typename T>
+void log_component_names(const INSTANCE_COMPONENT_INFO<T> * component_info)
 {
-    util_log("VULKAN", "requested %s names (%i):\n", requested_component_type, requested_component_count);
+    const char * component_type = component_info->type;
+    const char ** requested_component_names = component_info->requested_names;
+    uint32_t requested_component_count = component_info->requested_count;
+    const T * available_component_props = component_info->available_props;
+    uint32_t available_component_count = component_info->available_count;
+    COMPONENT_PROPS_NAME_ACCESSOR<T> access_component_name = component_info->props_name_accessor;
+    util_log("VULKAN", "requested %s names (%i):\n", component_type, requested_component_count);
 
     for(size_t i = 0; i < requested_component_count; i++)
     {
         util_log("VULKAN", "    %s\n", requested_component_names[i]);
     }
-}
 
-template<typename T>
-void log_available_component_names(
-    const char * available_component_type,
-    T * available_component_props,
-    uint32_t available_component_count,
-    COMPONENT_PROPS_NAME_ACCESSOR<T> access_component_name)
-{
-    util_log("VULKAN", "available %s names (%i):", available_component_type, available_component_count);
+    util_log("VULKAN", "available %s names (%i):", component_type, available_component_count);
 
     if(available_component_count == 0)
     {

@@ -38,7 +38,7 @@ int main()
 
     // Create and initialize graphics context.
     GFX_CONTEXT context = {};
-    gfx_init(&context, required_extension_names, required_extension_count);
+    gfx_init(&context, required_extension_names, required_extension_count, nullptr, 0);
 
     // Cleanup graphics context.
     gfx_destroy(&context);
