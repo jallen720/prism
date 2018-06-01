@@ -126,8 +126,8 @@ void gfx_init(const char ** requested_extension_names, uint32_t requested_extens
 
     mem_concat(
         requested_extension_names,
-        DEBUG_EXTENSION_NAMES,
         requested_extension_count,
+        DEBUG_EXTENSION_NAMES,
         DEBUG_EXTENSION_COUNT,
         all_extension_names);
 
