@@ -13,10 +13,10 @@ namespace prism
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 struct GFX_CONTEXT
 {
-    VkInstance vk_instance;
+    VkInstance instance = VK_NULL_HANDLE;
 
 #ifdef PRISM_DEBUG
-    VkDebugReportCallbackEXT vk_debug_callback;
+    VkDebugReportCallbackEXT debug_callback = VK_NULL_HANDLE;
 #endif
 };
 

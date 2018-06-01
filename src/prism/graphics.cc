@@ -208,8 +208,8 @@ void gfx_init(
 #endif
 
     // Create Vulkan instance.
-    VkInstance * vk_instance = &context->vk_instance;
-    VkResult create_instance_result = vkCreateInstance(&instance_create_info, nullptr, vk_instance);
+    VkInstance * instance = &context->instance;
+    VkResult create_instance_result = vkCreateInstance(&instance_create_info, nullptr, instance);
 
     if(create_instance_result != VK_SUCCESS)
     {
@@ -219,7 +219,7 @@ void gfx_init(
 #ifdef PRISM_DEBUG
     // Create debug callback.
     auto create_debug_callback =
-        (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(*vk_instance, "vkCreateDebugReportCallbackEXT");
+        (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(*instance, "vkCreateDebugReportCallbackEXT");
 
     if(create_debug_callback == nullptr)
     {
@@ -230,7 +230,7 @@ void gfx_init(
     }
 
     VkResult create_debug_callback_result =
-        create_debug_callback(*vk_instance, &debug_callback_create_info, nullptr, &context->vk_debug_callback);
+        create_debug_callback(*instance, &debug_callback_create_info, nullptr, &context->debug_callback);
 
     if(create_debug_callback_result != VK_SUCCESS)
     {
@@ -241,12 +241,12 @@ void gfx_init(
 
 void gfx_destroy(GFX_CONTEXT * context)
 {
-    VkInstance vk_instance = context->vk_instance;
+    VkInstance instance = context->instance;
 
 #ifdef PRISM_DEBUG
     // Destroy debug callback.
     auto destroy_debug_callback =
-        (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(vk_instance, "vkDestroyDebugReportCallbackEXT");
+        (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
 
     if(destroy_debug_callback == nullptr)
     {
@@ -256,10 +256,10 @@ void gfx_destroy(GFX_CONTEXT * context)
             "extension for destroying debug callback is not available\n");
     }
 
-    destroy_debug_callback(vk_instance, context->vk_debug_callback, nullptr);
+    destroy_debug_callback(instance, context->debug_callback, nullptr);
 #endif
 
-    vkDestroyInstance(vk_instance, nullptr);
+    vkDestroyInstance(instance, nullptr);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
