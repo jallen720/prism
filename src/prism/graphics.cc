@@ -1,14 +1,13 @@
 /*
 
 TODO:
-    setup debug callbacks
+    expand debug callbacks
 
 */
 
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
-#include "vulkan/vulkan.h"
 #include "prism/graphics.h"
 #include "prism/utilities.h"
 #include "ctk/memory.h"
@@ -28,19 +27,19 @@ using COMPONENT_PROPS_NAME_ACCESSOR = const char * (*)(const T *);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Validation Callbacks
+// Callbacks
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifdef PRISM_DEBUG
-// static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
-//     VkDebugReportFlagsEXT flags,
-//     VkDebugReportObjectTypeEXT obj_type,
-//     uint64_t obj,
-//     size_t location,
-//     int32_t code,
-//     const char * layer_prefix,
-//     const char * msg,
-//     void * user_data);
+static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
+    VkDebugReportFlagsEXT flags,
+    VkDebugReportObjectTypeEXT obj_type,
+    uint64_t obj,
+    size_t location,
+    int32_t code,
+    const char * layer_prefix,
+    const char * msg,
+    void * user_data);
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -58,7 +57,7 @@ void validate_requested_component_names(
     uint32_t requested_component_count,
     T * available_component_props,
     uint32_t available_component_count,
-    COMPONENT_PROPS_NAME_ACCESSOR<T> component_props_name_accessor);
+    COMPONENT_PROPS_NAME_ACCESSOR<T> access_component_name);
 
 #ifdef PRISM_DEBUG
 void log_requested_component_names(
@@ -71,7 +70,7 @@ void log_available_component_names(
     const char * available_component_type,
     T * available_component_props,
     uint32_t available_component_count,
-    COMPONENT_PROPS_NAME_ACCESSOR<T> component_props_name_accessor);
+    COMPONENT_PROPS_NAME_ACCESSOR<T> access_component_name);
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -79,7 +78,7 @@ void log_available_component_names(
 // Interface
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void gfx_init(const char ** requested_extension_names, uint32_t requested_extension_count)
+void gfx_init(GFX_CONTEXT * context, const char ** requested_extension_names, uint32_t requested_extension_count)
 {
     static const size_t MAX_EXTENSION_COUNT = 16;
     static const size_t MAX_LAYER_COUNT = 16;
@@ -191,16 +190,74 @@ void gfx_init(const char ** requested_extension_names, uint32_t requested_extens
     instance_create_info.enabledLayerCount = requested_layer_count;
     instance_create_info.ppEnabledLayerNames = requested_layer_names;
 
-    // Create Vulkan instance.
-    VkInstance instance;
-    VkResult result = vkCreateInstance(&instance_create_info, nullptr, &instance);
+#ifdef PRISM_DEBUG
+    // Initialize debug callback.
+    VkDebugReportCallbackCreateInfoEXT debug_callback_create_info = {};
+    debug_callback_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
 
-    if(result != VK_SUCCESS)
+    debug_callback_create_info.flags =
+        // VK_DEBUG_REPORT_INFORMATION_BIT_EXT |
+        // VK_DEBUG_REPORT_WARNING_BIT_EXT |
+        // VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT |
+        VK_DEBUG_REPORT_ERROR_BIT_EXT |
+        VK_DEBUG_REPORT_DEBUG_BIT_EXT;
+
+    debug_callback_create_info.pfnCallback = debug_callback;
+#endif
+
+    // Create Vulkan instance.
+    VkInstance * vk_instance = &context->vk_instance;
+    VkResult create_instance_result = vkCreateInstance(&instance_create_info, nullptr, vk_instance);
+
+    if(create_instance_result != VK_SUCCESS)
     {
-        util_error_exit("VULKAN", util_vk_result_name(result), "failed to create instance\n");
+        util_error_exit("VULKAN", util_vk_result_name(create_instance_result), "failed to create instance\n");
     }
 
-    // ...
+#ifdef PRISM_DEBUG
+    // Create debug callback.
+    auto create_debug_callback =
+        (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(*vk_instance, "vkCreateDebugReportCallbackEXT");
+
+    if(create_debug_callback == nullptr)
+    {
+        util_error_exit(
+            "VULKAN",
+            util_vk_result_name(VK_ERROR_EXTENSION_NOT_PRESENT),
+            "extension for creating debug callback is not available\n");
+    }
+
+    VkResult create_debug_callback_result =
+        create_debug_callback(*vk_instance, &debug_callback_create_info, nullptr, &context->vk_debug_callback);
+
+    if(create_debug_callback_result != VK_SUCCESS)
+    {
+        util_error_exit("VULKAN", util_vk_result_name(create_debug_callback_result), "failed to create debug callback");
+    }
+#endif
+}
+
+void gfx_destroy(GFX_CONTEXT * context)
+{
+    VkInstance vk_instance = context->vk_instance;
+
+#ifdef PRISM_DEBUG
+    // Destroy debug callback.
+    auto destroy_debug_callback =
+        (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(vk_instance, "vkDestroyDebugReportCallbackEXT");
+
+    if(destroy_debug_callback == nullptr)
+    {
+        util_error_exit(
+            "VULKAN",
+            util_vk_result_name(VK_ERROR_EXTENSION_NOT_PRESENT),
+            "extension for destroying debug callback is not available\n");
+    }
+
+    destroy_debug_callback(vk_instance, context->vk_debug_callback, nullptr);
+#endif
+
+    vkDestroyInstance(vk_instance, nullptr);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -209,19 +266,21 @@ void gfx_init(const char ** requested_extension_names, uint32_t requested_extens
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifdef PRISM_DEBUG
-// static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
-//     VkDebugReportFlagsEXT flags,
-//     VkDebugReportObjectTypeEXT obj_type,
-//     uint64_t obj,
-//     size_t location,
-//     int32_t code,
-//     const char * layer_prefix,
-//     const char * msg,
-//     void * user_data)
-// {
-//     util_log(nullptr, "validation layer: %s\n", msg);
-//     return VK_FALSE;
-// }
+static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
+    VkDebugReportFlagsEXT flags,
+    VkDebugReportObjectTypeEXT obj_type,
+    uint64_t obj,
+    size_t location,
+    int32_t code,
+    const char * layer_prefix,
+    const char * msg,
+    void * user_data)
+{
+    util_log(nullptr, "validation layer: %s\n", msg);
+
+    // Should the call being validated be aborted?
+    return VK_FALSE;
+}
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -246,7 +305,7 @@ void validate_requested_component_names(
     uint32_t requested_component_count,
     T * available_component_props,
     uint32_t available_component_count,
-    COMPONENT_PROPS_NAME_ACCESSOR<T> component_props_name_accessor)
+    COMPONENT_PROPS_NAME_ACCESSOR<T> access_component_name)
 {
     for(size_t i = 0; i < requested_component_count; i++)
     {
@@ -255,7 +314,7 @@ void validate_requested_component_names(
 
         for(size_t j = 0; j < available_component_count; j++)
         {
-            if(strcmp(requested_component_name, component_props_name_accessor(available_component_props + j)) == 0)
+            if(strcmp(requested_component_name, access_component_name(available_component_props + j)) == 0)
             {
                 component_available = true;
                 break;
@@ -293,7 +352,7 @@ void log_available_component_names(
     const char * available_component_type,
     T * available_component_props,
     uint32_t available_component_count,
-    COMPONENT_PROPS_NAME_ACCESSOR<T> component_props_name_accessor)
+    COMPONENT_PROPS_NAME_ACCESSOR<T> access_component_name)
 {
     util_log(nullptr, "available %s names (%i):", available_component_type, available_component_count);
 
@@ -307,7 +366,7 @@ void log_available_component_names(
 
         for(uint32_t i = 0; i < available_component_count; i++)
         {
-            util_log(nullptr, "    %s\n", component_props_name_accessor(available_component_props + i));
+            util_log(nullptr, "    %s\n", access_component_name(available_component_props + i));
         }
     }
 }

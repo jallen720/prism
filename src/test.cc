@@ -8,7 +8,9 @@
 using prism::sys_init;
 using prism::sys_create_window;
 using prism::sys_required_extension_names;
+using prism::GFX_CONTEXT;
 using prism::gfx_init;
+using prism::gfx_destroy;
 using ctk::YAML_NODE;
 using ctk::yaml_read_file;
 using ctk::yaml_get_s;
@@ -30,10 +32,16 @@ int main()
 
     yaml_free(window_config);
 
-    // Initialize graphics module.
+    // Get GLFW's required Vulkan extensions.
     uint32_t required_extension_count = 0;
     const char ** required_extension_names = sys_required_extension_names(&required_extension_count);
-    gfx_init(required_extension_names, required_extension_count);
+
+    // Create and initialize graphics context.
+    GFX_CONTEXT context = {};
+    gfx_init(&context, required_extension_names, required_extension_count);
+
+    // Cleanup graphics context.
+    gfx_destroy(&context);
 
     return EXIT_SUCCESS;
 }
