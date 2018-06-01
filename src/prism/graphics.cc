@@ -33,8 +33,8 @@ static const size_t MAX_DEVICE_COUNT = 16;
 // Typedefs
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-template<typename T>
-using COMPONENT_PROPS_NAME_ACCESSOR = const char * (*)(const T *);
+template<typename COMPONENT_PROPS>
+using COMPONENT_PROPS_NAME_ACCESSOR = const char * (*)(const COMPONENT_PROPS *);
 
 using DEBUG_FLAG_NAME = PAIR<VkDebugReportFlagBitsEXT, const char *>;
 
@@ -79,12 +79,12 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
 const char * layer_props_name_accessor(const VkLayerProperties * layer_properties);
 const char * extension_props_name_accessor(const VkExtensionProperties * extension_properties);
 
-template<typename T>
-void validate_requested_component_names(const INSTANCE_COMPONENT_INFO<T> * component_info);
+template<typename COMPONENT_PROPS>
+void validate_requested_component_names(const INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info);
 
 #ifdef PRISM_DEBUG
-template<typename T>
-void log_component_names(const INSTANCE_COMPONENT_INFO<T> * component_info);
+template<typename COMPONENT_PROPS>
+void log_component_names(const INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info);
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -409,14 +409,14 @@ const char * extension_props_name_accessor(const VkExtensionProperties * extensi
     return extension_properties->extensionName;
 }
 
-template<typename T>
-void validate_requested_component_names(const INSTANCE_COMPONENT_INFO<T> * component_info)
+template<typename COMPONENT_PROPS>
+void validate_requested_component_names(const INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info)
 {
     const char ** requested_component_names = component_info->requested_names;
     uint32_t requested_component_count = component_info->requested_count;
-    const T * available_component_props = component_info->available_props;
+    const COMPONENT_PROPS * available_component_props = component_info->available_props;
     uint32_t available_component_count = component_info->available_count;
-    COMPONENT_PROPS_NAME_ACCESSOR<T> access_component_name = component_info->props_name_accessor;
+    COMPONENT_PROPS_NAME_ACCESSOR<COMPONENT_PROPS> access_component_name = component_info->props_name_accessor;
 
     for(size_t i = 0; i < requested_component_count; i++)
     {
@@ -445,15 +445,15 @@ void validate_requested_component_names(const INSTANCE_COMPONENT_INFO<T> * compo
 }
 
 #ifdef PRISM_DEBUG
-template<typename T>
-void log_component_names(const INSTANCE_COMPONENT_INFO<T> * component_info)
+template<typename COMPONENT_PROPS>
+void log_component_names(const INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info)
 {
     const char * component_type = component_info->type;
     const char ** requested_component_names = component_info->requested_names;
     uint32_t requested_component_count = component_info->requested_count;
-    const T * available_component_props = component_info->available_props;
+    const COMPONENT_PROPS * available_component_props = component_info->available_props;
     uint32_t available_component_count = component_info->available_count;
-    COMPONENT_PROPS_NAME_ACCESSOR<T> access_component_name = component_info->props_name_accessor;
+    COMPONENT_PROPS_NAME_ACCESSOR<COMPONENT_PROPS> access_component_name = component_info->props_name_accessor;
     util_log("VULKAN", "requested %s names (%i):\n", component_type, requested_component_count);
 
     for(size_t i = 0; i < requested_component_count; i++)
