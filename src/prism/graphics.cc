@@ -1,7 +1,6 @@
 /*
 
 TODO:
-    prop validations
     setup debug callbacks
 
 */
