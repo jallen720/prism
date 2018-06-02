@@ -125,7 +125,7 @@ static void free_available_props(INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * comp
 }
 
 template<typename COMPONENT_PROPS>
-static void validate_requested_component_names(const INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info)
+static void validate_instance_component_info(const INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info)
 {
     const char ** requested_component_names = component_info->requested_names;
     uint32_t requested_component_count = component_info->requested_count;
@@ -161,7 +161,7 @@ static void validate_requested_component_names(const INSTANCE_COMPONENT_INFO<COM
 
 #ifdef PRISM_DEBUG
 template<typename COMPONENT_PROPS>
-static void log_component_names(const INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info)
+static void log_instance_component_names(const INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info)
 {
     const char * component_type = component_info->type;
     const char ** requested_component_names = component_info->requested_names;
@@ -194,56 +194,13 @@ static void log_component_names(const INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> *
 }
 #endif
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Interface
-//
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void gfx_init(
+static void create_instance(
     GFX_CONTEXT * context,
     const char ** requested_extension_names,
     uint32_t requested_extension_count,
     const char ** requested_layer_names,
     uint32_t requested_layer_count)
 {
-#ifdef PRISM_DEBUG
-    // Concatenate requested and debug extension names.
-    static const char * DEBUG_EXTENSION_NAMES[]
-    {
-        VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
-    };
-
-    static const size_t DEBUG_EXTENSION_COUNT = sizeof(DEBUG_EXTENSION_NAMES) / sizeof(void *);
-    const size_t all_extension_count = DEBUG_EXTENSION_COUNT + requested_extension_count;
-    auto all_extension_names = (const char **)malloc(sizeof(void *) * all_extension_count);
-
-    mem_concat(
-        requested_extension_names,
-        requested_extension_count,
-        DEBUG_EXTENSION_NAMES,
-        DEBUG_EXTENSION_COUNT,
-        all_extension_names);
-
-    requested_extension_names = all_extension_names;
-    requested_extension_count = all_extension_count;
-
-    // Concatenate requested and debug layer names.
-    static const char * DEBUG_LAYER_NAMES[] =
-    {
-        "VK_LAYER_LUNARG_standard_validation",
-    };
-
-    static const size_t DEBUG_LAYER_COUNT = sizeof(DEBUG_LAYER_NAMES) / sizeof(void *);
-    requested_layer_names = DEBUG_LAYER_NAMES;
-    requested_layer_count = DEBUG_LAYER_COUNT;
-#endif
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //
-    // Instance Creation
-    //
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
     // Initialize extension_info with requested extension names and available extension properties.
     INSTANCE_COMPONENT_INFO<VkExtensionProperties> extension_info = {};
     extension_info.type = "extension";
@@ -268,13 +225,13 @@ void gfx_init(
 
 // #ifdef PRISM_DEBUG
 //     // Log requested and available component names before validation.
-//     log_component_names(&extension_info);
-//     log_component_names(&layer_info);
+//     log_instance_component_names(&extension_info);
+//     log_instance_component_names(&layer_info);
 // #endif
 
     // Validate requested extensions and layers are available.
-    validate_requested_component_names(&extension_info);
-    validate_requested_component_names(&layer_info);
+    validate_instance_component_info(&extension_info);
+    validate_instance_component_info(&layer_info);
 
     // Initialize application info.
     VkApplicationInfo app_info = {};
@@ -294,21 +251,6 @@ void gfx_init(
     instance_create_info.ppEnabledLayerNames = layer_info.requested_names;
     instance_create_info.enabledLayerCount = layer_info.requested_count;
 
-#ifdef PRISM_DEBUG
-    // Initialize debug callback.
-    VkDebugReportCallbackCreateInfoEXT debug_callback_create_info = {};
-    debug_callback_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
-
-    debug_callback_create_info.flags =
-        // VK_DEBUG_REPORT_INFORMATION_BIT_EXT |
-        // VK_DEBUG_REPORT_WARNING_BIT_EXT |
-        // VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT |
-        VK_DEBUG_REPORT_ERROR_BIT_EXT |
-        VK_DEBUG_REPORT_DEBUG_BIT_EXT;
-
-    debug_callback_create_info.pfnCallback = debug_callback;
-#endif
-
     // Create Vulkan instance.
     VkInstance * instance = &context->instance;
     VkResult create_instance_result = vkCreateInstance(&instance_create_info, nullptr, instance);
@@ -321,17 +263,16 @@ void gfx_init(
     // Free available instance component props arrays after instance creation.
     free_available_props(&extension_info);
     free_available_props(&layer_info);
+}
 
 #ifdef PRISM_DEBUG
-    // In debug mode, requested_extension_names is a dynamically allocated concatenation of the user requested extension
-    // names and built-in debug extension names, so it needs to be freed.
-    free(requested_extension_names);
-#endif
+static void create_debug_callback(GFX_CONTEXT * context)
+{
+    VkInstance instance = context->instance;
 
-#ifdef PRISM_DEBUG
-    // Create debug callback.
+    // Ensure debug callback creation function exists.
     auto create_debug_callback =
-        (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(*instance, "vkCreateDebugReportCallbackEXT");
+        (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
 
     if(create_debug_callback == nullptr)
     {
@@ -341,34 +282,49 @@ void gfx_init(
             "extension for creating debug callback is not available\n");
     }
 
+    // Initialize debug callback creation info.
+    VkDebugReportCallbackCreateInfoEXT debug_callback_create_info = {};
+    debug_callback_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
+
+    debug_callback_create_info.flags =
+        // VK_DEBUG_REPORT_INFORMATION_BIT_EXT |
+        // VK_DEBUG_REPORT_WARNING_BIT_EXT |
+        // VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT |
+        VK_DEBUG_REPORT_ERROR_BIT_EXT |
+        VK_DEBUG_REPORT_DEBUG_BIT_EXT;
+
+    debug_callback_create_info.pfnCallback = debug_callback;
+
+    // Create debug callback.
     VkResult create_debug_callback_result =
-        create_debug_callback(*instance, &debug_callback_create_info, nullptr, &context->debug_callback);
+        create_debug_callback(instance, &debug_callback_create_info, nullptr, &context->debug_callback);
 
     if(create_debug_callback_result != VK_SUCCESS)
     {
         util_error_exit("VULKAN", util_vk_result_name(create_debug_callback_result), "failed to create debug callback");
     }
+}
 #endif
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //
-    // Physical-Device Selection
-    //
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+static void create_physical_device(GFX_CONTEXT * context)
+{
+    VkInstance instance = context->instance;
 
     // Ensure atleast 1 physical-device can be found.
-    uint32_t physical_device_count = 0;
-    vkEnumeratePhysicalDevices(*instance, &physical_device_count, nullptr);
+    uint32_t available_physical_device_count = 0;
+    vkEnumeratePhysicalDevices(instance, &available_physical_device_count, nullptr);
 
-    if(physical_device_count == 0)
+    if(available_physical_device_count == 0)
     {
         util_error_exit("VULKAN", nullptr, "no physical-devices found\n");
     }
 
     // Find a suitable physical-device for rendering and store handle in context.
-    auto physical_devices = (VkPhysicalDevice *)malloc(sizeof(VkPhysicalDevice) * physical_device_count);
-    vkEnumeratePhysicalDevices(*instance, &physical_device_count, physical_devices);
-    VkPhysicalDevice * selected_physical_device = &context->physical_device;
+    auto available_physical_devices =
+        (VkPhysicalDevice *)malloc(sizeof(VkPhysicalDevice) * available_physical_device_count);
+
+    vkEnumeratePhysicalDevices(instance, &available_physical_device_count, available_physical_devices);
+    VkPhysicalDevice * physical_device = &context->physical_device;
 
 #if PRISM_DEBUG
     static const char * PHYSICAL_DEVICE_TYPE_NAMES[]
@@ -380,61 +336,60 @@ void gfx_init(
         "VK_PHYSICAL_DEVICE_TYPE_CPU",
     };
 
-    for(size_t i = 0; i < physical_device_count; i++)
+    for(size_t i = 0; i < available_physical_device_count; i++)
     {
-        VkPhysicalDevice physical_device = physical_devices[i];
-        VkPhysicalDeviceProperties physical_device_properties;
-        vkGetPhysicalDeviceProperties(physical_device, &physical_device_properties);
-        util_log("VULKAN", "physical-device \"%s\":\n", physical_device_properties.deviceName);
-        util_log("VULKAN", "    api_version:    %i\n", physical_device_properties.apiVersion);
-        util_log("VULKAN", "    driver_version: %i\n", physical_device_properties.driverVersion);
-        util_log("VULKAN", "    vendor_id:      %#006x\n", physical_device_properties.vendorID);
-        util_log("VULKAN", "    device_id:      %#006x\n", physical_device_properties.deviceID);
+        VkPhysicalDevice available_physical_device = available_physical_devices[i];
+        VkPhysicalDeviceProperties available_physical_device_properties;
+        vkGetPhysicalDeviceProperties(available_physical_device, &available_physical_device_properties);
+        util_log("VULKAN", "physical-device \"%s\":\n", available_physical_device_properties.deviceName);
+        util_log("VULKAN", "    api_version:    %i\n", available_physical_device_properties.apiVersion);
+        util_log("VULKAN", "    driver_version: %i\n", available_physical_device_properties.driverVersion);
+        util_log("VULKAN", "    vendor_id:      %#006x\n", available_physical_device_properties.vendorID);
+        util_log("VULKAN", "    device_id:      %#006x\n", available_physical_device_properties.deviceID);
 
         util_log("VULKAN", "    device_type:    %s\n",
-            PHYSICAL_DEVICE_TYPE_NAMES[(size_t)physical_device_properties.deviceType]);
+            PHYSICAL_DEVICE_TYPE_NAMES[(size_t)available_physical_device_properties.deviceType]);
 
-        // util_log("VULKAN", "    pipelineCacheUUID: %?\n", physical_device_properties.pipelineCacheUUID);
-        // util_log("VULKAN", "    limits:            %?\n", physical_device_properties.limits);
-        // util_log("VULKAN", "    sparseProperties:  %?\n", physical_device_properties.sparseProperties);
+        // util_log("VULKAN", "    pipelineCacheUUID: %?\n", available_physical_device_properties.pipelineCacheUUID);
+        // util_log("VULKAN", "    limits:            %?\n", available_physical_device_properties.limits);
+        // util_log("VULKAN", "    sparseProperties:  %?\n", available_physical_device_properties.sparseProperties);
     }
 #endif
 
-    for(size_t i = 0; i < physical_device_count; i++)
+    for(size_t i = 0; i < available_physical_device_count; i++)
     {
-        VkPhysicalDevice physical_device = physical_devices[i];
-        VkPhysicalDeviceProperties physical_device_properties;
-        vkGetPhysicalDeviceProperties(physical_device, &physical_device_properties);
+        VkPhysicalDevice available_physical_device = available_physical_devices[i];
+        VkPhysicalDeviceProperties available_physical_device_properties;
+        vkGetPhysicalDeviceProperties(available_physical_device, &available_physical_device_properties);
 
         // Not currently needed.
         // VkPhysicalDeviceFeatures device_features;
-        // vkGetPhysicalDeviceFeatures(physical_device, &device_features);
+        // vkGetPhysicalDeviceFeatures(available_physical_device, &device_features);
 
         // TODO: implement robust physical-device requirements specification.
         // Currently, prism only supports discrete GPUs.
-        if(physical_device_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+        if(available_physical_device_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
         {
-            *selected_physical_device = physical_device;
+            *physical_device = available_physical_device;
             break;
         }
     }
 
-    if(*selected_physical_device == VK_NULL_HANDLE)
+    if(*physical_device == VK_NULL_HANDLE)
     {
-        util_error_exit("VULKAN", nullptr, "failed to find a suitable rendering physical-device\n");
+        util_error_exit("VULKAN", nullptr, "failed to find a physical-device that is a discrete GPU\n");
     }
 
-    free(physical_devices);
+    free(available_physical_devices);
+}
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //
-    // Queue-Families
-    //
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+static size_t get_graphics_queue_family_index(GFX_CONTEXT * context)
+{
+    VkPhysicalDevice physical_device = context->physical_device;
 
     // Ensure queue-families can be found.
     uint32_t queue_family_count = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(*selected_physical_device, &queue_family_count, nullptr);
+    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, nullptr);
 
     if(queue_family_count == 0)
     {
@@ -445,7 +400,7 @@ void gfx_init(
     auto queue_family_props_array =
         (VkQueueFamilyProperties *)malloc(sizeof(VkQueueFamilyProperties) * queue_family_count);
 
-    vkGetPhysicalDeviceQueueFamilyProperties(*selected_physical_device, &queue_family_count, queue_family_props_array);
+    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, queue_family_props_array);
 
 // #ifdef PRISM_DEBUG
 //     static const QUEUE_FLAG_NAME QUEUE_FLAG_NAMES[]
@@ -507,12 +462,16 @@ void gfx_init(
     }
 
     free(queue_family_props_array);
+    return graphics_queue_family_index;
+}
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //
-    // Logical-Devices
-    //
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+static void create_logical_device(
+    GFX_CONTEXT * context,
+    size_t graphics_queue_family_index,
+    const char ** requested_layer_names,
+    uint32_t requested_layer_count)
+{
+    VkPhysicalDevice physical_device = context->physical_device;
 
     // More than 1 queue is unnecessary per queue-family.
     static const uint32_t QUEUE_COUNT = 1;
@@ -536,19 +495,19 @@ void gfx_init(
     logical_device_create_info.pEnabledFeatures = &physical_device_features;
 
     // No extensions enabled for now.
-    // instance_create_info.ppEnabledExtensionNames = nullptr;
-    instance_create_info.enabledExtensionCount = 0;
+    // logical_device_create_info.ppEnabledExtensionNames = nullptr;
+    logical_device_create_info.enabledExtensionCount = 0;
 
-    logical_device_create_info.ppEnabledLayerNames = layer_info.requested_names;
-    logical_device_create_info.enabledLayerCount = layer_info.requested_count;
+    logical_device_create_info.ppEnabledLayerNames = requested_layer_names;
+    logical_device_create_info.enabledLayerCount = requested_layer_count;
 
     // Create logical-device.
     VkDevice * logical_device = &context->logical_device;
 
     VkResult create_logical_device_result =
-        vkCreateDevice(*selected_physical_device, &logical_device_create_info, nullptr, logical_device);
+        vkCreateDevice(physical_device, &logical_device_create_info, nullptr, logical_device);
 
-    if(create_debug_callback_result != VK_SUCCESS)
+    if(create_logical_device_result != VK_SUCCESS)
     {
         util_error_exit(
             "VULKAN",
@@ -558,6 +517,76 @@ void gfx_init(
 
     // Get graphics-queue from logical-device.
     vkGetDeviceQueue(*logical_device, graphics_queue_family_index, 0, &context->graphics_queue);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Interface
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void gfx_init(
+    GFX_CONTEXT * context,
+    const char ** requested_extension_names,
+    uint32_t requested_extension_count,
+    const char ** requested_layer_names,
+    uint32_t requested_layer_count)
+{
+#ifdef PRISM_DEBUG
+    // Concatenate requested and debug extension names.
+    static const char * DEBUG_EXTENSION_NAMES[]
+    {
+        VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
+    };
+
+    static const size_t DEBUG_EXTENSION_COUNT = sizeof(DEBUG_EXTENSION_NAMES) / sizeof(void *);
+    const size_t all_extension_count = DEBUG_EXTENSION_COUNT + requested_extension_count;
+    auto all_extension_names = (const char **)malloc(sizeof(void *) * all_extension_count);
+
+    mem_concat(
+        requested_extension_names,
+        requested_extension_count,
+        DEBUG_EXTENSION_NAMES,
+        DEBUG_EXTENSION_COUNT,
+        all_extension_names);
+
+    requested_extension_names = all_extension_names;
+    requested_extension_count = all_extension_count;
+
+    // Concatenate requested and debug layer names.
+    static const char * DEBUG_LAYER_NAMES[] =
+    {
+        "VK_LAYER_LUNARG_standard_validation",
+    };
+
+    static const size_t DEBUG_LAYER_COUNT = sizeof(DEBUG_LAYER_NAMES) / sizeof(void *);
+    requested_layer_names = DEBUG_LAYER_NAMES;
+    requested_layer_count = DEBUG_LAYER_COUNT;
+#endif
+
+    create_instance(
+        context,
+        requested_extension_names,
+        requested_extension_count,
+        requested_layer_names,
+        requested_layer_count);
+
+#ifdef PRISM_DEBUG
+    // In debug mode, requested_extension_names points to a dynamically allocated concatenation of the user requested
+    // extension names and built-in debug extension names, so it needs to be freed.
+    free(requested_extension_names);
+#endif
+
+#ifdef PRISM_DEBUG
+    create_debug_callback(context);
+#endif
+
+    create_physical_device(context);
+
+    create_logical_device(
+        context,
+        get_graphics_queue_family_index(context),
+        requested_layer_names,
+        requested_layer_count);
 }
 
 void gfx_destroy(GFX_CONTEXT * context)
