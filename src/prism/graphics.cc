@@ -1,10 +1,3 @@
-/*
-
-TODO:
-    expand debug callbacks
-
-*/
-
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
