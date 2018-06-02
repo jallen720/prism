@@ -1,3 +1,0 @@
-#pragma once
-
-#define PRISM_ENUM_NAME_PAIR(ENUM_NAME) { ENUM_NAME, #ENUM_NAME }

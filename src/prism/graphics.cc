@@ -3,7 +3,7 @@
 #include <cstring>
 #include "prism/graphics.h"
 #include "prism/utilities.h"
-#include "prism/macros.h"
+#include "prism/defines.h"
 #include "ctk/memory.h"
 #include "ctk/data.h"
 

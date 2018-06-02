@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <cstdarg>
 #include "prism/utilities.h"
-#include "prism/macros.h"
+#include "prism/defines.h"
 #include "ctk/data.h"
 
 using ctk::PAIR;

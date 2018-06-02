@@ -1,7 +1,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstdint>
-#include "prism/macros.h"
+#include "prism/defines.h"
 #include "ctk/data.h"
 
 using ctk::PAIR;
