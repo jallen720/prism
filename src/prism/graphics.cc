@@ -22,14 +22,6 @@ namespace prism
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Constants
-//
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static const size_t MAX_INSTANCE_COMPONENT_COUNT = 16;
-static const size_t MAX_DEVICE_COUNT = 16;
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
 // Typedefs
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -49,7 +41,7 @@ struct INSTANCE_COMPONENT_INFO
     const char * type;
     const char ** requested_names;
     uint32_t requested_count;
-    COMPONENT_PROPS available_props[MAX_INSTANCE_COMPONENT_COUNT];
+    COMPONENT_PROPS * available_props;
     uint32_t available_count;
     COMPONENT_PROPS_NAME_ACCESSOR<COMPONENT_PROPS> props_name_accessor;
 };
@@ -80,6 +72,12 @@ const char * layer_props_name_accessor(const VkLayerProperties * layer_propertie
 const char * extension_props_name_accessor(const VkExtensionProperties * extension_properties);
 
 template<typename COMPONENT_PROPS>
+void alloc_available_props(INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info, uint32_t available_count);
+
+template<typename COMPONENT_PROPS>
+void free_available_props(INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info);
+
+template<typename COMPONENT_PROPS>
 void validate_requested_component_names(const INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info);
 
 #ifdef PRISM_DEBUG
@@ -107,22 +105,8 @@ void gfx_init(
     };
 
     static const size_t DEBUG_EXTENSION_COUNT = sizeof(DEBUG_EXTENSION_NAMES) / sizeof(void *);
-    const char * all_extension_names[MAX_INSTANCE_COMPONENT_COUNT];
     const size_t all_extension_count = DEBUG_EXTENSION_COUNT + requested_extension_count;
-
-    if(all_extension_count > MAX_INSTANCE_COMPONENT_COUNT)
-    {
-        util_error_exit(
-            "VULKAN",
-            nullptr,
-            "extension count %i exceeds max of %i:\n"
-            "    requested extensions: %i\n"
-            "    debug extensions: %i\n",
-            all_extension_count,
-            MAX_INSTANCE_COMPONENT_COUNT,
-            requested_extension_count,
-            DEBUG_EXTENSION_COUNT);
-    }
+    auto all_extension_names = (const char **)malloc(sizeof(void *) * all_extension_count);
 
     mem_concat(
         requested_extension_names,
@@ -157,9 +141,10 @@ void gfx_init(
     extension_info.requested_names = requested_extension_names;
     extension_info.requested_count = requested_extension_count;
     extension_info.props_name_accessor = extension_props_name_accessor;
-    uint32_t * available_extension_count = &extension_info.available_count;
-    vkEnumerateInstanceExtensionProperties(nullptr, available_extension_count, nullptr);
-    vkEnumerateInstanceExtensionProperties(nullptr, available_extension_count, extension_info.available_props);
+    uint32_t available_extension_count = 0;
+    vkEnumerateInstanceExtensionProperties(nullptr, &available_extension_count, nullptr);
+    alloc_available_props(&extension_info, available_extension_count);
+    vkEnumerateInstanceExtensionProperties(nullptr, &available_extension_count, extension_info.available_props);
 
     // Initialize layer_info with requested layer names and available layer properties.
     INSTANCE_COMPONENT_INFO<VkLayerProperties> layer_info = {};
@@ -167,9 +152,10 @@ void gfx_init(
     layer_info.requested_names = requested_layer_names;
     layer_info.requested_count = requested_layer_count;
     layer_info.props_name_accessor = layer_props_name_accessor;
-    uint32_t * available_layer_count = &layer_info.available_count;
-    vkEnumerateInstanceLayerProperties(available_layer_count, nullptr);
-    vkEnumerateInstanceLayerProperties(available_layer_count, layer_info.available_props);
+    uint32_t available_layer_count = 0;
+    vkEnumerateInstanceLayerProperties(&available_layer_count, nullptr);
+    alloc_available_props(&layer_info, available_layer_count);
+    vkEnumerateInstanceLayerProperties(&available_layer_count, layer_info.available_props);
 
 #ifdef PRISM_DEBUG
     // Log requested and available component names before validation.
@@ -223,6 +209,16 @@ void gfx_init(
         util_error_exit("VULKAN", util_vk_result_name(create_instance_result), "failed to create instance\n");
     }
 
+    // Free available instance component props arrays after instance creation.
+    free_available_props(&extension_info);
+    free_available_props(&layer_info);
+
+#ifdef PRISM_DEBUG
+    // In debug mode, requested_extension_names is a dynamically allocated concatenation of the user requested extension
+    // names and built-in debug extension names, so it needs to be freed.
+    free(requested_extension_names);
+#endif
+
 #ifdef PRISM_DEBUG
     // Create debug callback.
     auto create_debug_callback =
@@ -261,7 +257,7 @@ void gfx_init(
     }
 
     // Find a suitable device for rendering and store handle in context.
-    VkPhysicalDevice devices[MAX_DEVICE_COUNT];
+    auto devices = (VkPhysicalDevice *)malloc(sizeof(VkPhysicalDevice) * device_count);
     vkEnumeratePhysicalDevices(*instance, &device_count, devices);
     VkPhysicalDevice * rendering_device = &context->rendering_device;
 
@@ -313,6 +309,8 @@ void gfx_init(
     {
         util_error_exit("VULKAN", nullptr, "failed to find a suitable rendering device\n");
     }
+
+    free(devices);
 }
 
 void gfx_destroy(GFX_CONTEXT * context)
@@ -407,6 +405,19 @@ const char * layer_props_name_accessor(const VkLayerProperties * layer_propertie
 const char * extension_props_name_accessor(const VkExtensionProperties * extension_properties)
 {
     return extension_properties->extensionName;
+}
+
+template<typename COMPONENT_PROPS>
+void alloc_available_props(INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info, uint32_t available_count)
+{
+    component_info->available_count = available_count;
+    component_info->available_props = (COMPONENT_PROPS *)malloc(sizeof(COMPONENT_PROPS) * available_count);
+}
+
+template<typename COMPONENT_PROPS>
+void free_available_props(INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info)
+{
+    free(component_info->available_props);
 }
 
 template<typename COMPONENT_PROPS>
