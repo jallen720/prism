@@ -403,12 +403,18 @@ void gfx_init(
 
 void gfx_destroy(GFX_CONTEXT * context)
 {
-    VkInstance instance = context->instance;
+    VkInstance * instance = &context->instance;
+    VkPhysicalDevice * physical_device = &context->physical_device;
 
+#ifdef PRISM_DEBUG
+    VkDebugReportCallbackEXT * debug_callback = &context->debug_callback;
+#endif
+
+    // Destroy all context data that needs destroyed in reverse-order that it was created.
 #ifdef PRISM_DEBUG
     // Destroy debug callback.
     auto destroy_debug_callback =
-        (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
+        (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(*instance, "vkDestroyDebugReportCallbackEXT");
 
     if(destroy_debug_callback == nullptr)
     {
@@ -418,10 +424,19 @@ void gfx_destroy(GFX_CONTEXT * context)
             "extension for destroying debug callback is not available\n");
     }
 
-    destroy_debug_callback(instance, context->debug_callback, nullptr);
+    destroy_debug_callback(*instance, *debug_callback, nullptr);
 #endif
 
-    vkDestroyInstance(instance, nullptr);
+    // Physical-device will be implicitly destroyed when instance is destroyed.
+    vkDestroyInstance(*instance, nullptr);
+
+    // Initialize all context data.
+    *instance = VK_NULL_HANDLE;
+    *physical_device = VK_NULL_HANDLE;
+
+#ifdef PRISM_DEBUG
+    *debug_callback = VK_NULL_HANDLE;
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
