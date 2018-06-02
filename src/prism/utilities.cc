@@ -21,18 +21,25 @@ namespace prism
 #define ANSI_COLOR_GREEN "\x1b[32m"
 #define ANSI_COLOR_YELLOW "\x1b[33m"
 
-#define OUTPUT_MESSAGE(OUTPUT)       \
-    va_list args;                    \
-    va_start(args, message);         \
+#define OUTPUT_MESSAGE(OUTPUT) \
+    va_list args; \
+    va_start(args, message); \
     vfprintf(OUTPUT, message, args); \
     va_end(args);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Typedefs
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+using VK_RESULT_NAME = PAIR<VkResult, const char *>;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Data
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static const PAIR<VkResult, const char *> VK_RESULT_NAMES[] =
+static const VK_RESULT_NAME VK_RESULT_NAMES[] =
 {
     PRISM_ENUM_NAME_PAIR(VK_SUCCESS),
     PRISM_ENUM_NAME_PAIR(VK_NOT_READY),
@@ -72,7 +79,7 @@ static const PAIR<VkResult, const char *> VK_RESULT_NAMES[] =
     PRISM_ENUM_NAME_PAIR(VK_ERROR_NOT_PERMITTED_EXT),
 };
 
-static const size_t VK_RESULT_NAMES_COUNT = sizeof(VK_RESULT_NAMES) / sizeof(PAIR<VkResult, const char *>);
+static const size_t VK_RESULT_NAMES_COUNT = sizeof(VK_RESULT_NAMES) / sizeof(VK_RESULT_NAME);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -106,7 +113,7 @@ const char * util_vk_result_name(VkResult result)
 {
     for(size_t i = 0; i < VK_RESULT_NAMES_COUNT; i++)
     {
-        const PAIR<VkResult, const char *> * vk_result_name = VK_RESULT_NAMES + i;
+        const VK_RESULT_NAME * vk_result_name = VK_RESULT_NAMES + i;
 
         if(vk_result_name->key == result)
         {
