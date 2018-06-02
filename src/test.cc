@@ -33,7 +33,7 @@ int main()
 
     yaml_free(window_config);
 
-    // Initialize configuration for graphics modules.
+    // Initialize configuration for graphics module.
     GFX_CONFIG config = {};
     config.requested_extension_names = sys_required_extension_names(&config.requested_extension_count);
 

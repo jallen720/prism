@@ -14,7 +14,7 @@ obj/src/prism/utilities.o: src/prism/utilities.cc src/prism/utilities.h src/pris
 	@mkdir -p obj/src/prism
 	@g++ -std=c++14 -ggdb -Wall -Wextra -pedantic-errors -c -DPRISM_DEBUG -I/home/joel/Desktop/projects/ctk/src -Isrc -I/home/joel/Desktop/packages/VulkanSDK/1.1.73.0/x86_64/include $< -o $@
 
-obj/src/prism/system.o: src/prism/system.cc src/prism/system.h src/prism/utilities.h
+obj/src/prism/system.o: src/prism/system.cc /home/joel/Desktop/packages/VulkanSDK/1.1.73.0/x86_64/include/vulkan/vulkan.h src/prism/system.h src/prism/utilities.h
 	@echo compiling $<
 	@mkdir -p obj/src/prism
 	@g++ -std=c++14 -ggdb -Wall -Wextra -pedantic-errors -c -DPRISM_DEBUG -I/home/joel/Desktop/projects/ctk/src -Isrc -I/home/joel/Desktop/packages/VulkanSDK/1.1.73.0/x86_64/include $< -o $@
