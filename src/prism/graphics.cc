@@ -370,9 +370,9 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     for(size_t i = 0; i < DEBUG_FLAG_COUNT; i++)
     {
         const DEBUG_FLAG_NAME * debug_flag_name = DEBUG_FLAG_NAMES + i;
-        const VkDebugReportFlagBitsEXT debug_flag_bit = debug_flag_name->key;
+        VkDebugReportFlagBitsEXT debug_flag_bit = debug_flag_name->key;
 
-        if((debug_flag_bit & flags) == debug_flag_bit)
+        if(debug_flag_bit & flags)
         {
             util_log("VULKAN", "        %s\n", debug_flag_name->value);
         }
