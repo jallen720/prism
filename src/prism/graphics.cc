@@ -365,7 +365,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     // util_log("VULKAN", "validation layer:\n");
 
     // // Log the list of flags passed to callback.
-    // util_log("VULKAN", "    flags:\n");
+    // util_log("VULKAN", "    flags (%#010x):\n", flags);
 
     // for(size_t i = 0; i < DEBUG_FLAG_COUNT; i++)
     // {
@@ -374,7 +374,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
 
     //     if(debug_flag_bit & flags)
     //     {
-    //         util_log("VULKAN", "        %s\n", debug_flag_name->value);
+    //         util_log("VULKAN", "        %s (%#010x)\n", debug_flag_name->value, debug_flag_bit);
     //     }
     // }
 
