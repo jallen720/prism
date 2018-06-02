@@ -399,12 +399,65 @@ void gfx_init(
     }
 
     free(queue_family_props_array);
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Logical-Devices
+    //
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    // More than 1 queue is unnecessary per queue-family.
+    static const uint32_t QUEUE_COUNT = 1;
+
+    static const float GRAPHICS_QUEUE_FAMILY_PRIORITY = 1.0F;
+
+    VkDeviceQueueCreateInfo logical_device_queue_create_info = {};
+    logical_device_queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    logical_device_queue_create_info.queueFamilyIndex = graphics_queue_family_index;
+    logical_device_queue_create_info.queueCount = QUEUE_COUNT;
+    logical_device_queue_create_info.pQueuePriorities = &GRAPHICS_QUEUE_FAMILY_PRIORITY;
+
+    // Left empty for now.
+    VkPhysicalDeviceFeatures physical_device_features = {};
+
+    // Initialize logical-device creation info.
+    VkDeviceCreateInfo logical_device_create_info = {};
+    logical_device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    logical_device_create_info.pQueueCreateInfos = &logical_device_queue_create_info;
+    logical_device_create_info.queueCreateInfoCount = 1;
+    logical_device_create_info.pEnabledFeatures = &physical_device_features;
+
+    // No extensions enabled for now.
+    // instance_create_info.ppEnabledExtensionNames = nullptr;
+    instance_create_info.enabledExtensionCount = 0;
+
+    logical_device_create_info.ppEnabledLayerNames = layer_info.requested_names;
+    logical_device_create_info.enabledLayerCount = layer_info.requested_count;
+
+    // Create logical-device.
+    VkDevice * logical_device = &context->logical_device;
+
+    VkResult create_logical_device_result =
+        vkCreateDevice(*selected_physical_device, &logical_device_create_info, nullptr, logical_device);
+
+    if(create_debug_callback_result != VK_SUCCESS)
+    {
+        util_error_exit(
+            "VULKAN",
+            util_vk_result_name(create_logical_device_result),
+            "failed to create logical-device for selected physical-device\n");
+    }
+
+    // Get graphics-queue from logical-device.
+    vkGetDeviceQueue(*logical_device, graphics_queue_family_index, 0, &context->graphics_queue);
 }
 
 void gfx_destroy(GFX_CONTEXT * context)
 {
     VkInstance * instance = &context->instance;
     VkPhysicalDevice * physical_device = &context->physical_device;
+    VkDevice * logical_device = &context->logical_device;
+    VkQueue * graphics_queue = &context->graphics_queue;
 
 #ifdef PRISM_DEBUG
     VkDebugReportCallbackEXT * debug_callback = &context->debug_callback;
@@ -427,12 +480,17 @@ void gfx_destroy(GFX_CONTEXT * context)
     destroy_debug_callback(*instance, *debug_callback, nullptr);
 #endif
 
+    // Graphics-queue will be implicitly destroyed when logical-device is destroyed.
+    vkDestroyDevice(*logical_device, nullptr);
+
     // Physical-device will be implicitly destroyed when instance is destroyed.
     vkDestroyInstance(*instance, nullptr);
 
     // Initialize all context data.
     *instance = VK_NULL_HANDLE;
     *physical_device = VK_NULL_HANDLE;
+    *logical_device = VK_NULL_HANDLE;
+    *graphics_queue = VK_NULL_HANDLE;
 
 #ifdef PRISM_DEBUG
     *debug_callback = VK_NULL_HANDLE;

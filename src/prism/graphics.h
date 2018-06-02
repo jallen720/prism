@@ -15,6 +15,8 @@ struct GFX_CONTEXT
 {
     VkInstance instance = VK_NULL_HANDLE;
     VkPhysicalDevice physical_device = VK_NULL_HANDLE;
+    VkDevice logical_device = VK_NULL_HANDLE;
+    VkQueue graphics_queue = VK_NULL_HANDLE;
 
 #ifdef PRISM_DEBUG
     VkDebugReportCallbackEXT debug_callback = VK_NULL_HANDLE;
