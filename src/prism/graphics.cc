@@ -157,11 +157,11 @@ void gfx_init(
     alloc_available_props(&layer_info, available_layer_count);
     vkEnumerateInstanceLayerProperties(&available_layer_count, layer_info.available_props);
 
-#ifdef PRISM_DEBUG
-    // Log requested and available component names before validation.
-    log_component_names(&extension_info);
-    log_component_names(&layer_info);
-#endif
+// #ifdef PRISM_DEBUG
+//     // Log requested and available component names before validation.
+//     log_component_names(&extension_info);
+//     log_component_names(&layer_info);
+// #endif
 
     // Validate requested extensions and layers are available.
     validate_requested_component_names(&extension_info);
@@ -352,40 +352,40 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     const char * msg,
     void * user_data)
 {
-    static const DEBUG_FLAG_NAME DEBUG_FLAG_NAMES[]
-    {
-        PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_INFORMATION_BIT_EXT),
-        PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_WARNING_BIT_EXT),
-        PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT),
-        PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_ERROR_BIT_EXT),
-        PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_DEBUG_BIT_EXT),
-    };
+    // static const DEBUG_FLAG_NAME DEBUG_FLAG_NAMES[]
+    // {
+    //     PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_INFORMATION_BIT_EXT),
+    //     PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_WARNING_BIT_EXT),
+    //     PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT),
+    //     PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_ERROR_BIT_EXT),
+    //     PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_DEBUG_BIT_EXT),
+    // };
 
-    static const size_t DEBUG_FLAG_COUNT = sizeof(DEBUG_FLAG_NAMES) / sizeof(DEBUG_FLAG_NAME);
-    util_log("VULKAN", "validation layer:\n");
+    // static const size_t DEBUG_FLAG_COUNT = sizeof(DEBUG_FLAG_NAMES) / sizeof(DEBUG_FLAG_NAME);
+    // util_log("VULKAN", "validation layer:\n");
 
-    // Log the list of flags passed to callback.
-    util_log("VULKAN", "    flags:\n");
+    // // Log the list of flags passed to callback.
+    // util_log("VULKAN", "    flags:\n");
 
-    for(size_t i = 0; i < DEBUG_FLAG_COUNT; i++)
-    {
-        const DEBUG_FLAG_NAME * debug_flag_name = DEBUG_FLAG_NAMES + i;
-        VkDebugReportFlagBitsEXT debug_flag_bit = debug_flag_name->key;
+    // for(size_t i = 0; i < DEBUG_FLAG_COUNT; i++)
+    // {
+    //     const DEBUG_FLAG_NAME * debug_flag_name = DEBUG_FLAG_NAMES + i;
+    //     VkDebugReportFlagBitsEXT debug_flag_bit = debug_flag_name->key;
 
-        if(debug_flag_bit & flags)
-        {
-            util_log("VULKAN", "        %s\n", debug_flag_name->value);
-        }
-    }
+    //     if(debug_flag_bit & flags)
+    //     {
+    //         util_log("VULKAN", "        %s\n", debug_flag_name->value);
+    //     }
+    // }
 
-    // Log remaining callback args.
-    util_log("VULKAN", "    obj_type:     %i\n", obj_type);
-    util_log("VULKAN", "    obj:          %i\n", obj);
-    util_log("VULKAN", "    location:     %i\n", location);
-    util_log("VULKAN", "    code:         %i\n", code);
-    util_log("VULKAN", "    layer_prefix: %s\n", layer_prefix);
-    util_log("VULKAN", "    msg:          \"%s\"\n", msg);
-    util_log("VULKAN", "    user_data:    %p\n", user_data);
+    // // Log remaining callback args.
+    // util_log("VULKAN", "    obj_type:     %i\n", obj_type);
+    // util_log("VULKAN", "    obj:          %i\n", obj);
+    // util_log("VULKAN", "    location:     %i\n", location);
+    // util_log("VULKAN", "    code:         %i\n", code);
+    // util_log("VULKAN", "    layer_prefix: %s\n", layer_prefix);
+    // util_log("VULKAN", "    msg:          \"%s\"\n", msg);
+    // util_log("VULKAN", "    user_data:    %p\n", user_data);
 
     // Should the call being validated be aborted?
     return VK_FALSE;
