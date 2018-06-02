@@ -12,8 +12,18 @@ namespace prism
 // Callbacks
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static void error_callback(int error, const char * description);
-static void key_callback(GLFWwindow * window, int key, int scancode, int action, int mods);
+static void error_callback(int error, const char* description)
+{
+    util_error_exit(description, "GLFW", nullptr);
+}
+
+static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+    {
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -56,24 +66,6 @@ void sys_create_window(int width, int height, const char * title)
 const char ** sys_required_extension_names(uint32_t * required_extension_count)
 {
     return glfwGetRequiredInstanceExtensions(required_extension_count);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Callbacks
-//
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static void error_callback(int error, const char* description)
-{
-    util_error_exit(description, "GLFW", nullptr);
-}
-
-static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-    if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-    {
-        glfwSetWindowShouldClose(window, GLFW_TRUE);
-    }
 }
 
 } // namespace prism

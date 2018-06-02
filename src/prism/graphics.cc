@@ -54,7 +54,46 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     int32_t code,
     const char * layer_prefix,
     const char * msg,
-    void * user_data);
+    void * user_data)
+{
+    // static const DEBUG_FLAG_NAME DEBUG_FLAG_NAMES[]
+    // {
+    //     PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_INFORMATION_BIT_EXT),
+    //     PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_WARNING_BIT_EXT),
+    //     PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT),
+    //     PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_ERROR_BIT_EXT),
+    //     PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_DEBUG_BIT_EXT),
+    // };
+
+    // static const size_t DEBUG_FLAG_COUNT = sizeof(DEBUG_FLAG_NAMES) / sizeof(DEBUG_FLAG_NAME);
+    // util_log("VULKAN", "validation layer:\n");
+
+    // // Log the list of flags passed to callback.
+    // util_log("VULKAN", "    flags (%#010x):\n", flags);
+
+    // for(size_t i = 0; i < DEBUG_FLAG_COUNT; i++)
+    // {
+    //     const DEBUG_FLAG_NAME * debug_flag_name = DEBUG_FLAG_NAMES + i;
+    //     VkDebugReportFlagBitsEXT debug_flag_bit = debug_flag_name->key;
+
+    //     if(debug_flag_bit & flags)
+    //     {
+    //         util_log("VULKAN", "        %s (%#010x)\n", debug_flag_name->value, debug_flag_bit);
+    //     }
+    // }
+
+    // // Log remaining callback args.
+    // util_log("VULKAN", "    obj_type:     %i\n", obj_type);
+    // util_log("VULKAN", "    obj:          %i\n", obj);
+    // util_log("VULKAN", "    location:     %i\n", location);
+    // util_log("VULKAN", "    code:         %i\n", code);
+    // util_log("VULKAN", "    layer_prefix: %s\n", layer_prefix);
+    // util_log("VULKAN", "    msg:          \"%s\"\n", msg);
+    // util_log("VULKAN", "    user_data:    %p\n", user_data);
+
+    // Should the call being validated be aborted?
+    return VK_FALSE;
+}
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -62,21 +101,97 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
 // Utilities
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-const char * layer_props_name_accessor(const VkLayerProperties * layer_properties);
-const char * extension_props_name_accessor(const VkExtensionProperties * extension_properties);
+static const char * layer_props_name_accessor(const VkLayerProperties * layer_properties)
+{
+    return layer_properties->layerName;
+}
+
+static const char * extension_props_name_accessor(const VkExtensionProperties * extension_properties)
+{
+    return extension_properties->extensionName;
+}
 
 template<typename COMPONENT_PROPS>
-void alloc_available_props(INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info, uint32_t available_count);
+static void alloc_available_props(INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info, uint32_t available_count)
+{
+    component_info->available_count = available_count;
+    component_info->available_props = (COMPONENT_PROPS *)malloc(sizeof(COMPONENT_PROPS) * available_count);
+}
 
 template<typename COMPONENT_PROPS>
-void free_available_props(INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info);
+static void free_available_props(INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info)
+{
+    free(component_info->available_props);
+}
 
 template<typename COMPONENT_PROPS>
-void validate_requested_component_names(const INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info);
+static void validate_requested_component_names(const INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info)
+{
+    const char ** requested_component_names = component_info->requested_names;
+    uint32_t requested_component_count = component_info->requested_count;
+    const COMPONENT_PROPS * available_component_props = component_info->available_props;
+    uint32_t available_component_count = component_info->available_count;
+    COMPONENT_PROPS_NAME_ACCESSOR<COMPONENT_PROPS> access_component_name = component_info->props_name_accessor;
+
+    for(size_t i = 0; i < requested_component_count; i++)
+    {
+        const char * requested_component_name = requested_component_names[i];
+        bool component_available = false;
+
+        for(size_t j = 0; j < available_component_count; j++)
+        {
+            if(strcmp(requested_component_name, access_component_name(available_component_props + j)) == 0)
+            {
+                component_available = true;
+                break;
+            }
+        }
+
+        if(!component_available)
+        {
+            util_error_exit(
+                "VULKAN",
+                nullptr,
+                "requested %s \"%s\" is not available\n",
+                component_info->type,
+                requested_component_name);
+        }
+    }
+}
 
 #ifdef PRISM_DEBUG
 template<typename COMPONENT_PROPS>
-void log_component_names(const INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info);
+static void log_component_names(const INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info)
+{
+    const char * component_type = component_info->type;
+    const char ** requested_component_names = component_info->requested_names;
+    uint32_t requested_component_count = component_info->requested_count;
+    const COMPONENT_PROPS * available_component_props = component_info->available_props;
+    uint32_t available_component_count = component_info->available_count;
+    COMPONENT_PROPS_NAME_ACCESSOR<COMPONENT_PROPS> access_component_name = component_info->props_name_accessor;
+    util_log("VULKAN", "requested %s names (%i):\n", component_type, requested_component_count);
+
+    for(size_t i = 0; i < requested_component_count; i++)
+    {
+        util_log("VULKAN", "    %s\n", requested_component_names[i]);
+    }
+
+    util_log("VULKAN", "available %s names (%i):", component_type, available_component_count);
+
+    if(available_component_count == 0)
+    {
+        fprintf(stdout, " none\n");
+    }
+    else
+    {
+        fprintf(stdout, "\n");
+
+        for(uint32_t i = 0; i < available_component_count; i++)
+        {
+            util_log("VULKAN", "    %s\n", access_component_name(available_component_props + i));
+        }
+    }
+}
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -489,159 +604,5 @@ void gfx_destroy(GFX_CONTEXT * context)
     *debug_callback = VK_NULL_HANDLE;
 #endif
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Validation Callbacks
-//
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifdef PRISM_DEBUG
-static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
-    VkDebugReportFlagsEXT flags,
-    VkDebugReportObjectTypeEXT obj_type,
-    uint64_t obj,
-    size_t location,
-    int32_t code,
-    const char * layer_prefix,
-    const char * msg,
-    void * user_data)
-{
-    // static const DEBUG_FLAG_NAME DEBUG_FLAG_NAMES[]
-    // {
-    //     PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_INFORMATION_BIT_EXT),
-    //     PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_WARNING_BIT_EXT),
-    //     PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT),
-    //     PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_ERROR_BIT_EXT),
-    //     PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_DEBUG_BIT_EXT),
-    // };
-
-    // static const size_t DEBUG_FLAG_COUNT = sizeof(DEBUG_FLAG_NAMES) / sizeof(DEBUG_FLAG_NAME);
-    // util_log("VULKAN", "validation layer:\n");
-
-    // // Log the list of flags passed to callback.
-    // util_log("VULKAN", "    flags (%#010x):\n", flags);
-
-    // for(size_t i = 0; i < DEBUG_FLAG_COUNT; i++)
-    // {
-    //     const DEBUG_FLAG_NAME * debug_flag_name = DEBUG_FLAG_NAMES + i;
-    //     VkDebugReportFlagBitsEXT debug_flag_bit = debug_flag_name->key;
-
-    //     if(debug_flag_bit & flags)
-    //     {
-    //         util_log("VULKAN", "        %s (%#010x)\n", debug_flag_name->value, debug_flag_bit);
-    //     }
-    // }
-
-    // // Log remaining callback args.
-    // util_log("VULKAN", "    obj_type:     %i\n", obj_type);
-    // util_log("VULKAN", "    obj:          %i\n", obj);
-    // util_log("VULKAN", "    location:     %i\n", location);
-    // util_log("VULKAN", "    code:         %i\n", code);
-    // util_log("VULKAN", "    layer_prefix: %s\n", layer_prefix);
-    // util_log("VULKAN", "    msg:          \"%s\"\n", msg);
-    // util_log("VULKAN", "    user_data:    %p\n", user_data);
-
-    // Should the call being validated be aborted?
-    return VK_FALSE;
-}
-#endif
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Utilities
-//
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-const char * layer_props_name_accessor(const VkLayerProperties * layer_properties)
-{
-    return layer_properties->layerName;
-}
-
-const char * extension_props_name_accessor(const VkExtensionProperties * extension_properties)
-{
-    return extension_properties->extensionName;
-}
-
-template<typename COMPONENT_PROPS>
-void alloc_available_props(INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info, uint32_t available_count)
-{
-    component_info->available_count = available_count;
-    component_info->available_props = (COMPONENT_PROPS *)malloc(sizeof(COMPONENT_PROPS) * available_count);
-}
-
-template<typename COMPONENT_PROPS>
-void free_available_props(INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info)
-{
-    free(component_info->available_props);
-}
-
-template<typename COMPONENT_PROPS>
-void validate_requested_component_names(const INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info)
-{
-    const char ** requested_component_names = component_info->requested_names;
-    uint32_t requested_component_count = component_info->requested_count;
-    const COMPONENT_PROPS * available_component_props = component_info->available_props;
-    uint32_t available_component_count = component_info->available_count;
-    COMPONENT_PROPS_NAME_ACCESSOR<COMPONENT_PROPS> access_component_name = component_info->props_name_accessor;
-
-    for(size_t i = 0; i < requested_component_count; i++)
-    {
-        const char * requested_component_name = requested_component_names[i];
-        bool component_available = false;
-
-        for(size_t j = 0; j < available_component_count; j++)
-        {
-            if(strcmp(requested_component_name, access_component_name(available_component_props + j)) == 0)
-            {
-                component_available = true;
-                break;
-            }
-        }
-
-        if(!component_available)
-        {
-            util_error_exit(
-                "VULKAN",
-                nullptr,
-                "requested %s \"%s\" is not available\n",
-                component_info->type,
-                requested_component_name);
-        }
-    }
-}
-
-#ifdef PRISM_DEBUG
-template<typename COMPONENT_PROPS>
-void log_component_names(const INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info)
-{
-    const char * component_type = component_info->type;
-    const char ** requested_component_names = component_info->requested_names;
-    uint32_t requested_component_count = component_info->requested_count;
-    const COMPONENT_PROPS * available_component_props = component_info->available_props;
-    uint32_t available_component_count = component_info->available_count;
-    COMPONENT_PROPS_NAME_ACCESSOR<COMPONENT_PROPS> access_component_name = component_info->props_name_accessor;
-    util_log("VULKAN", "requested %s names (%i):\n", component_type, requested_component_count);
-
-    for(size_t i = 0; i < requested_component_count; i++)
-    {
-        util_log("VULKAN", "    %s\n", requested_component_names[i]);
-    }
-
-    util_log("VULKAN", "available %s names (%i):", component_type, available_component_count);
-
-    if(available_component_count == 0)
-    {
-        fprintf(stdout, " none\n");
-    }
-    else
-    {
-        fprintf(stdout, "\n");
-
-        for(uint32_t i = 0; i < available_component_count; i++)
-        {
-            util_log("VULKAN", "    %s\n", access_component_name(available_component_props + i));
-        }
-    }
-}
-#endif
 
 } // namespace prism
