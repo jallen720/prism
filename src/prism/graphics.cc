@@ -296,9 +296,11 @@ void gfx_init(
     {
         VkPhysicalDevice physical_device = physical_devices[i];
         VkPhysicalDeviceProperties physical_device_properties;
-        VkPhysicalDeviceFeatures device_features;
         vkGetPhysicalDeviceProperties(physical_device, &physical_device_properties);
-        vkGetPhysicalDeviceFeatures(physical_device, &device_features);
+
+        // Not currently needed.
+        // VkPhysicalDeviceFeatures device_features;
+        // vkGetPhysicalDeviceFeatures(physical_device, &device_features);
 
         // TODO: implement robust physical-device requirements specification.
         // Currently, prism only supports discrete GPUs.
@@ -332,10 +334,10 @@ void gfx_init(
     }
 
     // Get properties for selected physical-device's queue-families.
-    auto queue_family_properties_array =
+    auto queue_family_props_array =
         (VkQueueFamilyProperties *)malloc(sizeof(VkQueueFamilyProperties) * queue_family_count);
 
-    vkGetPhysicalDeviceQueueFamilyProperties(*selected_physical_device, &queue_family_count, queue_family_properties_array);
+    vkGetPhysicalDeviceQueueFamilyProperties(*selected_physical_device, &queue_family_count, queue_family_props_array);
 
 #ifdef PRISM_DEBUG
     static const QUEUE_FLAG_NAME QUEUE_FLAG_NAMES[]
@@ -351,9 +353,9 @@ void gfx_init(
 
     for(size_t i = 0; i < queue_family_count; i++)
     {
-        const VkQueueFamilyProperties * queue_family_properties = queue_family_properties_array + i;
-        VkQueueFlags queue_flags = queue_family_properties->queueFlags;
-        const VkExtent3D * min_image_transfer_granularity = &queue_family_properties->minImageTransferGranularity;
+        const VkQueueFamilyProperties * queue_family_props = queue_family_props_array + i;
+        VkQueueFlags queue_flags = queue_family_props->queueFlags;
+        const VkExtent3D * min_image_transfer_granularity = &queue_family_props->minImageTransferGranularity;
         util_log("VULKAN", "queue-family:\n");
         util_log("VULKAN", "    queue_flags (%#010x):\n", queue_flags);
 
@@ -368,8 +370,8 @@ void gfx_init(
             }
         }
 
-        util_log("VULKAN", "    queue_count:          %i\n", queue_family_properties->queueCount);
-        util_log("VULKAN", "    timestamp_valid_bits: %i\n", queue_family_properties->timestampValidBits);
+        util_log("VULKAN", "    queue_count:          %i\n", queue_family_props->queueCount);
+        util_log("VULKAN", "    timestamp_valid_bits: %i\n", queue_family_props->timestampValidBits);
         util_log("VULKAN", "    minImageTransferGranularity:\n");
         util_log("VULKAN", "        width:  %i\n", min_image_transfer_granularity->width);
         util_log("VULKAN", "        height: %i\n", min_image_transfer_granularity->height);
@@ -382,9 +384,9 @@ void gfx_init(
 
     for(int i = 0; i < queue_family_count; i++)
     {
-        const VkQueueFamilyProperties * queue_family_properties = queue_family_properties_array + i;
+        const VkQueueFamilyProperties * queue_family_props = queue_family_props_array + i;
 
-        if(queue_family_properties->queueCount > 0 && queue_family_properties->queueFlags & VK_QUEUE_GRAPHICS_BIT)
+        if(queue_family_props->queueCount > 0 && queue_family_props->queueFlags & VK_QUEUE_GRAPHICS_BIT)
         {
             graphics_queue_family_index = i;
             break;
@@ -396,7 +398,7 @@ void gfx_init(
         util_error_exit("VULKAN", nullptr, "failed to find graphics queue-family for selected physical-device\n");
     }
 
-    free(queue_family_properties_array);
+    free(queue_family_props_array);
 }
 
 void gfx_destroy(GFX_CONTEXT * context)
