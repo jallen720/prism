@@ -339,45 +339,45 @@ void gfx_init(
 
     vkGetPhysicalDeviceQueueFamilyProperties(*selected_physical_device, &queue_family_count, queue_family_props_array);
 
-#ifdef PRISM_DEBUG
-    static const QUEUE_FLAG_NAME QUEUE_FLAG_NAMES[]
-    {
-        PRISM_ENUM_NAME_PAIR(VK_QUEUE_GRAPHICS_BIT),
-        PRISM_ENUM_NAME_PAIR(VK_QUEUE_COMPUTE_BIT),
-        PRISM_ENUM_NAME_PAIR(VK_QUEUE_TRANSFER_BIT),
-        PRISM_ENUM_NAME_PAIR(VK_QUEUE_SPARSE_BINDING_BIT),
-        PRISM_ENUM_NAME_PAIR(VK_QUEUE_PROTECTED_BIT),
-    };
+// #ifdef PRISM_DEBUG
+//     static const QUEUE_FLAG_NAME QUEUE_FLAG_NAMES[]
+//     {
+//         PRISM_ENUM_NAME_PAIR(VK_QUEUE_GRAPHICS_BIT),
+//         PRISM_ENUM_NAME_PAIR(VK_QUEUE_COMPUTE_BIT),
+//         PRISM_ENUM_NAME_PAIR(VK_QUEUE_TRANSFER_BIT),
+//         PRISM_ENUM_NAME_PAIR(VK_QUEUE_SPARSE_BINDING_BIT),
+//         PRISM_ENUM_NAME_PAIR(VK_QUEUE_PROTECTED_BIT),
+//     };
 
-    static const size_t QUEUE_FLAG_NAME_COUNT = sizeof(QUEUE_FLAG_NAMES) / sizeof(QUEUE_FLAG_NAME);
+//     static const size_t QUEUE_FLAG_NAME_COUNT = sizeof(QUEUE_FLAG_NAMES) / sizeof(QUEUE_FLAG_NAME);
 
-    for(size_t i = 0; i < queue_family_count; i++)
-    {
-        const VkQueueFamilyProperties * queue_family_props = queue_family_props_array + i;
-        VkQueueFlags queue_flags = queue_family_props->queueFlags;
-        const VkExtent3D * min_image_transfer_granularity = &queue_family_props->minImageTransferGranularity;
-        util_log("VULKAN", "queue-family:\n");
-        util_log("VULKAN", "    queue_flags (%#010x):\n", queue_flags);
+//     for(size_t i = 0; i < queue_family_count; i++)
+//     {
+//         const VkQueueFamilyProperties * queue_family_props = queue_family_props_array + i;
+//         VkQueueFlags queue_flags = queue_family_props->queueFlags;
+//         const VkExtent3D * min_image_transfer_granularity = &queue_family_props->minImageTransferGranularity;
+//         util_log("VULKAN", "queue-family:\n");
+//         util_log("VULKAN", "    queue_flags (%#010x):\n", queue_flags);
 
-        for(size_t j = 0; j < QUEUE_FLAG_NAME_COUNT; j++)
-        {
-            const QUEUE_FLAG_NAME * queue_flag_name = QUEUE_FLAG_NAMES + j;
-            VkQueueFlagBits queue_flag_bit = queue_flag_name->key;
+//         for(size_t j = 0; j < QUEUE_FLAG_NAME_COUNT; j++)
+//         {
+//             const QUEUE_FLAG_NAME * queue_flag_name = QUEUE_FLAG_NAMES + j;
+//             VkQueueFlagBits queue_flag_bit = queue_flag_name->key;
 
-            if(queue_flags & queue_flag_bit)
-            {
-                util_log("VULKAN", "        %s (%#010x)\n", queue_flag_name->value, queue_flag_bit);
-            }
-        }
+//             if(queue_flags & queue_flag_bit)
+//             {
+//                 util_log("VULKAN", "        %s (%#010x)\n", queue_flag_name->value, queue_flag_bit);
+//             }
+//         }
 
-        util_log("VULKAN", "    queue_count:          %i\n", queue_family_props->queueCount);
-        util_log("VULKAN", "    timestamp_valid_bits: %i\n", queue_family_props->timestampValidBits);
-        util_log("VULKAN", "    minImageTransferGranularity:\n");
-        util_log("VULKAN", "        width:  %i\n", min_image_transfer_granularity->width);
-        util_log("VULKAN", "        height: %i\n", min_image_transfer_granularity->height);
-        util_log("VULKAN", "        depth:  %i\n", min_image_transfer_granularity->depth);
-    }
-#endif
+//         util_log("VULKAN", "    queue_count:          %i\n", queue_family_props->queueCount);
+//         util_log("VULKAN", "    timestamp_valid_bits: %i\n", queue_family_props->timestampValidBits);
+//         util_log("VULKAN", "    minImageTransferGranularity:\n");
+//         util_log("VULKAN", "        width:  %i\n", min_image_transfer_granularity->width);
+//         util_log("VULKAN", "        height: %i\n", min_image_transfer_granularity->height);
+//         util_log("VULKAN", "        depth:  %i\n", min_image_transfer_granularity->depth);
+//     }
+// #endif
 
     // Ensure a graphics queue-family exists for the selected physical-device.
     int graphics_queue_family_index = -1;
