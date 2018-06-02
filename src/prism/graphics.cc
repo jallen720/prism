@@ -29,6 +29,7 @@ template<typename COMPONENT_PROPS>
 using COMPONENT_PROPS_NAME_ACCESSOR = const char * (*)(const COMPONENT_PROPS *);
 
 using DEBUG_FLAG_NAME = PAIR<VkDebugReportFlagBitsEXT, const char *>;
+using QUEUE_FLAG_NAME = PAIR<VkQueueFlagBits, const char *>;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -314,6 +315,88 @@ void gfx_init(
     }
 
     free(physical_devices);
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Queue-Families
+    //
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    // Ensure queue-families can be found.
+    uint32_t queue_family_count = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(*selected_physical_device, &queue_family_count, nullptr);
+
+    if(queue_family_count == 0)
+    {
+        util_error_exit("VULKAN", nullptr, "no queue-families found for physical-device\n");
+    }
+
+    // Get properties for selected physical-device's queue-families.
+    auto queue_family_properties_array =
+        (VkQueueFamilyProperties *)malloc(sizeof(VkQueueFamilyProperties) * queue_family_count);
+
+    vkGetPhysicalDeviceQueueFamilyProperties(*selected_physical_device, &queue_family_count, queue_family_properties_array);
+
+#ifdef PRISM_DEBUG
+    static const QUEUE_FLAG_NAME QUEUE_FLAG_NAMES[]
+    {
+        PRISM_ENUM_NAME_PAIR(VK_QUEUE_GRAPHICS_BIT),
+        PRISM_ENUM_NAME_PAIR(VK_QUEUE_COMPUTE_BIT),
+        PRISM_ENUM_NAME_PAIR(VK_QUEUE_TRANSFER_BIT),
+        PRISM_ENUM_NAME_PAIR(VK_QUEUE_SPARSE_BINDING_BIT),
+        PRISM_ENUM_NAME_PAIR(VK_QUEUE_PROTECTED_BIT),
+    };
+
+    static const size_t QUEUE_FLAG_NAME_COUNT = sizeof(QUEUE_FLAG_NAMES) / sizeof(QUEUE_FLAG_NAME);
+
+    for(size_t i = 0; i < queue_family_count; i++)
+    {
+        const VkQueueFamilyProperties * queue_family_properties = queue_family_properties_array + i;
+        VkQueueFlags queue_flags = queue_family_properties->queueFlags;
+        const VkExtent3D * min_image_transfer_granularity = &queue_family_properties->minImageTransferGranularity;
+        util_log("VULKAN", "queue-family:\n");
+        util_log("VULKAN", "    queue_flags (%#010x):\n", queue_flags);
+
+        for(size_t j = 0; j < QUEUE_FLAG_NAME_COUNT; j++)
+        {
+            const QUEUE_FLAG_NAME * queue_flag_name = QUEUE_FLAG_NAMES + j;
+            VkQueueFlagBits queue_flag_bit = queue_flag_name->key;
+
+            if(queue_flags & queue_flag_bit)
+            {
+                util_log("VULKAN", "        %s (%#010x)\n", queue_flag_name->value, queue_flag_bit);
+            }
+        }
+
+        util_log("VULKAN", "    queue_count:          %i\n", queue_family_properties->queueCount);
+        util_log("VULKAN", "    timestamp_valid_bits: %i\n", queue_family_properties->timestampValidBits);
+        util_log("VULKAN", "    minImageTransferGranularity:\n");
+        util_log("VULKAN", "        width:  %i\n", min_image_transfer_granularity->width);
+        util_log("VULKAN", "        height: %i\n", min_image_transfer_granularity->height);
+        util_log("VULKAN", "        depth:  %i\n", min_image_transfer_granularity->depth);
+    }
+#endif
+
+    // Ensure a graphics queue-family exists for the selected physical-device.
+    int graphics_queue_family_index = -1;
+
+    for(int i = 0; i < queue_family_count; i++)
+    {
+        const VkQueueFamilyProperties * queue_family_properties = queue_family_properties_array + i;
+
+        if(queue_family_properties->queueCount > 0 && queue_family_properties->queueFlags & VK_QUEUE_GRAPHICS_BIT)
+        {
+            graphics_queue_family_index = i;
+            break;
+        }
+    }
+
+    if(graphics_queue_family_index == -1)
+    {
+        util_error_exit("VULKAN", nullptr, "failed to find graphics queue-family for selected physical-device\n");
+    }
+
+    free(queue_family_properties_array);
 }
 
 void gfx_destroy(GFX_CONTEXT * context)
