@@ -259,7 +259,7 @@ void gfx_init(
     // Find a suitable physical-device for rendering and store handle in context.
     auto physical_devices = (VkPhysicalDevice *)malloc(sizeof(VkPhysicalDevice) * physical_device_count);
     vkEnumeratePhysicalDevices(*instance, &physical_device_count, physical_devices);
-    VkPhysicalDevice * context_physical_device = &context->physical_device;
+    VkPhysicalDevice * selected_physical_device = &context->physical_device;
 
 #if PRISM_DEBUG
     static const char * PHYSICAL_DEVICE_TYPE_NAMES[]
@@ -303,12 +303,12 @@ void gfx_init(
         // Currently, prism only supports discrete GPUs.
         if(physical_device_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
         {
-            *context_physical_device = physical_device;
+            *selected_physical_device = physical_device;
             break;
         }
     }
 
-    if(*context_physical_device == VK_NULL_HANDLE)
+    if(*selected_physical_device == VK_NULL_HANDLE)
     {
         util_error_exit("VULKAN", nullptr, "failed to find a suitable rendering physical-device\n");
     }
