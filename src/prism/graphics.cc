@@ -253,7 +253,7 @@ void gfx_init(
 
     if(device_count == 0)
     {
-        util_error_exit("VULKAN", nullptr, "no physical devices found\n");
+        util_error_exit("VULKAN", nullptr, "no devices found\n");
     }
 
     // Find a suitable device for rendering and store handle in context.
