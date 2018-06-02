@@ -9,6 +9,7 @@ using prism::sys_init;
 using prism::sys_create_window;
 using prism::sys_required_extension_names;
 using prism::GFX_CONTEXT;
+using prism::GFX_CONFIG;
 using prism::gfx_init;
 using prism::gfx_destroy;
 using ctk::YAML_NODE;
@@ -32,13 +33,13 @@ int main()
 
     yaml_free(window_config);
 
-    // Get GLFW's required Vulkan extensions.
-    uint32_t required_extension_count = 0;
-    const char ** required_extension_names = sys_required_extension_names(&required_extension_count);
+    // Initialize configuration for graphics modules.
+    GFX_CONFIG config = {};
+    config.requested_extension_names = sys_required_extension_names(&config.requested_extension_count);
 
     // Create and initialize graphics context.
     GFX_CONTEXT context = {};
-    gfx_init(&context, required_extension_names, required_extension_count, nullptr, 0);
+    gfx_init(&context, &config);
 
     // Cleanup graphics context.
     gfx_destroy(&context);

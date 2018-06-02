@@ -23,18 +23,20 @@ struct GFX_CONTEXT
 #endif
 };
 
+struct GFX_CONFIG
+{
+    const char ** requested_extension_names;
+    uint32_t requested_extension_count;
+    const char ** requested_layer_names;
+    uint32_t requested_layer_count;
+};
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Interface
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void gfx_init(
-    GFX_CONTEXT * context,
-    const char ** requested_extension_names,
-    uint32_t requested_extension_count,
-    const char ** requested_layer_names,
-    uint32_t requested_layer_count);
-
+void gfx_init(GFX_CONTEXT * context, GFX_CONFIG * config);
 void gfx_destroy(GFX_CONTEXT * context);
 
 } // namespace prism

@@ -194,18 +194,13 @@ static void log_instance_component_names(const INSTANCE_COMPONENT_INFO<COMPONENT
 }
 #endif
 
-static void create_instance(
-    GFX_CONTEXT * context,
-    const char ** requested_extension_names,
-    uint32_t requested_extension_count,
-    const char ** requested_layer_names,
-    uint32_t requested_layer_count)
+static void create_instance(GFX_CONTEXT * context, GFX_CONFIG * config)
 {
     // Initialize extension_info with requested extension names and available extension properties.
     INSTANCE_COMPONENT_INFO<VkExtensionProperties> extension_info = {};
     extension_info.type = "extension";
-    extension_info.requested_names = requested_extension_names;
-    extension_info.requested_count = requested_extension_count;
+    extension_info.requested_names = config->requested_extension_names;
+    extension_info.requested_count = config->requested_extension_count;
     extension_info.props_name_accessor = extension_props_name_accessor;
     uint32_t available_extension_count = 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &available_extension_count, nullptr);
@@ -215,8 +210,8 @@ static void create_instance(
     // Initialize layer_info with requested layer names and available layer properties.
     INSTANCE_COMPONENT_INFO<VkLayerProperties> layer_info = {};
     layer_info.type = "layer";
-    layer_info.requested_names = requested_layer_names;
-    layer_info.requested_count = requested_layer_count;
+    layer_info.requested_names = config->requested_layer_names;
+    layer_info.requested_count = config->requested_layer_count;
     layer_info.props_name_accessor = layer_props_name_accessor;
     uint32_t available_layer_count = 0;
     vkEnumerateInstanceLayerProperties(&available_layer_count, nullptr);
@@ -465,11 +460,7 @@ static size_t get_graphics_queue_family_index(GFX_CONTEXT * context)
     return graphics_queue_family_index;
 }
 
-static void create_logical_device(
-    GFX_CONTEXT * context,
-    size_t graphics_queue_family_index,
-    const char ** requested_layer_names,
-    uint32_t requested_layer_count)
+static void create_logical_device(GFX_CONTEXT * context, GFX_CONFIG * config, size_t graphics_queue_family_index)
 {
     VkPhysicalDevice physical_device = context->physical_device;
 
@@ -498,8 +489,8 @@ static void create_logical_device(
     // logical_device_create_info.ppEnabledExtensionNames = nullptr;
     logical_device_create_info.enabledExtensionCount = 0;
 
-    logical_device_create_info.ppEnabledLayerNames = requested_layer_names;
-    logical_device_create_info.enabledLayerCount = requested_layer_count;
+    logical_device_create_info.ppEnabledLayerNames = config->requested_layer_names;
+    logical_device_create_info.enabledLayerCount = config->requested_layer_count;
 
     // Create logical-device.
     VkDevice * logical_device = &context->logical_device;
@@ -524,12 +515,7 @@ static void create_logical_device(
 // Interface
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void gfx_init(
-    GFX_CONTEXT * context,
-    const char ** requested_extension_names,
-    uint32_t requested_extension_count,
-    const char ** requested_layer_names,
-    uint32_t requested_layer_count)
+void gfx_init(GFX_CONTEXT * context, GFX_CONFIG * config)
 {
 #ifdef PRISM_DEBUG
     // Concatenate requested and debug extension names.
@@ -539,18 +525,18 @@ void gfx_init(
     };
 
     static const size_t DEBUG_EXTENSION_COUNT = sizeof(DEBUG_EXTENSION_NAMES) / sizeof(void *);
-    const size_t all_extension_count = DEBUG_EXTENSION_COUNT + requested_extension_count;
+    const size_t all_extension_count = DEBUG_EXTENSION_COUNT + config->requested_extension_count;
     auto all_extension_names = (const char **)malloc(sizeof(void *) * all_extension_count);
 
     mem_concat(
-        requested_extension_names,
-        requested_extension_count,
+        config->requested_extension_names,
+        config->requested_extension_count,
         DEBUG_EXTENSION_NAMES,
         DEBUG_EXTENSION_COUNT,
         all_extension_names);
 
-    requested_extension_names = all_extension_names;
-    requested_extension_count = all_extension_count;
+    config->requested_extension_names = all_extension_names;
+    config->requested_extension_count = all_extension_count;
 
     // Concatenate requested and debug layer names.
     static const char * DEBUG_LAYER_NAMES[] =
@@ -559,21 +545,16 @@ void gfx_init(
     };
 
     static const size_t DEBUG_LAYER_COUNT = sizeof(DEBUG_LAYER_NAMES) / sizeof(void *);
-    requested_layer_names = DEBUG_LAYER_NAMES;
-    requested_layer_count = DEBUG_LAYER_COUNT;
+    config->requested_layer_names = DEBUG_LAYER_NAMES;
+    config->requested_layer_count = DEBUG_LAYER_COUNT;
 #endif
 
-    create_instance(
-        context,
-        requested_extension_names,
-        requested_extension_count,
-        requested_layer_names,
-        requested_layer_count);
+    create_instance(context, config);
 
 #ifdef PRISM_DEBUG
-    // In debug mode, requested_extension_names points to a dynamically allocated concatenation of the user requested
-    // extension names and built-in debug extension names, so it needs to be freed.
-    free(requested_extension_names);
+    // In debug mode, config->requested_extension_names points to a dynamically allocated concatenation of the user
+    // requested extension names and built-in debug extension names, so it needs to be freed.
+    free(config->requested_extension_names);
 #endif
 
 #ifdef PRISM_DEBUG
@@ -581,12 +562,7 @@ void gfx_init(
 #endif
 
     create_physical_device(context);
-
-    create_logical_device(
-        context,
-        get_graphics_queue_family_index(context),
-        requested_layer_names,
-        requested_layer_count);
+    create_logical_device(context, config, get_graphics_queue_family_index(context));
 }
 
 void gfx_destroy(GFX_CONTEXT * context)
