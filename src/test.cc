@@ -8,12 +8,13 @@
 using prism::SYS_CONTEXT;
 using prism::sys_create_surface;
 using prism::sys_init;
-using prism::sys_required_extension_names;
+using prism::sys_get_required_extension_names;
 using prism::sys_create_window;
 using prism::sys_destroy;
 using prism::GFX_CONTEXT;
 using prism::GFX_CONFIG;
-using prism::gfx_init;
+using prism::gfx_create_instance;
+using prism::gfx_create_devices;
 using prism::gfx_destroy;
 using ctk::YAML_NODE;
 using ctk::yaml_read_file;
@@ -26,15 +27,7 @@ int main()
     // Initialize system module.
     sys_init();
 
-    // Initialize configuration for graphics context.
-    GFX_CONFIG config = {};
-    config.requested_extension_names = sys_required_extension_names(&config.requested_extension_count);
-
-    // Create and initialize graphics context.
-    GFX_CONTEXT gfx_context = {};
-    gfx_init(&gfx_context, &config);
-
-    // Create window.
+    // Create window for new system context.
     SYS_CONTEXT sys_context = {};
     YAML_NODE * window_config = yaml_read_file("data/window.yaml");
 
@@ -46,8 +39,16 @@ int main()
 
     yaml_free(window_config);
 
-    // Create surface for rendering.
-    sys_create_surface(&sys_context, &gfx_context);
+    // Initialize graphics context.
+    GFX_CONTEXT gfx_context = {};
+
+    {
+        GFX_CONFIG config = {};
+        sys_get_required_extension_names(&config);
+        gfx_create_instance(&gfx_context, &config);
+        sys_create_surface(&sys_context, &gfx_context);
+        gfx_create_devices(&gfx_context, &config);
+    }
 
     // Run main loop.
     sys_run(&sys_context);
