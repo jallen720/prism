@@ -270,10 +270,11 @@ static void create_physical_device(GFX_CONTEXT * context)
     }
 #endif
 
+    // Cleanup
     free(available_physical_devices);
 }
 
-static size_t get_graphics_queue_family_index(GFX_CONTEXT * context)
+static void get_queue_family_indexes(GFX_CONTEXT * context)
 {
     VkPhysicalDevice physical_device = context->physical_device;
 
@@ -292,47 +293,7 @@ static size_t get_graphics_queue_family_index(GFX_CONTEXT * context)
 
     vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, queue_family_props_array);
 
-#ifdef PRISM_DEBUG
-    static const QUEUE_FLAG_NAME QUEUE_FLAG_NAMES[]
-    {
-        PRISM_ENUM_NAME_PAIR(VK_QUEUE_GRAPHICS_BIT),
-        PRISM_ENUM_NAME_PAIR(VK_QUEUE_COMPUTE_BIT),
-        PRISM_ENUM_NAME_PAIR(VK_QUEUE_TRANSFER_BIT),
-        PRISM_ENUM_NAME_PAIR(VK_QUEUE_SPARSE_BINDING_BIT),
-        PRISM_ENUM_NAME_PAIR(VK_QUEUE_PROTECTED_BIT),
-    };
-
-    static const size_t QUEUE_FLAG_NAME_COUNT = sizeof(QUEUE_FLAG_NAMES) / sizeof(QUEUE_FLAG_NAME);
-
-    for(size_t i = 0; i < queue_family_count; i++)
-    {
-        const VkQueueFamilyProperties * queue_family_props = queue_family_props_array + i;
-        VkQueueFlags queue_flags = queue_family_props->queueFlags;
-        const VkExtent3D * min_image_transfer_granularity = &queue_family_props->minImageTransferGranularity;
-        util_log("VULKAN", "queue-family:\n");
-        util_log("VULKAN", "    queue_flags (%#010x):\n", queue_flags);
-
-        for(size_t j = 0; j < QUEUE_FLAG_NAME_COUNT; j++)
-        {
-            const QUEUE_FLAG_NAME * queue_flag_name = QUEUE_FLAG_NAMES + j;
-            VkQueueFlagBits queue_flag_bit = queue_flag_name->key;
-
-            if(queue_flags & queue_flag_bit)
-            {
-                util_log("VULKAN", "        %s (%#010x)\n", queue_flag_name->value, queue_flag_bit);
-            }
-        }
-
-        util_log("VULKAN", "    queue_count:          %i\n", queue_family_props->queueCount);
-        util_log("VULKAN", "    timestamp_valid_bits: %i\n", queue_family_props->timestampValidBits);
-        util_log("VULKAN", "    minImageTransferGranularity:\n");
-        util_log("VULKAN", "        width:  %i\n", min_image_transfer_granularity->width);
-        util_log("VULKAN", "        height: %i\n", min_image_transfer_granularity->height);
-        util_log("VULKAN", "        depth:  %i\n", min_image_transfer_granularity->depth);
-    }
-#endif
-
-    // Ensure a graphics queue-family exists for the selected physical-device.
+    // Find indexes for graphics and present queue-families.
     int graphics_queue_family_index = -1;
 
     for(int i = 0; i < queue_family_count; i++)
@@ -351,24 +312,67 @@ static size_t get_graphics_queue_family_index(GFX_CONTEXT * context)
         util_error_exit("VULKAN", nullptr, "failed to find graphics queue-family for selected physical-device\n");
     }
 
+    context->graphics_queue_family_index = graphics_queue_family_index;
+
+// #ifdef PRISM_DEBUG
+//     static const QUEUE_FLAG_NAME QUEUE_FLAG_NAMES[]
+//     {
+//         PRISM_ENUM_NAME_PAIR(VK_QUEUE_GRAPHICS_BIT),
+//         PRISM_ENUM_NAME_PAIR(VK_QUEUE_COMPUTE_BIT),
+//         PRISM_ENUM_NAME_PAIR(VK_QUEUE_TRANSFER_BIT),
+//         PRISM_ENUM_NAME_PAIR(VK_QUEUE_SPARSE_BINDING_BIT),
+//         PRISM_ENUM_NAME_PAIR(VK_QUEUE_PROTECTED_BIT),
+//     };
+
+//     static const size_t QUEUE_FLAG_NAME_COUNT = sizeof(QUEUE_FLAG_NAMES) / sizeof(QUEUE_FLAG_NAME);
+
+//     for(size_t i = 0; i < queue_family_count; i++)
+//     {
+//         const VkQueueFamilyProperties * queue_family_props = queue_family_props_array + i;
+//         VkQueueFlags queue_flags = queue_family_props->queueFlags;
+//         const VkExtent3D * min_image_transfer_granularity = &queue_family_props->minImageTransferGranularity;
+//         util_log("VULKAN", "queue-family:\n");
+//         util_log("VULKAN", "    queue_flags (%#010x):\n", queue_flags);
+
+//         for(size_t j = 0; j < QUEUE_FLAG_NAME_COUNT; j++)
+//         {
+//             const QUEUE_FLAG_NAME * queue_flag_name = QUEUE_FLAG_NAMES + j;
+//             VkQueueFlagBits queue_flag_bit = queue_flag_name->key;
+
+//             if(queue_flags & queue_flag_bit)
+//             {
+//                 util_log("VULKAN", "        %s (%#010x)\n", queue_flag_name->value, queue_flag_bit);
+//             }
+//         }
+
+//         util_log("VULKAN", "    queue_count:          %i\n", queue_family_props->queueCount);
+//         util_log("VULKAN", "    timestamp_valid_bits: %i\n", queue_family_props->timestampValidBits);
+//         util_log("VULKAN", "    minImageTransferGranularity:\n");
+//         util_log("VULKAN", "        width:  %i\n", min_image_transfer_granularity->width);
+//         util_log("VULKAN", "        height: %i\n", min_image_transfer_granularity->height);
+//         util_log("VULKAN", "        depth:  %i\n", min_image_transfer_granularity->depth);
+//     }
+// #endif
+
+    // Cleanup
     free(queue_family_props_array);
-    return graphics_queue_family_index;
 }
 
-static void create_logical_device(GFX_CONTEXT * context, GFX_CONFIG * config, size_t graphics_queue_family_index)
+static void create_logical_device(GFX_CONTEXT * context, GFX_CONFIG * config)
 {
     VkPhysicalDevice physical_device = context->physical_device;
+    uint32_t graphics_queue_family_index = context->graphics_queue_family_index;
 
     // More than 1 queue is unnecessary per queue-family.
-    static const uint32_t QUEUE_COUNT = 1;
+    static const uint32_t QUEUE_FAMILY_QUEUE_COUNT = 1;
 
     static const float GRAPHICS_QUEUE_FAMILY_PRIORITY = 1.0F;
 
-    VkDeviceQueueCreateInfo logical_device_queue_create_info = {};
-    logical_device_queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    logical_device_queue_create_info.queueFamilyIndex = graphics_queue_family_index;
-    logical_device_queue_create_info.queueCount = QUEUE_COUNT;
-    logical_device_queue_create_info.pQueuePriorities = &GRAPHICS_QUEUE_FAMILY_PRIORITY;
+    VkDeviceQueueCreateInfo logical_device_graphics_queue_create_info = {};
+    logical_device_graphics_queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    logical_device_graphics_queue_create_info.queueFamilyIndex = graphics_queue_family_index;
+    logical_device_graphics_queue_create_info.queueCount = QUEUE_FAMILY_QUEUE_COUNT;
+    logical_device_graphics_queue_create_info.pQueuePriorities = &GRAPHICS_QUEUE_FAMILY_PRIORITY;
 
     // Left empty for now.
     VkPhysicalDeviceFeatures physical_device_features = {};
@@ -376,7 +380,7 @@ static void create_logical_device(GFX_CONTEXT * context, GFX_CONFIG * config, si
     // Initialize logical-device creation info.
     VkDeviceCreateInfo logical_device_create_info = {};
     logical_device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    logical_device_create_info.pQueueCreateInfos = &logical_device_queue_create_info;
+    logical_device_create_info.pQueueCreateInfos = &logical_device_graphics_queue_create_info;
     logical_device_create_info.queueCreateInfoCount = 1;
     logical_device_create_info.pEnabledFeatures = &physical_device_features;
 
@@ -557,7 +561,8 @@ void gfx_create_instance(GFX_CONTEXT * context, GFX_CONFIG * config)
 void gfx_create_devices(GFX_CONTEXT * context, GFX_CONFIG * config)
 {
     create_physical_device(context);
-    create_logical_device(context, config, get_graphics_queue_family_index(context));
+    get_queue_family_indexes(context);
+    create_logical_device(context, config);
 }
 
 void gfx_destroy(GFX_CONTEXT * context)
