@@ -221,9 +221,11 @@ static void create_physical_device(GFX_CONTEXT * context)
     vkEnumeratePhysicalDevices(instance, &available_physical_device_count, available_physical_devices);
     VkPhysicalDevice physical_device = VK_NULL_HANDLE;
 
-    for(size_t i = 0; i < available_physical_device_count; i++)
+    for(size_t available_physical_device_index = 0;
+        available_physical_device_index < available_physical_device_count;
+        available_physical_device_index++)
     {
-        VkPhysicalDevice available_physical_device = available_physical_devices[i];
+        VkPhysicalDevice available_physical_device = available_physical_devices[available_physical_device_index];
         VkPhysicalDeviceProperties available_physical_device_properties;
         vkGetPhysicalDeviceProperties(available_physical_device, &available_physical_device_properties);
 
@@ -232,11 +234,48 @@ static void create_physical_device(GFX_CONTEXT * context)
         // vkGetPhysicalDeviceFeatures(available_physical_device, &device_features);
 
         // TODO: implement robust physical-device requirements specification.
-        // Currently, prism only supports discrete GPUs.
+        // Currently, prism only supports discrete GPUs that support swapchains.
         if(available_physical_device_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
         {
-            physical_device = available_physical_device;
-            break;
+            uint32_t available_extension_count;
+
+            vkEnumerateDeviceExtensionProperties(
+                available_physical_device,
+                nullptr,
+                &available_extension_count,
+                nullptr);
+
+            auto available_extension_properties_array =
+                (VkExtensionProperties *)malloc(sizeof(VkExtensionProperties) * available_extension_count);
+
+            vkEnumerateDeviceExtensionProperties(
+                available_physical_device,
+                nullptr,
+                &available_extension_count,
+                available_extension_properties_array);
+
+            bool supports_swap_chain = false;
+
+            for(size_t available_extension_index = 0;
+                available_extension_index < available_extension_count;
+                available_extension_index++)
+            {
+                if(strcmp(
+                    available_extension_properties_array[available_extension_index].extensionName,
+                    VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
+                {
+                    supports_swap_chain = true;
+                    break;
+                }
+            }
+
+            free(available_extension_properties_array);
+
+            if(supports_swap_chain)
+            {
+                physical_device = available_physical_device;
+                break;
+            }
         }
     }
 
@@ -446,6 +485,8 @@ static void create_logical_device(GFX_CONTEXT * context)
             logical_device_queue_create_infos + logical_device_queue_create_info_count++;
 
         logical_device_queue_create_info->sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        logical_device_queue_create_info->pNext = nullptr;
+        logical_device_queue_create_info->flags = 0;
         logical_device_queue_create_info->queueFamilyIndex = queue_family_index;
         logical_device_queue_create_info->queueCount = QUEUE_FAMILY_QUEUE_COUNT;
         logical_device_queue_create_info->pQueuePriorities = &QUEUE_FAMILY_QUEUE_PRIORITY;
