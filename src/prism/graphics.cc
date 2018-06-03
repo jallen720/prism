@@ -49,49 +49,54 @@ struct INSTANCE_COMPONENT_INFO
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifdef PRISM_DEBUG
 static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
-    VkDebugReportFlagsEXT /*flags*/,
-    VkDebugReportObjectTypeEXT /*obj_type*/,
-    uint64_t /*obj*/,
-    size_t /*location*/,
-    int32_t /*code*/,
-    const char * /*layer_prefix*/,
+    VkDebugReportFlagsEXT flags,
+    VkDebugReportObjectTypeEXT obj_type,
+    uint64_t obj,
+    size_t location,
+    int32_t code,
+    const char * layer_prefix,
     const char * msg,
-    void * /*user_data*/)
+    void * user_data)
 {
-    // static const DEBUG_FLAG_NAME DEBUG_FLAG_NAMES[]
-    // {
-    //     PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_INFORMATION_BIT_EXT),
-    //     PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_WARNING_BIT_EXT),
-    //     PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT),
-    //     PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_ERROR_BIT_EXT),
-    //     PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_DEBUG_BIT_EXT),
-    // };
+#if 0
+    static const DEBUG_FLAG_NAME DEBUG_FLAG_NAMES[]
+    {
+        PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_INFORMATION_BIT_EXT),
+        PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_WARNING_BIT_EXT),
+        PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT),
+        PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_ERROR_BIT_EXT),
+        PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_DEBUG_BIT_EXT),
+    };
 
-    // static const size_t DEBUG_FLAG_COUNT = sizeof(DEBUG_FLAG_NAMES) / sizeof(DEBUG_FLAG_NAME);
+    static const size_t DEBUG_FLAG_COUNT = sizeof(DEBUG_FLAG_NAMES) / sizeof(DEBUG_FLAG_NAME);
+
     util_log("VULKAN", "validation layer:\n");
 
-    // // Log the list of flags passed to callback.
-    // util_log("VULKAN", "    flags (%#010x):\n", flags);
+    // Log the list of flags passed to callback.
+    util_log("VULKAN", "    flags (%#010x):\n", flags);
 
-    // for(size_t i = 0; i < DEBUG_FLAG_COUNT; i++)
-    // {
-    //     const DEBUG_FLAG_NAME * debug_flag_name = DEBUG_FLAG_NAMES + i;
-    //     VkDebugReportFlagBitsEXT debug_flag_bit = debug_flag_name->key;
+    for(size_t i = 0; i < DEBUG_FLAG_COUNT; i++)
+    {
+        const DEBUG_FLAG_NAME * debug_flag_name = DEBUG_FLAG_NAMES + i;
+        VkDebugReportFlagBitsEXT debug_flag_bit = debug_flag_name->key;
 
-    //     if(debug_flag_bit & flags)
-    //     {
-    //         util_log("VULKAN", "        %s (%#010x)\n", debug_flag_name->value, debug_flag_bit);
-    //     }
-    // }
+        if(debug_flag_bit & flags)
+        {
+            util_log("VULKAN", "        %s (%#010x)\n", debug_flag_name->value, debug_flag_bit);
+        }
+    }
 
     // Log remaining callback args.
-    // util_log("VULKAN", "    obj_type:     %i\n", obj_type);
-    // util_log("VULKAN", "    obj:          %i\n", obj);
-    // util_log("VULKAN", "    location:     %i\n", location);
-    // util_log("VULKAN", "    code:         %i\n", code);
-    // util_log("VULKAN", "    layer_prefix: %s\n", layer_prefix);
+    util_log("VULKAN", "    obj_type:     %i\n", obj_type);
+    util_log("VULKAN", "    obj:          %i\n", obj);
+    util_log("VULKAN", "    location:     %i\n", location);
+    util_log("VULKAN", "    code:         %i\n", code);
+    util_log("VULKAN", "    layer_prefix: %s\n", layer_prefix);
     util_log("VULKAN", "    msg:          \"%s\"\n", msg);
-    // util_log("VULKAN", "    user_data:    %p\n", user_data);
+    util_log("VULKAN", "    user_data:    %p\n", user_data);
+#else
+    util_log("VULKAN", "validation layer: %s: %s\n", layer_prefix, msg);
+#endif
 
     // Should the call being validated be aborted?
     return VK_FALSE;
@@ -437,13 +442,13 @@ static void create_logical_device(GFX_CONTEXT * context)
         }
 
         // Initialize creation info for queue-family;
-        VkDeviceQueueCreateInfo * logical_device_graphics_queue_create_info =
+        VkDeviceQueueCreateInfo * logical_device_queue_create_info =
             logical_device_queue_create_infos + logical_device_queue_create_info_count++;
 
-        logical_device_graphics_queue_create_info->sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        logical_device_graphics_queue_create_info->queueFamilyIndex = queue_family_index;
-        logical_device_graphics_queue_create_info->queueCount = QUEUE_FAMILY_QUEUE_COUNT;
-        logical_device_graphics_queue_create_info->pQueuePriorities = &QUEUE_FAMILY_QUEUE_PRIORITY;
+        logical_device_queue_create_info->sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        logical_device_queue_create_info->queueFamilyIndex = queue_family_index;
+        logical_device_queue_create_info->queueCount = QUEUE_FAMILY_QUEUE_COUNT;
+        logical_device_queue_create_info->pQueuePriorities = &QUEUE_FAMILY_QUEUE_PRIORITY;
     }
 
     // Left empty for now.
@@ -620,7 +625,7 @@ void gfx_create_instance(GFX_CONTEXT * context, GFX_CONFIG * config)
 
     debug_callback_create_info.flags =
         // VK_DEBUG_REPORT_INFORMATION_BIT_EXT |
-        // VK_DEBUG_REPORT_WARNING_BIT_EXT |
+        VK_DEBUG_REPORT_WARNING_BIT_EXT |
         // VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT |
         VK_DEBUG_REPORT_ERROR_BIT_EXT |
         VK_DEBUG_REPORT_DEBUG_BIT_EXT;
