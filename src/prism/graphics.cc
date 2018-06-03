@@ -166,40 +166,40 @@ static void validate_instance_component_info(const INSTANCE_COMPONENT_INFO<COMPO
     }
 }
 
-#ifdef PRISM_DEBUG
-template<typename COMPONENT_PROPS>
-static void log_instance_component_names(const INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info)
-{
-    const char * component_type = component_info->type;
-    const char ** requested_component_names = component_info->requested_names;
-    uint32_t requested_component_count = component_info->requested_count;
-    const COMPONENT_PROPS * available_component_props = component_info->available_props;
-    uint32_t available_component_count = component_info->available_count;
-    COMPONENT_PROPS_NAME_ACCESSOR<COMPONENT_PROPS> access_component_name = component_info->props_name_accessor;
-    util_log("VULKAN", "requested %s names (%i):\n", component_type, requested_component_count);
+// #ifdef PRISM_DEBUG
+// template<typename COMPONENT_PROPS>
+// static void log_instance_component_names(const INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info)
+// {
+//     const char * component_type = component_info->type;
+//     const char ** requested_component_names = component_info->requested_names;
+//     uint32_t requested_component_count = component_info->requested_count;
+//     const COMPONENT_PROPS * available_component_props = component_info->available_props;
+//     uint32_t available_component_count = component_info->available_count;
+//     COMPONENT_PROPS_NAME_ACCESSOR<COMPONENT_PROPS> access_component_name = component_info->props_name_accessor;
+//     util_log("VULKAN", "requested %s names (%i):\n", component_type, requested_component_count);
 
-    for(size_t i = 0; i < requested_component_count; i++)
-    {
-        util_log("VULKAN", "    %s\n", requested_component_names[i]);
-    }
+//     for(size_t i = 0; i < requested_component_count; i++)
+//     {
+//         util_log("VULKAN", "    %s\n", requested_component_names[i]);
+//     }
 
-    util_log("VULKAN", "available %s names (%i):", component_type, available_component_count);
+//     util_log("VULKAN", "available %s names (%i):", component_type, available_component_count);
 
-    if(available_component_count == 0)
-    {
-        fprintf(stdout, " none\n");
-    }
-    else
-    {
-        fprintf(stdout, "\n");
+//     if(available_component_count == 0)
+//     {
+//         fprintf(stdout, " none\n");
+//     }
+//     else
+//     {
+//         fprintf(stdout, "\n");
 
-        for(uint32_t i = 0; i < available_component_count; i++)
-        {
-            util_log("VULKAN", "    %s\n", access_component_name(available_component_props + i));
-        }
-    }
-}
-#endif
+//         for(uint32_t i = 0; i < available_component_count; i++)
+//         {
+//             util_log("VULKAN", "    %s\n", access_component_name(available_component_props + i));
+//         }
+//     }
+// }
+// #endif
 
 static void create_physical_device(GFX_CONTEXT * context)
 {
@@ -609,7 +609,7 @@ static void create_logical_device(GFX_CONTEXT * context)
     // Get queue-family queues from logical-device.
     for(size_t i = 0; i < queue_family_count; i++)
     {
-        QUEUE_FAMILY_DATA * queue_family = queue_families + i;
+        const QUEUE_FAMILY_DATA * queue_family = queue_families + i;
         vkGetDeviceQueue(logical_device, queue_family->key, 0, queue_family->value);
     }
 }
@@ -619,40 +619,8 @@ static void create_logical_device(GFX_CONTEXT * context)
 // Interface
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void gfx_create_instance(GFX_CONTEXT * context, GFX_CONFIG * config)
+void gfx_create_instance(GFX_CONTEXT * context, const GFX_CONFIG * config)
 {
-#ifdef PRISM_DEBUG
-    // Concatenate requested and debug extension names.
-    static const char * DEBUG_EXTENSION_NAMES[]
-    {
-        VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
-    };
-
-    static const size_t DEBUG_EXTENSION_COUNT = sizeof(DEBUG_EXTENSION_NAMES) / sizeof(void *);
-    const size_t all_extension_count = DEBUG_EXTENSION_COUNT + config->requested_extension_count;
-    auto all_extension_names = (const char **)malloc(sizeof(void *) * all_extension_count);
-
-    mem_concat(
-        config->requested_extension_names,
-        config->requested_extension_count,
-        DEBUG_EXTENSION_NAMES,
-        DEBUG_EXTENSION_COUNT,
-        all_extension_names);
-
-    config->requested_extension_names = all_extension_names;
-    config->requested_extension_count = all_extension_count;
-
-    // Concatenate requested and debug layer names.
-    static const char * DEBUG_LAYER_NAMES[] =
-    {
-        "VK_LAYER_LUNARG_standard_validation",
-    };
-
-    static const size_t DEBUG_LAYER_COUNT = sizeof(DEBUG_LAYER_NAMES) / sizeof(void *);
-    config->requested_layer_names = DEBUG_LAYER_NAMES;
-    config->requested_layer_count = DEBUG_LAYER_COUNT;
-#endif
-
     // Initialize extension_info with requested extension names and available extension properties.
     INSTANCE_COMPONENT_INFO<VkExtensionProperties> extension_info = {};
     extension_info.type = "extension";
@@ -741,14 +709,89 @@ void gfx_create_instance(GFX_CONTEXT * context, GFX_CONFIG * config)
     // Cleanup
     free_available_props(&extension_info);
     free_available_props(&layer_info);
+}
 
+void gfx_load_devices(GFX_CONTEXT * context)
+{
+    create_physical_device(context);
+    get_queue_family_indexes(context);
+    create_logical_device(context);
+}
+
+void gfx_destroy(GFX_CONTEXT * context)
+{
+    VkInstance * instance = &context->instance;
+    VkSurfaceKHR * surface = &context->surface;
+    VkDevice * logical_device = &context->logical_device;
+
+    // Graphics-queue will be implicitly destroyed when logical-device is destroyed.
+    vkDestroyDevice(*logical_device, nullptr);
+
+    // Surface must be destroyed before instance.
+    vkDestroySurfaceKHR(*instance, *surface, nullptr);
+
+    // Physical-device will be implicitly destroyed when instance is destroyed.
+    vkDestroyInstance(*instance, nullptr);
+
+    // Initialize all context data.
+    *instance = VK_NULL_HANDLE;
+    *surface = VK_NULL_HANDLE;
+    context->physical_device = VK_NULL_HANDLE;
+    *logical_device = VK_NULL_HANDLE;
+    context->graphics_queue = VK_NULL_HANDLE;
+    context->present_queue = VK_NULL_HANDLE;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Debug Interface
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifdef PRISM_DEBUG
+void gfx_init_debug_config(GFX_CONFIG * config)
+{
+    // Concatenate requested and debug extension names.
+    static const char * DEBUG_EXTENSION_NAMES[]
+    {
+        VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
+    };
+
+    static const size_t DEBUG_EXTENSION_COUNT = sizeof(DEBUG_EXTENSION_NAMES) / sizeof(void *);
+    const size_t all_extension_count = DEBUG_EXTENSION_COUNT + config->requested_extension_count;
+    auto all_extension_names = (const char **)malloc(sizeof(void *) * all_extension_count);
+
+    mem_concat(
+        config->requested_extension_names,
+        config->requested_extension_count,
+        DEBUG_EXTENSION_NAMES,
+        DEBUG_EXTENSION_COUNT,
+        all_extension_names);
+
+    config->requested_extension_names = all_extension_names;
+    config->requested_extension_count = all_extension_count;
+
+    // Concatenate requested and debug layer names.
+    static const char * DEBUG_LAYER_NAMES[] =
+    {
+        "VK_LAYER_LUNARG_standard_validation",
+    };
+
+    static const size_t DEBUG_LAYER_COUNT = sizeof(DEBUG_LAYER_NAMES) / sizeof(void *);
+    config->requested_layer_names = DEBUG_LAYER_NAMES;
+    config->requested_layer_count = DEBUG_LAYER_COUNT;
+}
+
+void gfx_free_debug_config(GFX_CONFIG * config)
+{
     // In debug mode, config->requested_extension_names points to a dynamically allocated concatenation of the user
     // requested extension names and built-in debug extension names, so it needs to be freed.
     free(config->requested_extension_names);
-#endif
+}
 
-#ifdef PRISM_DEBUG
+void gfx_create_debug_callback(GFX_CONTEXT * context)
+{
+    VkInstance instance = context->instance;
+
     // Ensure debug callback creation function exists.
     auto create_debug_callback =
         (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
@@ -792,31 +835,16 @@ void gfx_create_instance(GFX_CONTEXT * context, GFX_CONFIG * config)
     {
         util_error_exit("VULKAN", util_vk_result_name(create_debug_callback_result), "failed to create debug callback");
     }
-#endif
 }
 
-void gfx_load_devices(GFX_CONTEXT * context)
+void gfx_destroy_debug_callback(GFX_CONTEXT * context)
 {
-    create_physical_device(context);
-    get_queue_family_indexes(context);
-    create_logical_device(context);
-}
-
-void gfx_destroy(GFX_CONTEXT * context)
-{
-    VkInstance * instance = &context->instance;
-    VkSurfaceKHR * surface = &context->surface;
-    VkDevice * logical_device = &context->logical_device;
-
-#ifdef PRISM_DEBUG
+    VkInstance instance = context->instance;
     VkDebugReportCallbackEXT * debug_callback = &context->debug_callback;
-#endif
 
-    // Destroy all context data that needs destroyed in reverse-order that it was created.
-#ifdef PRISM_DEBUG
     // Destroy debug callback.
     auto destroy_debug_callback =
-        (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(*instance, "vkDestroyDebugReportCallbackEXT");
+        (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
 
     if(destroy_debug_callback == nullptr)
     {
@@ -826,29 +854,9 @@ void gfx_destroy(GFX_CONTEXT * context)
             "extension for destroying debug callback is not available\n");
     }
 
-    destroy_debug_callback(*instance, *debug_callback, nullptr);
-#endif
-
-    // Graphics-queue will be implicitly destroyed when logical-device is destroyed.
-    vkDestroyDevice(*logical_device, nullptr);
-
-    // Surface must be destroyed before instance.
-    vkDestroySurfaceKHR(*instance, *surface, nullptr);
-
-    // Physical-device will be implicitly destroyed when instance is destroyed.
-    vkDestroyInstance(*instance, nullptr);
-
-    // Initialize all context data.
-    *instance = VK_NULL_HANDLE;
-    *surface = VK_NULL_HANDLE;
-    context->physical_device = VK_NULL_HANDLE;
-    *logical_device = VK_NULL_HANDLE;
-    context->graphics_queue = VK_NULL_HANDLE;
-    context->present_queue = VK_NULL_HANDLE;
-
-#ifdef PRISM_DEBUG
+    destroy_debug_callback(instance, *debug_callback, nullptr);
     *debug_callback = VK_NULL_HANDLE;
-#endif
 }
+#endif
 
 } // namespace prism

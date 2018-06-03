@@ -45,8 +45,21 @@ int main()
     {
         GFX_CONFIG config = {};
         sys_get_required_extension_names(&config);
+
+#ifdef PRISM_DEBUG
+        prism::gfx_init_debug_config(&config);
+#endif
+
         gfx_create_instance(&gfx_context, &config);
+
+#ifdef PRISM_DEBUG
+        prism::gfx_free_debug_config(&config);
+#endif
     }
+
+#ifdef PRISM_DEBUG
+    prism::gfx_create_debug_callback(&gfx_context);
+#endif
 
     sys_create_surface(&sys_context, &gfx_context);
     gfx_load_devices(&gfx_context);
@@ -56,6 +69,10 @@ int main()
 
     // Destroy system context.
     sys_destroy(&sys_context);
+
+#ifdef PRISM_DEBUG
+    prism::gfx_destroy_debug_callback(&gfx_context);
+#endif
 
     // Cleanup graphics context.
     gfx_destroy(&gfx_context);
