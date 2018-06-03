@@ -14,7 +14,7 @@ obj/src/prism/utilities.o: src/prism/utilities.cc src/prism/utilities.h src/pris
 	@mkdir -p obj/src/prism
 	@g++ -std=c++14 -ggdb -Wall -Wextra -pedantic-errors -c -DPRISM_DEBUG -I/home/joel/Desktop/projects/ctk/src -Isrc -I/home/joel/Desktop/packages/VulkanSDK/1.1.73.0/x86_64/include $< -o $@
 
-obj/src/prism/system.o: src/prism/system.cc /home/joel/Desktop/packages/VulkanSDK/1.1.73.0/x86_64/include/vulkan/vulkan.h src/prism/system.h src/prism/utilities.h
+obj/src/prism/system.o: src/prism/system.cc src/prism/system.h src/prism/utilities.h
 	@echo compiling $<
 	@mkdir -p obj/src/prism
 	@g++ -std=c++14 -ggdb -Wall -Wextra -pedantic-errors -c -DPRISM_DEBUG -I/home/joel/Desktop/projects/ctk/src -Isrc -I/home/joel/Desktop/packages/VulkanSDK/1.1.73.0/x86_64/include $< -o $@
@@ -35,7 +35,7 @@ import_test_libs: bin/lib/libvulkan.so.1
 obj/src/test.o: src/test.cc src/prism/system.h src/prism/graphics.h /home/joel/Desktop/projects/ctk/src/ctk/yaml.h
 	@echo compiling $<
 	@mkdir -p obj/src
-	@g++ -std=c++14 -ggdb -Wall -Wextra -pedantic-errors -c -Isrc -I/home/joel/Desktop/packages/VulkanSDK/1.1.73.0/x86_64/include -I/home/joel/Desktop/projects/ctk/src $< -o $@
+	@g++ -std=c++14 -ggdb -Wall -Wextra -pedantic-errors -c -DPRISM_DEBUG -Isrc -I/home/joel/Desktop/packages/VulkanSDK/1.1.73.0/x86_64/include -I/home/joel/Desktop/projects/ctk/src $< -o $@
 
 bin/test: obj/src/test.o lib/libprism.a /home/joel/Desktop/projects/ctk/lib/libctk.a
 	@echo linking $@
@@ -48,7 +48,7 @@ import_simd_libs: bin/lib/libvulkan.so.1
 obj/src/simd.o: src/simd.cc
 	@echo compiling $<
 	@mkdir -p obj/src
-	@g++ -std=c++14 -ggdb -Wall -Wextra -pedantic-errors -c -mavx2 -O3 -Isrc -I/home/joel/Desktop/packages/VulkanSDK/1.1.73.0/x86_64/include -I/home/joel/Desktop/projects/ctk/src $< -o $@
+	@g++ -std=c++14 -ggdb -Wall -Wextra -pedantic-errors -c -mavx2 -O3 -DPRISM_DEBUG -Isrc -I/home/joel/Desktop/packages/VulkanSDK/1.1.73.0/x86_64/include -I/home/joel/Desktop/projects/ctk/src $< -o $@
 
 bin/simd: obj/src/simd.o lib/libprism.a /home/joel/Desktop/projects/ctk/lib/libctk.a
 	@echo linking $@
@@ -61,7 +61,7 @@ import_sandbox_libs: bin/lib/libvulkan.so.1
 obj/src/sandbox.o: src/sandbox.cc src/prism/defines.h /home/joel/Desktop/projects/ctk/src/ctk/data.h
 	@echo compiling $<
 	@mkdir -p obj/src
-	@g++ -std=c++14 -ggdb -Wall -Wextra -pedantic-errors -c -Isrc -I/home/joel/Desktop/packages/VulkanSDK/1.1.73.0/x86_64/include -I/home/joel/Desktop/projects/ctk/src $< -o $@
+	@g++ -std=c++14 -ggdb -Wall -Wextra -pedantic-errors -c -DPRISM_DEBUG -Isrc -I/home/joel/Desktop/packages/VulkanSDK/1.1.73.0/x86_64/include -I/home/joel/Desktop/projects/ctk/src $< -o $@
 
 bin/sandbox: obj/src/sandbox.o lib/libprism.a /home/joel/Desktop/projects/ctk/lib/libctk.a
 	@echo linking $@

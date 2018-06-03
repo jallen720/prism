@@ -1,6 +1,7 @@
 const PRISM_SRC_DIR = "src";
+const PRISM_DEFINES = [ "PRISM_DEBUG" ];
+const PRISM_COMPILER_OPTIONS = [ "std=c++14", "ggdb", "Wall", "Wextra", "pedantic-errors", "c" ];
 const CTK_DIR = "<PROJECTS>/ctk";
-const COMPILER_OPTIONS = [ "std=c++14", "ggdb", "Wall", "Wextra", "pedantic-errors", "c" ];
 const VULKAN_DIR = "<PACKAGES>/VulkanSDK/1.1.73.0/x86_64";
 const VULKAN_INCLUDE_DIR = `${ VULKAN_DIR }/include`;
 
@@ -13,7 +14,7 @@ module.exports =
         "prism_test":
         {
             "type": "application",
-            "debug": false,
+            "defines": PRISM_DEFINES,
             "source_dirs": [],
             "include_dirs":
             [
@@ -49,7 +50,7 @@ module.exports =
                 `${ VULKAN_DIR }/lib/libvulkan.so.1`,
             ],
             "pkg_config": [],
-            "compiler_options": COMPILER_OPTIONS,
+            "compiler_options": PRISM_COMPILER_OPTIONS,
             "linker_options": [ "Wl,-rpath,'$$ORIGIN/lib'" ],
         }
     },
@@ -58,7 +59,7 @@ module.exports =
         "prism":
         {
             "type": "static_library",
-            "debug": true,
+            "defines": PRISM_DEFINES,
             "source_dirs":
             [
                 `${ PRISM_SRC_DIR }/prism`,
@@ -74,7 +75,7 @@ module.exports =
             "internal_static_library_paths": [],
             "library_import_paths": [],
             "pkg_config": [],
-            "compiler_options": COMPILER_OPTIONS,
+            "compiler_options": PRISM_COMPILER_OPTIONS,
             "linker_options": [],
         },
         "test":
