@@ -46,9 +46,10 @@ int main()
         GFX_CONFIG config = {};
         sys_get_required_extension_names(&config);
         gfx_create_instance(&gfx_context, &config);
-        sys_create_surface(&sys_context, &gfx_context);
-        gfx_create_devices(&gfx_context, &config);
     }
+
+    sys_create_surface(&sys_context, &gfx_context);
+    gfx_create_devices(&gfx_context);
 
     // Run main loop.
     sys_run(&sys_context);

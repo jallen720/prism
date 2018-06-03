@@ -18,7 +18,9 @@ struct GFX_CONTEXT
     VkPhysicalDevice physical_device = VK_NULL_HANDLE;
     VkDevice logical_device = VK_NULL_HANDLE;
     VkQueue graphics_queue = VK_NULL_HANDLE;
+    VkQueue present_queue = VK_NULL_HANDLE;
     uint32_t graphics_queue_family_index;
+    uint32_t present_queue_family_index;
 
 #ifdef PRISM_DEBUG
     VkDebugReportCallbackEXT debug_callback = VK_NULL_HANDLE;
@@ -39,7 +41,7 @@ struct GFX_CONFIG
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void gfx_create_instance(GFX_CONTEXT * context, GFX_CONFIG * config);
-void gfx_create_devices(GFX_CONTEXT * context, GFX_CONFIG * config);
+void gfx_create_devices(GFX_CONTEXT * context);
 void gfx_destroy(GFX_CONTEXT * context);
 
 } // namespace prism
