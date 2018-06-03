@@ -33,7 +33,7 @@ void sys_init()
 
     if(glfwInit() == GLFW_FALSE)
     {
-        util_error_exit("GLFW", nullptr, "failed to initialize");
+        util_error_exit("GLFW", nullptr, "failed to initialize\n");
     }
 
     // Required for Vulkan.
@@ -48,7 +48,7 @@ void sys_create_window(SYS_CONTEXT * sys_context, int width, int height, const c
 
     if(*window == nullptr)
     {
-        util_error_exit("GLFW", nullptr, "failed to create window");
+        util_error_exit("GLFW", nullptr, "failed to create window\n");
     }
 
     glfwSetKeyCallback(*window, key_callback);
@@ -74,13 +74,15 @@ void sys_destroy(SYS_CONTEXT * sys_context)
 
 void sys_create_surface(SYS_CONTEXT * sys_context, GFX_CONTEXT * gfx_context)
 {
-    VkSurfaceKHR * surface = &gfx_context->surface;
-    VkResult result = glfwCreateWindowSurface(gfx_context->instance, sys_context->window, nullptr, surface);
+    VkSurfaceKHR surface = VK_NULL_HANDLE;
+    VkResult result = glfwCreateWindowSurface(gfx_context->instance, sys_context->window, nullptr, &surface);
 
     if(result != VK_SUCCESS)
     {
         util_error_exit("GLFW & VULKAN", nullptr, "failed to create window surface");
     }
+
+    gfx_context->surface = surface;
 }
 
 } // namespace prism
