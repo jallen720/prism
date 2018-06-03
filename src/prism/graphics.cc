@@ -226,7 +226,7 @@ static void create_physical_device(GFX_CONTEXT * context)
         available_physical_device_index++)
     {
         VkPhysicalDevice available_physical_device = available_physical_devices[available_physical_device_index];
-        VkPhysicalDeviceProperties available_physical_device_properties;
+        VkPhysicalDeviceProperties available_physical_device_properties = {};
         vkGetPhysicalDeviceProperties(available_physical_device, &available_physical_device_properties);
 
         // Not currently needed.
@@ -322,7 +322,6 @@ static void create_physical_device(GFX_CONTEXT * context)
 
 static void get_queue_family_indexes(GFX_CONTEXT * context)
 {
-    assert(context->surface != VK_NULL_HANDLE);
     VkPhysicalDevice physical_device = context->physical_device;
     VkSurfaceKHR surface = context->surface;
 
@@ -481,6 +480,15 @@ static void create_logical_device(GFX_CONTEXT * context)
         }
 
         // Initialize creation info for queue-family;
+
+        // typedef struct VkDeviceQueueCreateInfo {
+        //     VkStructureType             sType;
+        //     const void*                 pNext;
+        //     VkDeviceQueueCreateFlags    flags;
+        //     uint32_t                    queueFamilyIndex;
+        //     uint32_t                    queueCount;
+        //     const float*                pQueuePriorities;
+        // } VkDeviceQueueCreateInfo;
         VkDeviceQueueCreateInfo * logical_device_queue_create_info =
             logical_device_queue_create_infos + logical_device_queue_create_info_count++;
 
@@ -492,23 +500,92 @@ static void create_logical_device(GFX_CONTEXT * context)
         logical_device_queue_create_info->pQueuePriorities = &QUEUE_FAMILY_QUEUE_PRIORITY;
     }
 
-    // Left empty for now.
+    // Set enabled physical-device features (empty for now).
+
+    // typedef struct VkPhysicalDeviceFeatures {
+    //     VkBool32    robustBufferAccess;
+    //     VkBool32    fullDrawIndexUint32;
+    //     VkBool32    imageCubeArray;
+    //     VkBool32    independentBlend;
+    //     VkBool32    geometryShader;
+    //     VkBool32    tessellationShader;
+    //     VkBool32    sampleRateShading;
+    //     VkBool32    dualSrcBlend;
+    //     VkBool32    logicOp;
+    //     VkBool32    multiDrawIndirect;
+    //     VkBool32    drawIndirectFirstInstance;
+    //     VkBool32    depthClamp;
+    //     VkBool32    depthBiasClamp;
+    //     VkBool32    fillModeNonSolid;
+    //     VkBool32    depthBounds;
+    //     VkBool32    wideLines;
+    //     VkBool32    largePoints;
+    //     VkBool32    alphaToOne;
+    //     VkBool32    multiViewport;
+    //     VkBool32    samplerAnisotropy;
+    //     VkBool32    textureCompressionETC2;
+    //     VkBool32    textureCompressionASTC_LDR;
+    //     VkBool32    textureCompressionBC;
+    //     VkBool32    occlusionQueryPrecise;
+    //     VkBool32    pipelineStatisticsQuery;
+    //     VkBool32    vertexPipelineStoresAndAtomics;
+    //     VkBool32    fragmentStoresAndAtomics;
+    //     VkBool32    shaderTessellationAndGeometryPointSize;
+    //     VkBool32    shaderImageGatherExtended;
+    //     VkBool32    shaderStorageImageExtendedFormats;
+    //     VkBool32    shaderStorageImageMultisample;
+    //     VkBool32    shaderStorageImageReadWithoutFormat;
+    //     VkBool32    shaderStorageImageWriteWithoutFormat;
+    //     VkBool32    shaderUniformBufferArrayDynamicIndexing;
+    //     VkBool32    shaderSampledImageArrayDynamicIndexing;
+    //     VkBool32    shaderStorageBufferArrayDynamicIndexing;
+    //     VkBool32    shaderStorageImageArrayDynamicIndexing;
+    //     VkBool32    shaderClipDistance;
+    //     VkBool32    shaderCullDistance;
+    //     VkBool32    shaderFloat64;
+    //     VkBool32    shaderInt64;
+    //     VkBool32    shaderInt16;
+    //     VkBool32    shaderResourceResidency;
+    //     VkBool32    shaderResourceMinLod;
+    //     VkBool32    sparseBinding;
+    //     VkBool32    sparseResidencyBuffer;
+    //     VkBool32    sparseResidencyImage2D;
+    //     VkBool32    sparseResidencyImage3D;
+    //     VkBool32    sparseResidency2Samples;
+    //     VkBool32    sparseResidency4Samples;
+    //     VkBool32    sparseResidency8Samples;
+    //     VkBool32    sparseResidency16Samples;
+    //     VkBool32    sparseResidencyAliased;
+    //     VkBool32    variableMultisampleRate;
+    //     VkBool32    inheritedQueries;
+    // } VkPhysicalDeviceFeatures;
     VkPhysicalDeviceFeatures physical_device_features = {};
 
     // Initialize logical-device creation info.
+
+    // typedef struct VkDeviceCreateInfo {
+    //     VkStructureType                    sType;
+    //     const void*                        pNext;
+    //     VkDeviceCreateFlags                flags;
+    //     uint32_t                           queueCreateInfoCount;
+    //     const VkDeviceQueueCreateInfo*     pQueueCreateInfos;
+    //     uint32_t                           enabledLayerCount;
+    //     const char* const*                 ppEnabledLayerNames;
+    //     uint32_t                           enabledExtensionCount;
+    //     const char* const*                 ppEnabledExtensionNames;
+    //     const VkPhysicalDeviceFeatures*    pEnabledFeatures;
+    // } VkDeviceCreateInfo;
     VkDeviceCreateInfo logical_device_create_info = {};
     logical_device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    logical_device_create_info.pQueueCreateInfos = logical_device_queue_create_infos;
+    logical_device_create_info.pNext = nullptr;
+    logical_device_create_info.flags = 0;
     logical_device_create_info.queueCreateInfoCount = logical_device_queue_create_info_count;
+    logical_device_create_info.pQueueCreateInfos = logical_device_queue_create_infos;
+    logical_device_create_info.enabledLayerCount = 0; // DEPRECATED
+    logical_device_create_info.ppEnabledLayerNames = nullptr; // DEPRECATED
+    logical_device_create_info.enabledExtensionCount = 0;
+    logical_device_create_info.ppEnabledExtensionNames = nullptr;
     logical_device_create_info.pEnabledFeatures = &physical_device_features;
-
-    // // No extensions enabled for now.
-    // logical_device_create_info.ppEnabledExtensionNames = nullptr;
-    // logical_device_create_info.enabledExtensionCount = 0;
-
-    // DEPRECATED
-    // logical_device_create_info.ppEnabledLayerNames = config->requested_layer_names;
-    // logical_device_create_info.enabledLayerCount = config->requested_layer_count;
 
     // Create logical-device.
     VkDevice logical_device = VK_NULL_HANDLE;
@@ -609,22 +686,46 @@ void gfx_create_instance(GFX_CONTEXT * context, GFX_CONFIG * config)
     validate_instance_component_info(&layer_info);
 
     // Initialize application info.
+
+    // typedef struct VkApplicationInfo {
+    //     VkStructureType    sType;
+    //     const void*        pNext;
+    //     const char*        pApplicationName;
+    //     uint32_t           applicationVersion;
+    //     const char*        pEngineName;
+    //     uint32_t           engineVersion;
+    //     uint32_t           apiVersion;
+    // } VkApplicationInfo;
     VkApplicationInfo app_info = {};
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    app_info.pNext = nullptr;
     app_info.pApplicationName = "prism test";
-    app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+    app_info.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
     app_info.pEngineName = "prism";
-    app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    app_info.engineVersion = VK_MAKE_VERSION(0, 1, 0);
     app_info.apiVersion = VK_API_VERSION_1_1;
 
     // Initialize instance creation info.
+
+    // typedef struct VkInstanceCreateInfo {
+    //     VkStructureType             sType;
+    //     const void*                 pNext;
+    //     VkInstanceCreateFlags       flags;
+    //     const VkApplicationInfo*    pApplicationInfo;
+    //     uint32_t                    enabledLayerCount;
+    //     const char* const*          ppEnabledLayerNames;
+    //     uint32_t                    enabledExtensionCount;
+    //     const char* const*          ppEnabledExtensionNames;
+    // } VkInstanceCreateInfo;
     VkInstanceCreateInfo instance_create_info = {};
     instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    instance_create_info.pNext = nullptr;
+    instance_create_info.flags = 0; // Reserved for future use.
     instance_create_info.pApplicationInfo = &app_info;
-    instance_create_info.ppEnabledExtensionNames = extension_info.requested_names;
-    instance_create_info.enabledExtensionCount = extension_info.requested_count;
-    instance_create_info.ppEnabledLayerNames = layer_info.requested_names;
     instance_create_info.enabledLayerCount = layer_info.requested_count;
+    instance_create_info.ppEnabledLayerNames = layer_info.requested_names;
+    instance_create_info.enabledExtensionCount = extension_info.requested_count;
+    instance_create_info.ppEnabledExtensionNames = extension_info.requested_names;
 
     // Create Vulkan instance.
     VkInstance instance = VK_NULL_HANDLE;
@@ -661,8 +762,17 @@ void gfx_create_instance(GFX_CONTEXT * context, GFX_CONFIG * config)
     }
 
     // Initialize debug callback creation info.
+
+    // typedef struct VkDebugReportCallbackCreateInfoEXT {
+    //     VkStructureType                 sType;
+    //     const void*                     pNext;
+    //     VkDebugReportFlagsEXT           flags;
+    //     PFN_vkDebugReportCallbackEXT    pfnCallback;
+    //     void*                           pUserData;
+    // } VkDebugReportCallbackCreateInfoEXT;
     VkDebugReportCallbackCreateInfoEXT debug_callback_create_info = {};
     debug_callback_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
+    debug_callback_create_info.pNext = nullptr;
 
     debug_callback_create_info.flags =
         // VK_DEBUG_REPORT_INFORMATION_BIT_EXT |
@@ -672,6 +782,7 @@ void gfx_create_instance(GFX_CONTEXT * context, GFX_CONFIG * config)
         VK_DEBUG_REPORT_DEBUG_BIT_EXT;
 
     debug_callback_create_info.pfnCallback = debug_callback;
+    debug_callback_create_info.pUserData = nullptr;
 
     // Create debug callback.
     VkResult create_debug_callback_result =
@@ -684,7 +795,7 @@ void gfx_create_instance(GFX_CONTEXT * context, GFX_CONFIG * config)
 #endif
 }
 
-void gfx_create_devices(GFX_CONTEXT * context)
+void gfx_load_devices(GFX_CONTEXT * context)
 {
     create_physical_device(context);
     get_queue_family_indexes(context);

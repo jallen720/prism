@@ -14,7 +14,7 @@ using prism::sys_destroy;
 using prism::GFX_CONTEXT;
 using prism::GFX_CONFIG;
 using prism::gfx_create_instance;
-using prism::gfx_create_devices;
+using prism::gfx_load_devices;
 using prism::gfx_destroy;
 using ctk::YAML_NODE;
 using ctk::yaml_read_file;
@@ -49,7 +49,7 @@ int main()
     }
 
     sys_create_surface(&sys_context, &gfx_context);
-    gfx_create_devices(&gfx_context);
+    gfx_load_devices(&gfx_context);
 
     // Run main loop.
     sys_run(&sys_context);
