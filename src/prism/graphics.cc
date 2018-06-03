@@ -1,7 +1,6 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
-#include <cassert>
 #include "prism/graphics.h"
 #include "prism/utilities.h"
 #include "prism/defines.h"
@@ -621,6 +620,9 @@ static void create_logical_device(GFX_CONTEXT * context)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void gfx_create_instance(GFX_CONTEXT * context, const GFX_CONFIG * config)
 {
+    PRISM_ASSERT(context != nullptr);
+    PRISM_ASSERT(config != nullptr);
+
     // Initialize extension_info with requested extension names and available extension properties.
     INSTANCE_COMPONENT_INFO<VkExtensionProperties> extension_info = {};
     extension_info.type = "extension";
@@ -713,6 +715,9 @@ void gfx_create_instance(GFX_CONTEXT * context, const GFX_CONFIG * config)
 
 void gfx_load_devices(GFX_CONTEXT * context)
 {
+    PRISM_ASSERT(context != nullptr);
+    PRISM_ASSERT(context->instance != VK_NULL_HANDLE);
+    PRISM_ASSERT(context->surface != VK_NULL_HANDLE);
     create_physical_device(context);
     get_queue_family_indexes(context);
     create_logical_device(context);
@@ -720,6 +725,10 @@ void gfx_load_devices(GFX_CONTEXT * context)
 
 void gfx_destroy(GFX_CONTEXT * context)
 {
+    PRISM_ASSERT(context != nullptr);
+    PRISM_ASSERT(context->instance != VK_NULL_HANDLE);
+    PRISM_ASSERT(context->surface != VK_NULL_HANDLE);
+    PRISM_ASSERT(context->logical_device != VK_NULL_HANDLE);
     VkInstance * instance = &context->instance;
     VkSurfaceKHR * surface = &context->surface;
     VkDevice * logical_device = &context->logical_device;
@@ -750,6 +759,8 @@ void gfx_destroy(GFX_CONTEXT * context)
 #ifdef PRISM_DEBUG
 void gfx_init_debug_config(GFX_CONFIG * config)
 {
+    PRISM_ASSERT(config != nullptr);
+
     // Concatenate requested and debug extension names.
     static const char * DEBUG_EXTENSION_NAMES[]
     {
@@ -783,6 +794,8 @@ void gfx_init_debug_config(GFX_CONFIG * config)
 
 void gfx_free_debug_config(GFX_CONFIG * config)
 {
+    PRISM_ASSERT(config != nullptr);
+
     // In debug mode, config->requested_extension_names points to a dynamically allocated concatenation of the user
     // requested extension names and built-in debug extension names, so it needs to be freed.
     free(config->requested_extension_names);
@@ -790,6 +803,8 @@ void gfx_free_debug_config(GFX_CONFIG * config)
 
 void gfx_create_debug_callback(GFX_CONTEXT * context)
 {
+    PRISM_ASSERT(context != nullptr);
+    PRISM_ASSERT(context->instance != VK_NULL_HANDLE);
     VkInstance instance = context->instance;
 
     // Ensure debug callback creation function exists.
@@ -839,6 +854,9 @@ void gfx_create_debug_callback(GFX_CONTEXT * context)
 
 void gfx_destroy_debug_callback(GFX_CONTEXT * context)
 {
+    PRISM_ASSERT(context != nullptr);
+    PRISM_ASSERT(context->instance != VK_NULL_HANDLE);
+    PRISM_ASSERT(context->debug_callback != VK_NULL_HANDLE);
     VkInstance instance = context->instance;
     VkDebugReportCallbackEXT * debug_callback = &context->debug_callback;
 

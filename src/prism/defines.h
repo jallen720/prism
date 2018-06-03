@@ -6,3 +6,6 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #define PRISM_ENUM_NAME_PAIR(ENUM_NAME) { ENUM_NAME, #ENUM_NAME }
+
+#define PRISM_ASSERT(ASSERTION) \
+    if(!(ASSERTION)) util_error_exit(nullptr, nullptr, "%s(): assertion that " #ASSERTION " failed\n", __FUNCTION__);
