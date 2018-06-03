@@ -53,7 +53,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     size_t /*location*/,
     int32_t /*code*/,
     const char * /*layer_prefix*/,
-    const char * /*msg*/,
+    const char * msg,
     void * /*user_data*/)
 {
     // static const DEBUG_FLAG_NAME DEBUG_FLAG_NAMES[]
@@ -66,7 +66,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     // };
 
     // static const size_t DEBUG_FLAG_COUNT = sizeof(DEBUG_FLAG_NAMES) / sizeof(DEBUG_FLAG_NAME);
-    // util_log("VULKAN", "validation layer:\n");
+    util_log("VULKAN", "validation layer:\n");
 
     // // Log the list of flags passed to callback.
     // util_log("VULKAN", "    flags (%#010x):\n", flags);
@@ -82,13 +82,13 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     //     }
     // }
 
-    // // Log remaining callback args.
+    // Log remaining callback args.
     // util_log("VULKAN", "    obj_type:     %i\n", obj_type);
     // util_log("VULKAN", "    obj:          %i\n", obj);
     // util_log("VULKAN", "    location:     %i\n", location);
     // util_log("VULKAN", "    code:         %i\n", code);
     // util_log("VULKAN", "    layer_prefix: %s\n", layer_prefix);
-    // util_log("VULKAN", "    msg:          \"%s\"\n", msg);
+    util_log("VULKAN", "    msg:          \"%s\"\n", msg);
     // util_log("VULKAN", "    user_data:    %p\n", user_data);
 
     // Should the call being validated be aborted?
