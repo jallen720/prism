@@ -72,4 +72,15 @@ const char ** sys_required_extension_names(uint32_t * required_extension_count)
     return glfwGetRequiredInstanceExtensions(required_extension_count);
 }
 
+void sys_create_surface(SYS_CONTEXT * sys_context, GFX_CONTEXT * gfx_context)
+{
+    VkSurfaceKHR * surface = &gfx_context->surface;
+    VkResult result = glfwCreateWindowSurface(gfx_context->instance, sys_context->window, nullptr, surface);
+
+    if(result != VK_SUCCESS)
+    {
+        util_error_exit("GLFW & VULKAN", nullptr, "failed to create window surface");
+    }
+}
+
 } // namespace prism

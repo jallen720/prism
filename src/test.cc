@@ -6,6 +6,7 @@
 #include "ctk/yaml.h"
 
 using prism::SYS_CONTEXT;
+using prism::sys_create_surface;
 using prism::sys_init;
 using prism::sys_required_extension_names;
 using prism::sys_create_window;
@@ -45,6 +46,8 @@ int main()
 
     yaml_free(window_config);
 
+    // Create surface for rendering.
+    sys_create_surface(&sys_context, &gfx_context);
 
     // Run main loop.
     sys_run(&sys_context);

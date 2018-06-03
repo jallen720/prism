@@ -5,6 +5,7 @@
 #include <GLFW/glfw3.h>
 
 #include <cstdint>
+#include "prism/graphics.h"
 
 namespace prism
 {
@@ -27,6 +28,7 @@ struct SYS_CONTEXT
 void sys_init();
 const char ** sys_required_extension_names(uint32_t * required_extension_count);
 void sys_create_window(SYS_CONTEXT * sys_context, int width, int height, const char * title);
+void sys_create_surface(SYS_CONTEXT * sys_context, GFX_CONTEXT * gfx_context);
 void sys_run(SYS_CONTEXT * sys_context);
 void sys_destroy(SYS_CONTEXT * sys_context);
 

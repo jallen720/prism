@@ -571,6 +571,7 @@ void gfx_destroy(GFX_CONTEXT * context)
     VkPhysicalDevice * physical_device = &context->physical_device;
     VkDevice * logical_device = &context->logical_device;
     VkQueue * graphics_queue = &context->graphics_queue;
+    VkSurfaceKHR * surface = &context->surface;
 
 #ifdef PRISM_DEBUG
     VkDebugReportCallbackEXT * debug_callback = &context->debug_callback;
@@ -595,6 +596,9 @@ void gfx_destroy(GFX_CONTEXT * context)
 
     // Graphics-queue will be implicitly destroyed when logical-device is destroyed.
     vkDestroyDevice(*logical_device, nullptr);
+
+    // Surface must be destroyed before instance.
+    vkDestroySurfaceKHR(*instance, *surface, nullptr);
 
     // Physical-device will be implicitly destroyed when instance is destroyed.
     vkDestroyInstance(*instance, nullptr);
