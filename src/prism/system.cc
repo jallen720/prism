@@ -1,7 +1,3 @@
-// vulkan.h must be included before glfw3.h
-#include "vulkan/vulkan.h"
-#include <GLFW/glfw3.h>
-
 #include "prism/system.h"
 #include "prism/utilities.h"
 
@@ -44,20 +40,32 @@ void sys_init()
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 }
 
-void sys_create_window(int width, int height, const char * title)
+void sys_create_window(SYS_CONTEXT * sys_context, int width, int height, const char * title)
 {
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-    GLFWwindow * window = glfwCreateWindow(width, height, title, nullptr, nullptr);
+    GLFWwindow ** window = &sys_context->window;
+    *window = glfwCreateWindow(width, height, title, nullptr, nullptr);
 
-    if(window == nullptr)
+    if(*window == nullptr)
     {
         util_error_exit("GLFW", nullptr, "failed to create window");
     }
 
-    glfwSetKeyCallback(window, key_callback);
+    glfwSetKeyCallback(*window, key_callback);
 }
 
+void sys_run(SYS_CONTEXT * sys_context)
+{
+    while(!glfwWindowShouldClose(sys_context->window))
+    {
+        glfwPollEvents();
+    }
+}
 
+void sys_destroy(SYS_CONTEXT * sys_context)
+{
+    glfwDestroyWindow(sys_context->window);
+}
 
 const char ** sys_required_extension_names(uint32_t * required_extension_count)
 {
