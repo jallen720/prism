@@ -415,6 +415,7 @@ static void create_logical_device(GFX_CONTEXT * context)
 
     size_t logical_device_queue_create_info_count = 0;
 
+    // Prevent duplicate queue creation for logical-device.
     for(size_t i = 0; i < queue_family_count; i++)
     {
         bool queue_family_already_used = false;
@@ -455,11 +456,11 @@ static void create_logical_device(GFX_CONTEXT * context)
     logical_device_create_info.queueCreateInfoCount = logical_device_queue_create_info_count;
     logical_device_create_info.pEnabledFeatures = &physical_device_features;
 
-    // No extensions enabled for now.
+    // // No extensions enabled for now.
     // logical_device_create_info.ppEnabledExtensionNames = nullptr;
     // logical_device_create_info.enabledExtensionCount = 0;
 
-    // Should be deprecated.
+    // DEPRECATED
     // logical_device_create_info.ppEnabledLayerNames = config->requested_layer_names;
     // logical_device_create_info.enabledLayerCount = config->requested_layer_count;
 
@@ -590,7 +591,7 @@ void gfx_create_instance(GFX_CONTEXT * context, GFX_CONFIG * config)
 
     context->instance = instance;
 
-    // Free available instance component props arrays after instance creation.
+    // Cleanup
     free_available_props(&extension_info);
     free_available_props(&layer_info);
 
