@@ -88,7 +88,7 @@ static const size_t VK_RESULT_NAMES_COUNT = sizeof(VK_RESULT_NAMES) / sizeof(VK_
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void util_error_exit(const char * subsystem, const char * error_name, const char * message, ...)
 {
-    const char * system = subsystem ? subsystem : "PRISM";
+    const char * system = subsystem != nullptr ? subsystem : "PRISM";
 
     if(error_name)
     {
