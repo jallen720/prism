@@ -1028,6 +1028,11 @@ void gfx_destroy(GFX_CONTEXT * context)
     VkDevice logical_device = context->logical_device;
     GFX_SWAPCHAIN_INFO * swapchain_info = &context->swapchain_info;
 
+    // Free swapchain info.
+    free(swapchain_info->available_surface_formats);
+    free(swapchain_info->available_surface_present_modes);
+
+    // Images created for swapchain will be implicitly destroyed.
     // Destroy swapchain before destroying logical-device.
     vkDestroySwapchainKHR(logical_device, context->swapchain, nullptr);
 
@@ -1036,10 +1041,6 @@ void gfx_destroy(GFX_CONTEXT * context)
 
     // Surface must be destroyed before instance.
     vkDestroySurfaceKHR(instance, context->surface, nullptr);
-
-    // Free swapchain info.
-    free(swapchain_info->available_surface_formats);
-    free(swapchain_info->available_surface_present_modes);
 
     // Physical-device will be implicitly destroyed when instance is destroyed.
     vkDestroyInstance(instance, nullptr);
