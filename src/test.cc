@@ -41,13 +41,9 @@ int main()
 
     // Initialize graphics context.
     GFX_CONTEXT gfx_context = {};
-
-    {
-        GFX_CONFIG config = {};
-        sys_get_required_extension_names(&config);
-        gfx_create_instance(&gfx_context, &config);
-    }
-
+    GFX_CONFIG config = {};
+    sys_get_required_extension_names(&config);
+    gfx_create_instance(&gfx_context, &config);
     sys_create_surface(&sys_context, &gfx_context);
     gfx_load_devices(&gfx_context);
 
