@@ -1024,27 +1024,25 @@ void gfx_destroy(GFX_CONTEXT * context)
     PRISM_ASSERT(context->instance != VK_NULL_HANDLE);
     PRISM_ASSERT(context->surface != VK_NULL_HANDLE);
     PRISM_ASSERT(context->logical_device != VK_NULL_HANDLE);
-    VkInstance * instance = &context->instance;
-    VkSurfaceKHR * surface = &context->surface;
-    VkDevice * logical_device = &context->logical_device;
+    VkInstance instance = context->instance;
+    VkDevice logical_device = context->logical_device;
     GFX_SWAPCHAIN_INFO * swapchain_info = &context->swapchain_info;
-    VkSwapchainKHR * swapchain = &context->swapchain;
 
     // Destroy swapchain before destroying logical-device.
-    vkDestroySwapchainKHR(*logical_device, *swapchain, nullptr);
+    vkDestroySwapchainKHR(logical_device, context->swapchain, nullptr);
 
     // Graphics-queue will be implicitly destroyed when logical-device is destroyed.
-    vkDestroyDevice(*logical_device, nullptr);
+    vkDestroyDevice(logical_device, nullptr);
 
     // Surface must be destroyed before instance.
-    vkDestroySurfaceKHR(*instance, *surface, nullptr);
+    vkDestroySurfaceKHR(instance, context->surface, nullptr);
 
     // Free swapchain info.
     free(swapchain_info->available_surface_formats);
     free(swapchain_info->available_surface_present_modes);
 
     // Physical-device will be implicitly destroyed when instance is destroyed.
-    vkDestroyInstance(*instance, nullptr);
+    vkDestroyInstance(instance, nullptr);
 
     // // Initialize all context data.
     // *instance = VK_NULL_HANDLE;
