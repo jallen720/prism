@@ -104,6 +104,50 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     return VK_FALSE;
 }
 
+static void concat_debug_instance_components(GFX_CONFIG * config)
+{
+    PRISM_ASSERT(config != nullptr);
+
+    // Concatenate requested and debug extension names.
+    static const char * DEBUG_EXTENSION_NAMES[]
+    {
+        VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
+    };
+
+    static const size_t DEBUG_EXTENSION_COUNT = sizeof(DEBUG_EXTENSION_NAMES) / sizeof(void *);
+    const size_t all_extension_count = DEBUG_EXTENSION_COUNT + config->requested_extension_count;
+    auto all_extension_names = (const char **)malloc(sizeof(void *) * all_extension_count);
+
+    mem_concat(
+        config->requested_extension_names,
+        config->requested_extension_count,
+        DEBUG_EXTENSION_NAMES,
+        DEBUG_EXTENSION_COUNT,
+        all_extension_names);
+
+    config->requested_extension_names = all_extension_names;
+    config->requested_extension_count = all_extension_count;
+
+    // Concatenate requested and debug layer names.
+    static const char * DEBUG_LAYER_NAMES[] =
+    {
+        "VK_LAYER_LUNARG_standard_validation",
+    };
+
+    static const size_t DEBUG_LAYER_COUNT = sizeof(DEBUG_LAYER_NAMES) / sizeof(void *);
+    config->requested_layer_names = DEBUG_LAYER_NAMES;
+    config->requested_layer_count = DEBUG_LAYER_COUNT;
+}
+
+static void free_debug_instance_components(GFX_CONFIG * config)
+{
+    PRISM_ASSERT(config != nullptr);
+
+    // In debug mode, config->requested_extension_names points to a dynamically allocated concatenation of the user
+    // requested extension names and built-in debug extension names, so it needs to be freed.
+    free(config->requested_extension_names);
+}
+
 template<typename COMPONENT_PROPS>
 static void log_instance_component_names(const INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info)
 {
@@ -135,6 +179,79 @@ static void log_instance_component_names(const INSTANCE_COMPONENT_INFO<COMPONENT
             util_log("VULKAN", "    %s\n", access_component_name(available_component_props + i));
         }
     }
+}
+
+static void create_debug_callback(GFX_CONTEXT * context)
+{
+    PRISM_ASSERT(context != nullptr);
+    PRISM_ASSERT(context->instance != VK_NULL_HANDLE);
+    VkInstance instance = context->instance;
+
+    // Ensure debug callback creation function exists.
+    auto create_debug_callback =
+        (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
+
+    if(create_debug_callback == nullptr)
+    {
+        util_error_exit(
+            "VULKAN",
+            util_vk_result_name(VK_ERROR_EXTENSION_NOT_PRESENT),
+            "extension for creating debug callback is not available\n");
+    }
+
+    // Initialize debug callback creation info.
+
+    // typedef struct VkDebugReportCallbackCreateInfoEXT {
+    //     VkStructureType                 sType;
+    //     const void*                     pNext;
+    //     VkDebugReportFlagsEXT           flags;
+    //     PFN_vkDebugReportCallbackEXT    pfnCallback;
+    //     void*                           pUserData;
+    // } VkDebugReportCallbackCreateInfoEXT;
+    VkDebugReportCallbackCreateInfoEXT debug_callback_create_info = {};
+    debug_callback_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
+    debug_callback_create_info.pNext = nullptr;
+
+    debug_callback_create_info.flags =
+        // VK_DEBUG_REPORT_INFORMATION_BIT_EXT |
+        VK_DEBUG_REPORT_WARNING_BIT_EXT |
+        // VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT |
+        VK_DEBUG_REPORT_ERROR_BIT_EXT |
+        VK_DEBUG_REPORT_DEBUG_BIT_EXT;
+
+    debug_callback_create_info.pfnCallback = debug_callback;
+    debug_callback_create_info.pUserData = nullptr;
+
+    // Create debug callback.
+    VkResult create_debug_callback_result =
+        create_debug_callback(instance, &debug_callback_create_info, nullptr, &context->debug_callback);
+
+    if(create_debug_callback_result != VK_SUCCESS)
+    {
+        util_error_exit("VULKAN", util_vk_result_name(create_debug_callback_result), "failed to create debug callback");
+    }
+}
+
+static void destroy_debug_callback(GFX_CONTEXT * context)
+{
+    PRISM_ASSERT(context != nullptr);
+    PRISM_ASSERT(context->instance != VK_NULL_HANDLE);
+    PRISM_ASSERT(context->debug_callback != VK_NULL_HANDLE);
+    VkInstance instance = context->instance;
+
+    // Destroy debug callback.
+    auto destroy_debug_callback =
+        (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
+
+    if(destroy_debug_callback == nullptr)
+    {
+        util_error_exit(
+            "VULKAN",
+            util_vk_result_name(VK_ERROR_EXTENSION_NOT_PRESENT),
+            "extension for destroying debug callback is not available\n");
+    }
+
+    destroy_debug_callback(instance, context->debug_callback, nullptr);
 }
 #endif
 
@@ -943,10 +1060,14 @@ static void create_swapchain(GFX_CONTEXT * context)
 // Interface
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void gfx_create_instance(GFX_CONTEXT * context, const GFX_CONFIG * config)
+void gfx_create_instance(GFX_CONTEXT * context, GFX_CONFIG * config)
 {
     PRISM_ASSERT(context != nullptr);
     PRISM_ASSERT(config != nullptr);
+
+#ifdef PRISM_DEBUG
+    concat_debug_instance_components(config);
+#endif
 
     // Initialize extension_info with requested extension names and available extension properties.
     INSTANCE_COMPONENT_INFO<VkExtensionProperties> extension_info = {};
@@ -1035,6 +1156,15 @@ void gfx_create_instance(GFX_CONTEXT * context, const GFX_CONFIG * config)
     // Cleanup
     free_available_props(&extension_info);
     free_available_props(&layer_info);
+
+#ifdef PRISM_DEBUG
+    free_debug_instance_components(config);
+#endif
+
+#ifdef PRISM_DEBUG
+    // In debug mode, create a debug callback for logging.
+    create_debug_callback(context);
+#endif
 }
 
 void gfx_load_devices(GFX_CONTEXT * context)
@@ -1075,132 +1205,13 @@ void gfx_destroy(GFX_CONTEXT * context)
     // Surface must be destroyed before instance.
     vkDestroySurfaceKHR(instance, context->surface, nullptr);
 
+#if PRISM_DEBUG
+    // Destroy debug callback before destroying instance.
+    destroy_debug_callback(context);
+#endif
+
     // Physical-device will be implicitly destroyed when instance is destroyed.
     vkDestroyInstance(instance, nullptr);
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Debug Interface
-//
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifdef PRISM_DEBUG
-void gfx_init_debug_config(GFX_CONFIG * config)
-{
-    PRISM_ASSERT(config != nullptr);
-
-    // Concatenate requested and debug extension names.
-    static const char * DEBUG_EXTENSION_NAMES[]
-    {
-        VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
-    };
-
-    static const size_t DEBUG_EXTENSION_COUNT = sizeof(DEBUG_EXTENSION_NAMES) / sizeof(void *);
-    const size_t all_extension_count = DEBUG_EXTENSION_COUNT + config->requested_extension_count;
-    auto all_extension_names = (const char **)malloc(sizeof(void *) * all_extension_count);
-
-    mem_concat(
-        config->requested_extension_names,
-        config->requested_extension_count,
-        DEBUG_EXTENSION_NAMES,
-        DEBUG_EXTENSION_COUNT,
-        all_extension_names);
-
-    config->requested_extension_names = all_extension_names;
-    config->requested_extension_count = all_extension_count;
-
-    // Concatenate requested and debug layer names.
-    static const char * DEBUG_LAYER_NAMES[] =
-    {
-        "VK_LAYER_LUNARG_standard_validation",
-    };
-
-    static const size_t DEBUG_LAYER_COUNT = sizeof(DEBUG_LAYER_NAMES) / sizeof(void *);
-    config->requested_layer_names = DEBUG_LAYER_NAMES;
-    config->requested_layer_count = DEBUG_LAYER_COUNT;
-}
-
-void gfx_free_debug_config(GFX_CONFIG * config)
-{
-    PRISM_ASSERT(config != nullptr);
-
-    // In debug mode, config->requested_extension_names points to a dynamically allocated concatenation of the user
-    // requested extension names and built-in debug extension names, so it needs to be freed.
-    free(config->requested_extension_names);
-}
-
-void gfx_create_debug_callback(GFX_CONTEXT * context)
-{
-    PRISM_ASSERT(context != nullptr);
-    PRISM_ASSERT(context->instance != VK_NULL_HANDLE);
-    VkInstance instance = context->instance;
-
-    // Ensure debug callback creation function exists.
-    auto create_debug_callback =
-        (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
-
-    if(create_debug_callback == nullptr)
-    {
-        util_error_exit(
-            "VULKAN",
-            util_vk_result_name(VK_ERROR_EXTENSION_NOT_PRESENT),
-            "extension for creating debug callback is not available\n");
-    }
-
-    // Initialize debug callback creation info.
-
-    // typedef struct VkDebugReportCallbackCreateInfoEXT {
-    //     VkStructureType                 sType;
-    //     const void*                     pNext;
-    //     VkDebugReportFlagsEXT           flags;
-    //     PFN_vkDebugReportCallbackEXT    pfnCallback;
-    //     void*                           pUserData;
-    // } VkDebugReportCallbackCreateInfoEXT;
-    VkDebugReportCallbackCreateInfoEXT debug_callback_create_info = {};
-    debug_callback_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
-    debug_callback_create_info.pNext = nullptr;
-
-    debug_callback_create_info.flags =
-        // VK_DEBUG_REPORT_INFORMATION_BIT_EXT |
-        VK_DEBUG_REPORT_WARNING_BIT_EXT |
-        // VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT |
-        VK_DEBUG_REPORT_ERROR_BIT_EXT |
-        VK_DEBUG_REPORT_DEBUG_BIT_EXT;
-
-    debug_callback_create_info.pfnCallback = debug_callback;
-    debug_callback_create_info.pUserData = nullptr;
-
-    // Create debug callback.
-    VkResult create_debug_callback_result =
-        create_debug_callback(instance, &debug_callback_create_info, nullptr, &context->debug_callback);
-
-    if(create_debug_callback_result != VK_SUCCESS)
-    {
-        util_error_exit("VULKAN", util_vk_result_name(create_debug_callback_result), "failed to create debug callback");
-    }
-}
-
-void gfx_destroy_debug_callback(GFX_CONTEXT * context)
-{
-    PRISM_ASSERT(context != nullptr);
-    PRISM_ASSERT(context->instance != VK_NULL_HANDLE);
-    PRISM_ASSERT(context->debug_callback != VK_NULL_HANDLE);
-    VkInstance instance = context->instance;
-
-    // Destroy debug callback.
-    auto destroy_debug_callback =
-        (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
-
-    if(destroy_debug_callback == nullptr)
-    {
-        util_error_exit(
-            "VULKAN",
-            util_vk_result_name(VK_ERROR_EXTENSION_NOT_PRESENT),
-            "extension for destroying debug callback is not available\n");
-    }
-
-    destroy_debug_callback(instance, context->debug_callback, nullptr);
-}
-#endif
 
 } // namespace prism
