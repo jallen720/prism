@@ -137,7 +137,7 @@ static void create_physical_device(GFX_CONTEXT * context)
     vkEnumeratePhysicalDevices(instance, &available_physical_device_count, available_physical_devices);
 
 #ifdef PRISM_DEBUG
-    log_available_physical_device(available_physical_device_count, available_physical_devices);
+    log_available_physical_devices(available_physical_device_count, available_physical_devices);
 #endif
 
     // Find a suitable physical-device for rendering and store handle in context.

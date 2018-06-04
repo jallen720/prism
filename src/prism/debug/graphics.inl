@@ -254,7 +254,7 @@ static void log_physical_device_surface_capabilities(const VkSurfaceCapabilities
     util_log("VULKAN", "        height: %i\n", maxImageExtent->height);
 }
 
-static void log_available_physical_device(
+static void log_available_physical_devices(
     uint32_t available_physical_device_count,
     const VkPhysicalDevice * available_physical_devices)
 {
