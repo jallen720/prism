@@ -3,34 +3,34 @@
 // Debug Typedefs
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-using DEBUG_FLAG_NAME = PAIR<VkDebugReportFlagBitsEXT, const char *>;
-using QUEUE_FLAG_NAME = PAIR<VkQueueFlagBits, const char *>;
-using SURFACE_FORMAT_NAME = PAIR<VkFormat, const char *>;
+using DebugFlagName = PAIR<VkDebugReportFlagBitsEXT, const char *>;
+using QueueFlagName = PAIR<VkQueueFlagBits, const char *>;
+using SurfaceFormatName = PAIR<VkFormat, const char *>;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Debug Callbacks
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static void log_divider()
+static void logDivider()
 {
-    util_log("VULKAN", "\n");
-    util_log("VULKAN", "===========================================================================================\n");
-    util_log("VULKAN", "\n");
+    utilLog("VULKAN", "\n");
+    utilLog("VULKAN", "===========================================================================================\n");
+    utilLog("VULKAN", "\n");
 }
 
-static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
+static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugReportFlagsEXT flags,
-    VkDebugReportObjectTypeEXT obj_type,
+    VkDebugReportObjectTypeEXT objType,
     uint64_t obj,
     size_t location,
     int32_t code,
-    const char * layer_prefix,
+    const char * layerPrefix,
     const char * msg,
-    void * user_data)
+    void * userData)
 {
 #if 0
-    static const DEBUG_FLAG_NAME DEBUG_FLAG_NAMES[]
+    static const DebugFlagName DEBUG_FLAG_NAMES[]
     {
         PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_INFORMATION_BIT_EXT),
         PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_WARNING_BIT_EXT),
@@ -39,34 +39,34 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
         PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_DEBUG_BIT_EXT),
     };
 
-    static const size_t DEBUG_FLAG_COUNT = sizeof(DEBUG_FLAG_NAMES) / sizeof(DEBUG_FLAG_NAME);
+    static const size_t DEBUG_FLAG_COUNT = sizeof(DEBUG_FLAG_NAMES) / sizeof(DebugFlagName);
 
-    util_log("VULKAN", "validation layer:\n");
+    utilLog("VULKAN", "validation layer:\n");
 
     // Log the list of flags passed to callback.
-    util_log("VULKAN", "    flags (%#010x):\n", flags);
+    utilLog("VULKAN", "    flags (%#010x):\n", flags);
 
     for(size_t i = 0; i < DEBUG_FLAG_COUNT; i++)
     {
-        const DEBUG_FLAG_NAME * debug_flag_name = DEBUG_FLAG_NAMES + i;
-        VkDebugReportFlagBitsEXT debug_flag_bit = debug_flag_name->key;
+        const DebugFlagName * debugFlagName = DEBUG_FLAG_NAMES + i;
+        VkDebugReportFlagBitsEXT debugFlagCount = debugFlagName->key;
 
-        if(debug_flag_bit & flags)
+        if(debugFlagCount & flags)
         {
-            util_log("VULKAN", "        %s (%#010x)\n", debug_flag_name->value, debug_flag_bit);
+            utilLog("VULKAN", "        %s (%#010x)\n", debugFlagName->value, debugFlagCount);
         }
     }
 
     // Log remaining callback args.
-    util_log("VULKAN", "    obj_type:     %i\n", obj_type);
-    util_log("VULKAN", "    obj:          %i\n", obj);
-    util_log("VULKAN", "    location:     %i\n", location);
-    util_log("VULKAN", "    code:         %i\n", code);
-    util_log("VULKAN", "    layer_prefix: %s\n", layer_prefix);
-    util_log("VULKAN", "    msg:          \"%s\"\n", msg);
-    util_log("VULKAN", "    user_data:    %p\n", user_data);
+    utilLog("VULKAN", "    objType:     %i\n", objType);
+    utilLog("VULKAN", "    obj:          %i\n", obj);
+    utilLog("VULKAN", "    location:     %i\n", location);
+    utilLog("VULKAN", "    code:         %i\n", code);
+    utilLog("VULKAN", "    layerPrefix: %s\n", layerPrefix);
+    utilLog("VULKAN", "    msg:          \"%s\"\n", msg);
+    utilLog("VULKAN", "    userData:    %p\n", userData);
 #else
-    util_log("VULKAN", "validation layer: %s: %s\n", layer_prefix, msg);
+    utilLog("VULKAN", "validation layer: %s: %s\n", layerPrefix, msg);
 #endif
 
     // Should the call being validated be aborted?
@@ -78,7 +78,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
 // Debug Utilities
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static void concat_debug_instance_components(GFX_CONFIG * config)
+static void concatDebugInstanceComponents(GFXConfig * config)
 {
     PRISM_ASSERT(config != nullptr);
 
@@ -89,18 +89,18 @@ static void concat_debug_instance_components(GFX_CONFIG * config)
     };
 
     static const size_t DEBUG_EXTENSION_COUNT = sizeof(DEBUG_EXTENSION_NAMES) / sizeof(void *);
-    const size_t all_extension_count = DEBUG_EXTENSION_COUNT + config->requested_extension_count;
-    auto all_extension_names = (const char **)malloc(sizeof(void *) * all_extension_count);
+    const size_t allExtensionCount = DEBUG_EXTENSION_COUNT + config->requestedExtensionCount;
+    auto allExtensionNames = (const char **)malloc(sizeof(void *) * allExtensionCount);
 
     mem_concat(
-        config->requested_extension_names,
-        config->requested_extension_count,
+        config->requestedExtensionNames,
+        config->requestedExtensionCount,
         DEBUG_EXTENSION_NAMES,
         DEBUG_EXTENSION_COUNT,
-        all_extension_names);
+        allExtensionNames);
 
-    config->requested_extension_names = all_extension_names;
-    config->requested_extension_count = all_extension_count;
+    config->requestedExtensionNames = allExtensionNames;
+    config->requestedExtensionCount = allExtensionCount;
 
     // Concatenate requested and debug layer names.
     static const char * DEBUG_LAYER_NAMES[] =
@@ -109,39 +109,39 @@ static void concat_debug_instance_components(GFX_CONFIG * config)
     };
 
     static const size_t DEBUG_LAYER_COUNT = sizeof(DEBUG_LAYER_NAMES) / sizeof(void *);
-    config->requested_layer_names = DEBUG_LAYER_NAMES;
-    config->requested_layer_count = DEBUG_LAYER_COUNT;
+    config->requestedLayerNames = DEBUG_LAYER_NAMES;
+    config->requestedLayerCount = DEBUG_LAYER_COUNT;
 }
 
-static void free_debug_instance_components(GFX_CONFIG * config)
+static void freeDebugInstanceComponents(GFXConfig * config)
 {
     PRISM_ASSERT(config != nullptr);
 
-    // In debug mode, config->requested_extension_names points to a dynamically allocated concatenation of the user
+    // In debug mode, config->requestedExtensionNames points to a dynamically allocated concatenation of the user
     // requested extension names and built-in debug extension names, so it needs to be freed.
-    free(config->requested_extension_names);
+    free(config->requestedExtensionNames);
 }
 
-template<typename COMPONENT_PROPS>
-static void log_instance_component_names(const INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info)
+template<typename ComponentProps>
+static void logInstanceComponentNames(const InstanceComponentInfo<ComponentProps> * componentInfo)
 {
-    const char * component_type = component_info->type;
-    const char ** requested_component_names = component_info->requested_names;
-    uint32_t requested_component_count = component_info->requested_count;
-    const COMPONENT_PROPS * available_component_props = component_info->available_props;
-    uint32_t available_component_count = component_info->available_count;
-    COMPONENT_PROPS_NAME_ACCESSOR<COMPONENT_PROPS> access_component_name = component_info->props_name_accessor;
-    log_divider();
-    util_log("VULKAN", "requested %s names (%i):\n", component_type, requested_component_count);
+    const char * componentType = componentInfo->type;
+    const char ** requestedComponentNames = componentInfo->requestedNames;
+    uint32_t requestedComponentCount = componentInfo->requestedCount;
+    const ComponentProps * availableComponentProps = componentInfo->availableProps;
+    uint32_t availableComponentCount = componentInfo->availableCount;
+    ComponentPropsNameAccessor<ComponentProps> accessComponentName = componentInfo->propsNameAccessor;
+    logDivider();
+    utilLog("VULKAN", "requested %s names (%i):\n", componentType, requestedComponentCount);
 
-    for(size_t i = 0; i < requested_component_count; i++)
+    for(size_t i = 0; i < requestedComponentCount; i++)
     {
-        util_log("VULKAN", "    %s\n", requested_component_names[i]);
+        utilLog("VULKAN", "    %s\n", requestedComponentNames[i]);
     }
 
-    util_log("VULKAN", "available %s names (%i):", component_type, available_component_count);
+    utilLog("VULKAN", "available %s names (%i):", componentType, availableComponentCount);
 
-    if(available_component_count == 0)
+    if(availableComponentCount == 0)
     {
         fprintf(stdout, " none\n");
     }
@@ -149,28 +149,28 @@ static void log_instance_component_names(const INSTANCE_COMPONENT_INFO<COMPONENT
     {
         fprintf(stdout, "\n");
 
-        for(uint32_t i = 0; i < available_component_count; i++)
+        for(uint32_t i = 0; i < availableComponentCount; i++)
         {
-            util_log("VULKAN", "    %s\n", access_component_name(available_component_props + i));
+            utilLog("VULKAN", "    %s\n", accessComponentName(availableComponentProps + i));
         }
     }
 }
 
-static void create_debug_callback(GFX_CONTEXT * context)
+static void createDebugCallback(GFXContext * context)
 {
     PRISM_ASSERT(context != nullptr);
     PRISM_ASSERT(context->instance != VK_NULL_HANDLE);
     VkInstance instance = context->instance;
 
     // Ensure debug callback creation function exists.
-    auto create_debug_callback =
+    auto createDebugCallback =
         (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
 
-    if(create_debug_callback == nullptr)
+    if(createDebugCallback == nullptr)
     {
-        util_error_exit(
+        utilErrorExit(
             "VULKAN",
-            util_vk_result_name(VK_ERROR_EXTENSION_NOT_PRESENT),
+            utilVkResultName(VK_ERROR_EXTENSION_NOT_PRESENT),
             "extension for creating debug callback is not available\n");
     }
 
@@ -183,80 +183,79 @@ static void create_debug_callback(GFX_CONTEXT * context)
     //     PFN_vkDebugReportCallbackEXT    pfnCallback;
     //     void*                           pUserData;
     // } VkDebugReportCallbackCreateInfoEXT;
-    VkDebugReportCallbackCreateInfoEXT debug_callback_create_info = {};
-    debug_callback_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
-    debug_callback_create_info.pNext = nullptr;
+    VkDebugReportCallbackCreateInfoEXT debugCallbackCreateInfo = {};
+    debugCallbackCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
+    debugCallbackCreateInfo.pNext = nullptr;
 
-    debug_callback_create_info.flags =
+    debugCallbackCreateInfo.flags =
         // VK_DEBUG_REPORT_INFORMATION_BIT_EXT |
         VK_DEBUG_REPORT_WARNING_BIT_EXT |
         // VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT |
         VK_DEBUG_REPORT_ERROR_BIT_EXT |
         VK_DEBUG_REPORT_DEBUG_BIT_EXT;
 
-    debug_callback_create_info.pfnCallback = debug_callback;
-    debug_callback_create_info.pUserData = nullptr;
+    debugCallbackCreateInfo.pfnCallback = debugCallback;
+    debugCallbackCreateInfo.pUserData = nullptr;
 
     // Create debug callback.
-    VkResult create_debug_callback_result =
-        create_debug_callback(instance, &debug_callback_create_info, nullptr, &context->debug_callback);
+    VkResult result = createDebugCallback(instance, &debugCallbackCreateInfo, nullptr, &context->debugCallback);
 
-    if(create_debug_callback_result != VK_SUCCESS)
+    if(result != VK_SUCCESS)
     {
-        util_error_exit("VULKAN", util_vk_result_name(create_debug_callback_result), "failed to create debug callback");
+        utilErrorExit("VULKAN", utilVkResultName(result), "failed to create debug callback");
     }
 }
 
-static void destroy_debug_callback(GFX_CONTEXT * context)
+static void destroyDebugCallback(GFXContext * context)
 {
     PRISM_ASSERT(context != nullptr);
     PRISM_ASSERT(context->instance != VK_NULL_HANDLE);
-    PRISM_ASSERT(context->debug_callback != VK_NULL_HANDLE);
+    PRISM_ASSERT(context->debugCallback != VK_NULL_HANDLE);
     VkInstance instance = context->instance;
 
     // Destroy debug callback.
-    auto destroy_debug_callback =
+    auto destroyDebugCallback =
         (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
 
-    if(destroy_debug_callback == nullptr)
+    if(destroyDebugCallback == nullptr)
     {
-        util_error_exit(
+        utilErrorExit(
             "VULKAN",
-            util_vk_result_name(VK_ERROR_EXTENSION_NOT_PRESENT),
+            utilVkResultName(VK_ERROR_EXTENSION_NOT_PRESENT),
             "extension for destroying debug callback is not available\n");
     }
 
-    destroy_debug_callback(instance, context->debug_callback, nullptr);
+    destroyDebugCallback(instance, context->debugCallback, nullptr);
 }
 
-static void log_physical_device_surface_capabilities(const VkSurfaceCapabilitiesKHR * surface_capabilities)
+static void logPhysicalDeviceSurfaceCapabilities(const VkSurfaceCapabilitiesKHR * surfaceCapabilities)
 {
-    const VkExtent2D * currentExtent = &surface_capabilities->currentExtent;
-    const VkExtent2D * minImageExtent = &surface_capabilities->minImageExtent;
-    const VkExtent2D * maxImageExtent = &surface_capabilities->maxImageExtent;
-    log_divider();
-    util_log("VULKAN", "physical-device surface capabilities:\n");
-    util_log("VULKAN", "    minImageCount:           %i\n", surface_capabilities->minImageCount);
-    util_log("VULKAN", "    maxImageCount:           %i\n", surface_capabilities->maxImageCount);
-    util_log("VULKAN", "    maxImageArrayLayers:     %i\n", surface_capabilities->maxImageArrayLayers);
-    util_log("VULKAN", "    supportedTransforms:     %#010x\n", surface_capabilities->supportedTransforms);
-    util_log("VULKAN", "    currentTransform:        %#010x\n", surface_capabilities->currentTransform);
-    util_log("VULKAN", "    supportedCompositeAlpha: %#010x\n", surface_capabilities->supportedCompositeAlpha);
-    util_log("VULKAN", "    supportedUsageFlags:     %#010x\n", surface_capabilities->supportedUsageFlags);
-    util_log("VULKAN", "    currentExtent:\n");
-    util_log("VULKAN", "        width:  %i\n", currentExtent->width);
-    util_log("VULKAN", "        height: %i\n", currentExtent->height);
-    util_log("VULKAN", "    minImageExtent:\n");
-    util_log("VULKAN", "        width:  %i\n", minImageExtent->width);
-    util_log("VULKAN", "        height: %i\n", minImageExtent->height);
-    util_log("VULKAN", "    maxImageExtent:\n");
-    util_log("VULKAN", "        width:  %i\n", maxImageExtent->width);
-    util_log("VULKAN", "        height: %i\n", maxImageExtent->height);
+    const VkExtent2D * currentExtent = &surfaceCapabilities->currentExtent;
+    const VkExtent2D * minImageExtent = &surfaceCapabilities->minImageExtent;
+    const VkExtent2D * maxImageExtent = &surfaceCapabilities->maxImageExtent;
+    logDivider();
+    utilLog("VULKAN", "physical-device surface capabilities:\n");
+    utilLog("VULKAN", "    minImageCount:           %i\n", surfaceCapabilities->minImageCount);
+    utilLog("VULKAN", "    maxImageCount:           %i\n", surfaceCapabilities->maxImageCount);
+    utilLog("VULKAN", "    maxImageArrayLayers:     %i\n", surfaceCapabilities->maxImageArrayLayers);
+    utilLog("VULKAN", "    supportedTransforms:     %#010x\n", surfaceCapabilities->supportedTransforms);
+    utilLog("VULKAN", "    currentTransform:        %#010x\n", surfaceCapabilities->currentTransform);
+    utilLog("VULKAN", "    supportedCompositeAlpha: %#010x\n", surfaceCapabilities->supportedCompositeAlpha);
+    utilLog("VULKAN", "    supportedUsageFlags:     %#010x\n", surfaceCapabilities->supportedUsageFlags);
+    utilLog("VULKAN", "    currentExtent:\n");
+    utilLog("VULKAN", "        width:  %i\n", currentExtent->width);
+    utilLog("VULKAN", "        height: %i\n", currentExtent->height);
+    utilLog("VULKAN", "    minImageExtent:\n");
+    utilLog("VULKAN", "        width:  %i\n", minImageExtent->width);
+    utilLog("VULKAN", "        height: %i\n", minImageExtent->height);
+    utilLog("VULKAN", "    maxImageExtent:\n");
+    utilLog("VULKAN", "        width:  %i\n", maxImageExtent->width);
+    utilLog("VULKAN", "        height: %i\n", maxImageExtent->height);
 }
 
-static void log_available_physical_devices(
-    uint32_t available_physical_device_count,
-    const VkPhysicalDevice * available_physical_devices)
+static void logAvailablePhysicalDevices(
+    uint32_t availablePhysicalDeviceCount,
+    const VkPhysicalDevice * availablePhysicalDevices)
 {
     static const char * PHYSICAL_DEVICE_TYPE_NAMES[]
     {
@@ -267,30 +266,30 @@ static void log_available_physical_devices(
         "VK_PHYSICAL_DEVICE_TYPE_CPU",
     };
 
-    for(size_t i = 0; i < available_physical_device_count; i++)
+    for(size_t i = 0; i < availablePhysicalDeviceCount; i++)
     {
-        VkPhysicalDevice available_physical_device = available_physical_devices[i];
-        VkPhysicalDeviceProperties available_physical_device_properties;
-        vkGetPhysicalDeviceProperties(available_physical_device, &available_physical_device_properties);
-        log_divider();
-        util_log("VULKAN", "physical-device \"%s\":\n", available_physical_device_properties.deviceName);
-        util_log("VULKAN", "    api_version:    %i\n", available_physical_device_properties.apiVersion);
-        util_log("VULKAN", "    driver_version: %i\n", available_physical_device_properties.driverVersion);
-        util_log("VULKAN", "    vendor_id:      %#006x\n", available_physical_device_properties.vendorID);
-        util_log("VULKAN", "    device_id:      %#006x\n", available_physical_device_properties.deviceID);
+        VkPhysicalDevice availablePhysicalDevice = availablePhysicalDevices[i];
+        VkPhysicalDeviceProperties availablePhysicalDeviceProperties;
+        vkGetPhysicalDeviceProperties(availablePhysicalDevice, &availablePhysicalDeviceProperties);
+        logDivider();
+        utilLog("VULKAN", "physical-device \"%s\":\n", availablePhysicalDeviceProperties.deviceName);
+        utilLog("VULKAN", "    apiVersion:    %i\n", availablePhysicalDeviceProperties.apiVersion);
+        utilLog("VULKAN", "    driverVersion: %i\n", availablePhysicalDeviceProperties.driverVersion);
+        utilLog("VULKAN", "    vendorID:      %#006x\n", availablePhysicalDeviceProperties.vendorID);
+        utilLog("VULKAN", "    deviceID:      %#006x\n", availablePhysicalDeviceProperties.deviceID);
 
-        util_log("VULKAN", "    device_type:    %s\n",
-            PHYSICAL_DEVICE_TYPE_NAMES[(size_t)available_physical_device_properties.deviceType]);
+        utilLog("VULKAN", "    device_type:    %s\n",
+            PHYSICAL_DEVICE_TYPE_NAMES[(size_t)availablePhysicalDeviceProperties.deviceType]);
 
-        // util_log("VULKAN", "    pipelineCacheUUID: %?\n", available_physical_device_properties.pipelineCacheUUID);
-        // util_log("VULKAN", "    limits:            %?\n", available_physical_device_properties.limits);
-        // util_log("VULKAN", "    sparseProperties:  %?\n", available_physical_device_properties.sparseProperties);
+        // utilLog("VULKAN", "    pipelineCacheUUID: %?\n", availablePhysicalDeviceProperties.pipelineCacheUUID);
+        // utilLog("VULKAN", "    limits:            %?\n", availablePhysicalDeviceProperties.limits);
+        // utilLog("VULKAN", "    sparseProperties:  %?\n", availablePhysicalDeviceProperties.sparseProperties);
     }
 }
 
-static void log_queue_families(uint32_t queue_family_count, VkQueueFamilyProperties * queue_family_props_array)
+static void logQueueFamilies(uint32_t queueFamilyCount, VkQueueFamilyProperties * queueFamilyPropsArray)
 {
-    static const QUEUE_FLAG_NAME QUEUE_FLAG_NAMES[]
+    static const QueueFlagName QUEUE_FLAG_NAMES[]
     {
         PRISM_ENUM_NAME_PAIR(VK_QUEUE_GRAPHICS_BIT),
         PRISM_ENUM_NAME_PAIR(VK_QUEUE_COMPUTE_BIT),
@@ -299,44 +298,44 @@ static void log_queue_families(uint32_t queue_family_count, VkQueueFamilyPropert
         PRISM_ENUM_NAME_PAIR(VK_QUEUE_PROTECTED_BIT),
     };
 
-    static const size_t QUEUE_FLAG_NAME_COUNT = sizeof(QUEUE_FLAG_NAMES) / sizeof(QUEUE_FLAG_NAME);
-    log_divider();
+    static const size_t QUEUE_FLAG_NAME_COUNT = sizeof(QUEUE_FLAG_NAMES) / sizeof(QueueFlagName);
+    logDivider();
 
-    for(size_t queue_family_index = 0; queue_family_index < queue_family_count; queue_family_index++)
+    for(size_t queueFamilyIndex = 0; queueFamilyIndex < queueFamilyCount; queueFamilyIndex++)
     {
-        const VkQueueFamilyProperties * queue_family_props = queue_family_props_array + queue_family_index;
-        VkQueueFlags queue_flags = queue_family_props->queueFlags;
-        const VkExtent3D * min_image_transfer_granularity = &queue_family_props->minImageTransferGranularity;
-        util_log("VULKAN", "queue-family (index: %i):\n", queue_family_index);
-        util_log("VULKAN", "    queue_flags (%#010x):\n", queue_flags);
+        const VkQueueFamilyProperties * queueFamilyProps = queueFamilyPropsArray + queueFamilyIndex;
+        VkQueueFlags queueFlags = queueFamilyProps->queueFlags;
+        const VkExtent3D * minImageTransferGranularity = &queueFamilyProps->minImageTransferGranularity;
+        utilLog("VULKAN", "queue-family (index: %i):\n", queueFamilyIndex);
+        utilLog("VULKAN", "    queueFlags (%#010x):\n", queueFlags);
 
-        for(size_t queue_flag_name_index = 0; queue_flag_name_index < QUEUE_FLAG_NAME_COUNT; queue_flag_name_index++)
+        for(size_t queueFlagNameIndex = 0; queueFlagNameIndex < QUEUE_FLAG_NAME_COUNT; queueFlagNameIndex++)
         {
-            const QUEUE_FLAG_NAME * queue_flag_name = QUEUE_FLAG_NAMES + queue_flag_name_index;
-            VkQueueFlagBits queue_flag_bit = queue_flag_name->key;
+            const QueueFlagName * queueFlagName = QUEUE_FLAG_NAMES + queueFlagNameIndex;
+            VkQueueFlagBits queueFlagBit = queueFlagName->key;
 
-            if(queue_flags & queue_flag_bit)
+            if(queueFlags & queueFlagBit)
             {
-                util_log("VULKAN", "        %s (%#010x)\n", queue_flag_name->value, queue_flag_bit);
+                utilLog("VULKAN", "        %s (%#010x)\n", queueFlagName->value, queueFlagBit);
             }
         }
 
-        util_log("VULKAN", "    queue_count:          %i\n", queue_family_props->queueCount);
-        util_log("VULKAN", "    timestamp_valid_bits: %i\n", queue_family_props->timestampValidBits);
-        util_log("VULKAN", "    minImageTransferGranularity:\n");
-        util_log("VULKAN", "        width:  %i\n", min_image_transfer_granularity->width);
-        util_log("VULKAN", "        height: %i\n", min_image_transfer_granularity->height);
-        util_log("VULKAN", "        depth:  %i\n", min_image_transfer_granularity->depth);
+        utilLog("VULKAN", "    queueCount:         %i\n", queueFamilyProps->queueCount);
+        utilLog("VULKAN", "    timestampValidBits: %i\n", queueFamilyProps->timestampValidBits);
+        utilLog("VULKAN", "    minImageTransferGranularity:\n");
+        utilLog("VULKAN", "        width:  %i\n", minImageTransferGranularity->width);
+        utilLog("VULKAN", "        height: %i\n", minImageTransferGranularity->height);
+        utilLog("VULKAN", "        depth:  %i\n", minImageTransferGranularity->depth);
     }
 }
 
-static void log_selected_swapchain_config(
-    const VkSurfaceFormatKHR * selected_surface_format,
-    uint32_t available_surface_present_mode_count,
-    const VkPresentModeKHR * available_surface_present_modes,
-    VkPresentModeKHR selected_surface_present_mode,
-    const VkExtent2D * selected_extent,
-    uint32_t selected_image_count)
+static void logSelectedSwapchainConfig(
+    const VkSurfaceFormatKHR * selectedSurfaceFormat,
+    uint32_t availableSurfacePresentModeCount,
+    const VkPresentModeKHR * availableSurfacePresentModes,
+    VkPresentModeKHR selectedSurfacePresentMode,
+    const VkExtent2D * selectedExtent,
+    uint32_t selectedImageCount)
 {
     static const char * SURFACE_PRESENT_MODE_NAMES[]
     {
@@ -346,7 +345,7 @@ static void log_selected_swapchain_config(
         "VK_PRESENT_MODE_FIFO_RELAXED_KHR",
     };
 
-    static const SURFACE_FORMAT_NAME SURFACE_FORMAT_NAMES[]
+    static const SurfaceFormatName SURFACE_FORMAT_NAMES[]
     {
         PRISM_ENUM_NAME_PAIR(VK_FORMAT_UNDEFINED),
         PRISM_ENUM_NAME_PAIR(VK_FORMAT_R4G4_UNORM_PACK8),
@@ -611,49 +610,49 @@ static void log_selected_swapchain_config(
         PRISM_ENUM_NAME_PAIR(VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM_KHR),
     };
 
-    static const size_t SURFACE_FORMAT_NAME_COUNT = sizeof(SURFACE_FORMAT_NAMES) / sizeof(SURFACE_FORMAT_NAME);
+    static const size_t SURFACE_FORMAT_NAME_COUNT = sizeof(SURFACE_FORMAT_NAMES) / sizeof(SurfaceFormatName);
 
     static const char * SURFACE_FORMAT_COLOR_SPACE_NAMES[]
     {
         "VK_COLOR_SPACE_SRGB_NONLINEAR_KHR",
     };
 
-    VkFormat format = selected_surface_format->format;
-    const SURFACE_FORMAT_NAME * surface_format_name = nullptr;
+    VkFormat format = selectedSurfaceFormat->format;
+    const SurfaceFormatName * surfaceFormatName = nullptr;
 
     for(size_t i = 0; i < SURFACE_FORMAT_NAME_COUNT; i++)
     {
-        surface_format_name = SURFACE_FORMAT_NAMES + i;
+        surfaceFormatName = SURFACE_FORMAT_NAMES + i;
 
-        if(surface_format_name->key == format)
+        if(surfaceFormatName->key == format)
         {
             break;
         }
     }
 
-    if(surface_format_name == nullptr)
+    if(surfaceFormatName == nullptr)
     {
-        util_error_exit("VULKAN", nullptr, "failed to find surface format name for VkFormat %i\n", format);
+        utilErrorExit("VULKAN", nullptr, "failed to find surface format name for VkFormat %i\n", format);
     }
 
-    log_divider();
-    util_log("VULKAN", "selected surface format:\n");
-    util_log("VULKAN", "    format:      %s\n", surface_format_name->value);
-    util_log("VULKAN", "    color_space: %s\n",
-        SURFACE_FORMAT_COLOR_SPACE_NAMES[(size_t)selected_surface_format->colorSpace]);
+    logDivider();
+    utilLog("VULKAN", "selected surface format:\n");
+    utilLog("VULKAN", "    format:     %s\n", surfaceFormatName->value);
+    utilLog("VULKAN", "    colorSpace: %s\n",
+        SURFACE_FORMAT_COLOR_SPACE_NAMES[(size_t)selectedSurfaceFormat->colorSpace]);
 
-    util_log("VULKAN", "available surface present modes:\n");
+    utilLog("VULKAN", "available surface present modes:\n");
 
-    for(size_t i = 0; i < available_surface_present_mode_count; i++)
+    for(size_t i = 0; i < availableSurfacePresentModeCount; i++)
     {
-        util_log("VULKAN", "    %s\n", SURFACE_PRESENT_MODE_NAMES[(size_t)available_surface_present_modes[i]]);
+        utilLog("VULKAN", "    %s\n", SURFACE_PRESENT_MODE_NAMES[(size_t)availableSurfacePresentModes[i]]);
     }
 
-    util_log("VULKAN", "selected surface present mode: %s\n",
-        SURFACE_PRESENT_MODE_NAMES[(size_t)selected_surface_present_mode]);
+    utilLog("VULKAN", "selected surface present mode: %s\n",
+        SURFACE_PRESENT_MODE_NAMES[(size_t)selectedSurfacePresentMode]);
 
-    util_log("VULKAN", "selected extent:\n");
-    util_log("VULKAN", "    width:  %i\n", selected_extent->width);
-    util_log("VULKAN", "    height: %i\n", selected_extent->height);
-    util_log("VULKAN", "selected image count: %u\n", selected_image_count);
+    utilLog("VULKAN", "selected extent:\n");
+    utilLog("VULKAN", "    width:  %i\n", selectedExtent->width);
+    utilLog("VULKAN", "    height: %i\n", selectedExtent->height);
+    utilLog("VULKAN", "selected image count: %u\n", selectedImageCount);
 }

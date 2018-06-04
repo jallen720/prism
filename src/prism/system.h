@@ -15,7 +15,7 @@ namespace prism
 // Data Structures
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-struct SYS_CONTEXT
+struct SYSContext
 {
     GLFWwindow * window;
 };
@@ -25,11 +25,11 @@ struct SYS_CONTEXT
 // Interface
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void sys_init();
-void sys_create_window(SYS_CONTEXT * sys_context, int width, int height, const char * title);
-void sys_get_required_extension_names(GFX_CONFIG * gfx_config);
-void sys_create_surface(SYS_CONTEXT * sys_context, GFX_CONTEXT * gfx_context);
-void sys_run(SYS_CONTEXT * sys_context);
-void sys_destroy(SYS_CONTEXT * sys_context);
+void sysInit();
+void sysCreateWindow(SYSContext * sysContext, int width, int height, const char * title);
+void sysGetRequiredExtensions(GFXConfig * gfxConfig);
+void sysCreateSurface(SYSContext * sysContext, GFXContext * gfxContext);
+void sysRun(SYSContext * sysContext);
+void sysDestroy(SYSContext * sysContext);
 
 } // namespace prism

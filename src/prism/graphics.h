@@ -11,43 +11,43 @@ namespace prism
 // Data Structures
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-struct GFX_SWAPCHAIN_INFO
+struct GFXSwapchainInfo
 {
-    VkSurfaceCapabilitiesKHR surface_capabilities;
-    VkSurfaceFormatKHR * available_surface_formats;
-    uint32_t available_surface_format_count;
-    VkPresentModeKHR * available_surface_present_modes;
-    uint32_t available_surface_present_mode_count;
+    VkSurfaceCapabilitiesKHR surfaceCapabilities;
+    VkSurfaceFormatKHR * availableSurfaceFormats;
+    uint32_t availableSurfaceFormatCount;
+    VkPresentModeKHR * availableSurfacePresentModes;
+    uint32_t availableSurfacePresentModeCount;
 };
 
-struct GFX_CONTEXT
+struct GFXContext
 {
     VkInstance instance = VK_NULL_HANDLE;
     VkSurfaceKHR surface = VK_NULL_HANDLE;
-    VkPhysicalDevice physical_device = VK_NULL_HANDLE;
-    GFX_SWAPCHAIN_INFO swapchain_info = {};
-    VkDevice logical_device = VK_NULL_HANDLE;
-    VkQueue graphics_queue = VK_NULL_HANDLE;
-    VkQueue present_queue = VK_NULL_HANDLE;
-    uint32_t graphics_queue_family_index;
-    uint32_t present_queue_family_index;
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+    GFXSwapchainInfo swapchainInfo = {};
+    VkDevice logicalDevice = VK_NULL_HANDLE;
+    VkQueue graphicsQueue = VK_NULL_HANDLE;
+    VkQueue presentQueue = VK_NULL_HANDLE;
+    uint32_t graphicsQueueFamilyIndex;
+    uint32_t presentQueueFamilyIndex;
     VkSwapchainKHR swapchain = VK_NULL_HANDLE;
-    VkImage * swapchain_images = nullptr;
-    uint32_t swapchain_image_count;
-    VkFormat swapchain_image_format;
-    VkExtent2D swapchain_image_extent;
+    VkImage * swapchainImages = nullptr;
+    uint32_t swapchainImageCount;
+    VkFormat swapchainImageFormat;
+    VkExtent2D swapchainImageExtent;
 
 #ifdef PRISM_DEBUG
-    VkDebugReportCallbackEXT debug_callback = VK_NULL_HANDLE;
+    VkDebugReportCallbackEXT debugCallback = VK_NULL_HANDLE;
 #endif
 };
 
-struct GFX_CONFIG
+struct GFXConfig
 {
-    const char ** requested_extension_names;
-    uint32_t requested_extension_count;
-    const char ** requested_layer_names;
-    uint32_t requested_layer_count;
+    const char ** requestedExtensionNames;
+    uint32_t requestedExtensionCount;
+    const char ** requestedLayerNames;
+    uint32_t requestedLayerCount;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -55,8 +55,8 @@ struct GFX_CONFIG
 // Interface
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void gfx_create_instance(GFX_CONTEXT * context, GFX_CONFIG * config);
-void gfx_load_devices(GFX_CONTEXT * context);
-void gfx_destroy(GFX_CONTEXT * context);
+void gfxCreateInstance(GFXContext * context, GFXConfig * config);
+void gfxLoadDevices(GFXContext * context);
+void gfxDestroy(GFXContext * context);
 
 } // namespace prism

@@ -10,8 +10,8 @@ namespace prism
 // Interface
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void util_error_exit(const char * subsystem, const char * error_name, const char * message, ...);
-void util_log(const char * subsystem, const char * message, ...);
-const char * util_vk_result_name(VkResult result);
+void utilErrorExit(const char * subsystem, const char * error_name, const char * message, ...);
+void utilLog(const char * subsystem, const char * message, ...);
+const char * utilVkResultName(VkResult result);
 
 } // namespace prism

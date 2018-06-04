@@ -18,25 +18,25 @@ namespace prism
 // Typedefs
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-template<typename COMPONENT_PROPS>
-using COMPONENT_PROPS_NAME_ACCESSOR = const char * (*)(const COMPONENT_PROPS *);
+template<typename ComponentProps>
+using ComponentPropsNameAccessor = const char * (*)(const ComponentProps *);
 
-using QUEUE_FAMILY_DATA = PAIR<uint32_t, VkQueue *>;
+using QueueFamilyData = PAIR<uint32_t, VkQueue *>;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Data Structures
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-template<typename COMPONENT_PROPS>
-struct INSTANCE_COMPONENT_INFO
+template<typename ComponentProps>
+struct InstanceComponentInfo
 {
     const char * type;
-    const char ** requested_names;
-    uint32_t requested_count;
-    COMPONENT_PROPS * available_props;
-    uint32_t available_count;
-    COMPONENT_PROPS_NAME_ACCESSOR<COMPONENT_PROPS> props_name_accessor;
+    const char ** requestedNames;
+    uint32_t requestedCount;
+    ComponentProps * availableProps;
+    uint32_t availableCount;
+    ComponentPropsNameAccessor<ComponentProps> propsNameAccessor;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -53,158 +53,153 @@ struct INSTANCE_COMPONENT_INFO
 // Utilities
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static const char * layer_props_name_accessor(const VkLayerProperties * layer_properties)
+static const char * layerPropsNameAccessor(const VkLayerProperties * layerProps)
 {
-    return layer_properties->layerName;
+    return layerProps->layerName;
 }
 
-static const char * extension_props_name_accessor(const VkExtensionProperties * extension_properties)
+static const char * extensionPropsNameAccessor(const VkExtensionProperties * extensionProps)
 {
-    return extension_properties->extensionName;
+    return extensionProps->extensionName;
 }
 
-template<typename COMPONENT_PROPS>
-static void alloc_available_props(INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info, uint32_t available_count)
+template<typename ComponentProps>
+static void allocAvailableProps(InstanceComponentInfo<ComponentProps> * componentInfo, uint32_t availableCount)
 {
-    component_info->available_count = available_count;
-    component_info->available_props = (COMPONENT_PROPS *)malloc(sizeof(COMPONENT_PROPS) * available_count);
+    componentInfo->availableCount = availableCount;
+    componentInfo->availableProps = (ComponentProps *)malloc(sizeof(ComponentProps) * availableCount);
 }
 
-template<typename COMPONENT_PROPS>
-static void free_available_props(INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info)
+template<typename ComponentProps>
+static void freeAvailableProps(InstanceComponentInfo<ComponentProps> * componentInfo)
 {
-    free(component_info->available_props);
+    free(componentInfo->availableProps);
 }
 
-template<typename COMPONENT_PROPS>
-static void validate_instance_component_info(const INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info)
+template<typename ComponentProps>
+static void validateInstanceComponentInfo(const InstanceComponentInfo<ComponentProps> * componentInfo)
 {
-    const char ** requested_component_names = component_info->requested_names;
-    uint32_t requested_component_count = component_info->requested_count;
-    const COMPONENT_PROPS * available_component_props = component_info->available_props;
-    uint32_t available_component_count = component_info->available_count;
-    COMPONENT_PROPS_NAME_ACCESSOR<COMPONENT_PROPS> access_component_name = component_info->props_name_accessor;
+    const char ** requestedComponentNames = componentInfo->requestedNames;
+    uint32_t requestedComponentCount = componentInfo->requestedCount;
+    const ComponentProps * availableComponentProps = componentInfo->availableProps;
+    uint32_t availableComponentCount = componentInfo->availableCount;
+    ComponentPropsNameAccessor<ComponentProps> accessComponentName = componentInfo->propsNameAccessor;
 
-    for(size_t requested_component_index = 0;
-        requested_component_index < requested_component_count;
-        requested_component_index++)
+    for(size_t requestedComponentIndex = 0;
+        requestedComponentIndex < requestedComponentCount;
+        requestedComponentIndex++)
     {
-        const char * requested_component_name = requested_component_names[requested_component_index];
-        bool component_available = false;
+        const char * requestedComponentName = requestedComponentNames[requestedComponentIndex];
+        bool componentAvailable = false;
 
-        for(size_t available_component_index = 0;
-            available_component_index < available_component_count;
-            available_component_index++)
+        for(size_t availableComponentIndex = 0;
+            availableComponentIndex < availableComponentCount;
+            availableComponentIndex++)
         {
             if(strcmp(
-                requested_component_name,
-                access_component_name(available_component_props + available_component_index)) == 0)
+                requestedComponentName,
+                accessComponentName(availableComponentProps + availableComponentIndex)) == 0)
             {
-                component_available = true;
+                componentAvailable = true;
                 break;
             }
         }
 
-        if(!component_available)
+        if(!componentAvailable)
         {
-            util_error_exit(
+            utilErrorExit(
                 "VULKAN",
                 nullptr,
                 "requested %s \"%s\" is not available\n",
-                component_info->type,
-                requested_component_name);
+                componentInfo->type,
+                requestedComponentName);
         }
     }
 }
 
-static void create_physical_device(GFX_CONTEXT * context)
+static void createPhysicalDevice(GFXContext * context)
 {
     VkInstance instance = context->instance;
     VkSurfaceKHR surface = context->surface;
 
     // Query available physical-devices.
-    uint32_t available_physical_device_count = 0;
-    vkEnumeratePhysicalDevices(instance, &available_physical_device_count, nullptr);
+    uint32_t availablePhysicalDeviceCount = 0;
+    vkEnumeratePhysicalDevices(instance, &availablePhysicalDeviceCount, nullptr);
 
-    if(available_physical_device_count == 0)
+    if(availablePhysicalDeviceCount == 0)
     {
-        util_error_exit("VULKAN", nullptr, "no physical-devices found\n");
+        utilErrorExit("VULKAN", nullptr, "no physical-devices found\n");
     }
 
-    auto available_physical_devices =
-        (VkPhysicalDevice *)malloc(sizeof(VkPhysicalDevice) * available_physical_device_count);
+    auto availablePhysicalDevices =
+        (VkPhysicalDevice *)malloc(sizeof(VkPhysicalDevice) * availablePhysicalDeviceCount);
 
-    vkEnumeratePhysicalDevices(instance, &available_physical_device_count, available_physical_devices);
+    vkEnumeratePhysicalDevices(instance, &availablePhysicalDeviceCount, availablePhysicalDevices);
 
 #ifdef PRISM_DEBUG
-    log_available_physical_devices(available_physical_device_count, available_physical_devices);
+    logAvailablePhysicalDevices(availablePhysicalDeviceCount, availablePhysicalDevices);
 #endif
 
     // Find a suitable physical-device for rendering and store handle in context.
-    VkPhysicalDevice physical_device = VK_NULL_HANDLE;
-    GFX_SWAPCHAIN_INFO * swapchain_info = &context->swapchain_info;
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+    GFXSwapchainInfo * swapchainInfo = &context->swapchainInfo;
 
-    for(size_t available_physical_device_index = 0;
-        available_physical_device_index < available_physical_device_count;
-        available_physical_device_index++)
+    for(size_t availablePhysicalDeviceIndex = 0;
+        availablePhysicalDeviceIndex < availablePhysicalDeviceCount;
+        availablePhysicalDeviceIndex++)
     {
-        VkPhysicalDevice available_physical_device = available_physical_devices[available_physical_device_index];
-        VkPhysicalDeviceProperties available_physical_device_properties = {};
-        vkGetPhysicalDeviceProperties(available_physical_device, &available_physical_device_properties);
+        VkPhysicalDevice availablePhysicalDevice = availablePhysicalDevices[availablePhysicalDeviceIndex];
+        VkPhysicalDeviceProperties availablePhysicalDeviceProperties = {};
+        vkGetPhysicalDeviceProperties(availablePhysicalDevice, &availablePhysicalDeviceProperties);
 
         // Not currently needed.
-        // VkPhysicalDeviceFeatures device_features;
-        // vkGetPhysicalDeviceFeatures(available_physical_device, &device_features);
+        // VkPhysicalDeviceFeatures deviceFeatures;
+        // vkGetPhysicalDeviceFeatures(availablePhysicalDevice, &deviceFeatures);
 
         // TODO: implement robust physical-device requirements specification.
 
         // Currently, prism only supports discrete GPUs.
-        if(available_physical_device_properties.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+        if(availablePhysicalDeviceProperties.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
         {
             continue;
         }
 
         // Ensure physical-device supports swapchain.
-        uint32_t available_extension_count;
+        uint32_t availableExtensionCount = 0;
+        vkEnumerateDeviceExtensionProperties(availablePhysicalDevice, nullptr, &availableExtensionCount, nullptr);
 
-        vkEnumerateDeviceExtensionProperties(
-            available_physical_device,
-            nullptr,
-            &available_extension_count,
-            nullptr);
-
-        if(available_extension_count == 0)
+        if(availableExtensionCount == 0)
         {
             continue;
         }
 
-        auto available_extension_properties_array =
-            (VkExtensionProperties *)malloc(sizeof(VkExtensionProperties) * available_extension_count);
+        auto availableExtensionPropsArray =
+            (VkExtensionProperties *)malloc(sizeof(VkExtensionProperties) * availableExtensionCount);
 
         vkEnumerateDeviceExtensionProperties(
-            available_physical_device,
+            availablePhysicalDevice,
             nullptr,
-            &available_extension_count,
-            available_extension_properties_array);
+            &availableExtensionCount,
+            availableExtensionPropsArray);
 
-        bool supports_swap_chain = false;
+        bool supportsSwapChain = false;
 
-        for(size_t available_extension_index = 0;
-            available_extension_index < available_extension_count;
-            available_extension_index++)
+        for(size_t availableExtensionIndex = 0;
+            availableExtensionIndex < availableExtensionCount;
+            availableExtensionIndex++)
         {
             if(strcmp(
-                available_extension_properties_array[available_extension_index].extensionName,
+                availableExtensionPropsArray[availableExtensionIndex].extensionName,
                 VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
             {
-                supports_swap_chain = true;
+                supportsSwapChain = true;
                 break;
             }
         }
 
-        free(available_extension_properties_array);
+        free(availableExtensionPropsArray);
 
-        if(!supports_swap_chain)
+        if(!supportsSwapChain)
         {
             continue;
         }
@@ -224,204 +219,195 @@ static void create_physical_device(GFX_CONTEXT * context)
         //     VkImageUsageFlags                supportedUsageFlags;
         // } VkSurfaceCapabilitiesKHR;
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-            available_physical_device,
+            availablePhysicalDevice,
             surface,
-            &swapchain_info->surface_capabilities);
+            &swapchainInfo->surfaceCapabilities);
 
 #ifdef PRISM_DEBUG
-        log_physical_device_surface_capabilities(&swapchain_info->surface_capabilities);
+        logPhysicalDeviceSurfaceCapabilities(&swapchainInfo->surfaceCapabilities);
 #endif
 
         // Ensure physical-device supports atleast 1 surface-format and 1 present-mode.
-        uint32_t * available_surface_format_count = &swapchain_info->available_surface_format_count;
-        *available_surface_format_count = 10;
+        uint32_t * availableSurfaceFormatCount = &swapchainInfo->availableSurfaceFormatCount;
+        vkGetPhysicalDeviceSurfaceFormatsKHR(availablePhysicalDevice, surface, availableSurfaceFormatCount, nullptr);
 
-        vkGetPhysicalDeviceSurfaceFormatsKHR(
-            available_physical_device,
-            surface,
-            available_surface_format_count,
-            nullptr);
-
-        if(available_surface_format_count == 0)
+        if(availableSurfaceFormatCount == 0)
         {
             continue;
         }
 
-        uint32_t * available_surface_present_mode_count = &swapchain_info->available_surface_present_mode_count;
+        uint32_t * availableSurfacePresentModeCount = &swapchainInfo->availableSurfacePresentModeCount;
 
         vkGetPhysicalDeviceSurfacePresentModesKHR(
-            available_physical_device,
+            availablePhysicalDevice,
             surface,
-            available_surface_present_mode_count,
+            availableSurfacePresentModeCount,
             nullptr);
 
-        if(available_surface_present_mode_count == 0)
+        if(availableSurfacePresentModeCount == 0)
         {
             continue;
         }
 
         // Surface is valid for use with physical-device, so store surface info in swapchain info.
-        VkSurfaceFormatKHR ** available_surface_formats = &swapchain_info->available_surface_formats;
-        VkPresentModeKHR ** available_surface_present_modes = &swapchain_info->available_surface_present_modes;
+        VkSurfaceFormatKHR ** availableSurfaceFormats = &swapchainInfo->availableSurfaceFormats;
+        VkPresentModeKHR ** availableSurfacePresentModes = &swapchainInfo->availableSurfacePresentModes;
 
-        *available_surface_formats =
-            (VkSurfaceFormatKHR *)malloc(sizeof(VkSurfaceFormatKHR) * *available_surface_format_count);
+        *availableSurfaceFormats =
+            (VkSurfaceFormatKHR *)malloc(sizeof(VkSurfaceFormatKHR) * *availableSurfaceFormatCount);
 
-        *available_surface_present_modes =
-            (VkPresentModeKHR *)malloc(sizeof(VkPresentModeKHR) * *available_surface_present_mode_count);
+        *availableSurfacePresentModes =
+            (VkPresentModeKHR *)malloc(sizeof(VkPresentModeKHR) * *availableSurfacePresentModeCount);
 
         vkGetPhysicalDeviceSurfaceFormatsKHR(
-            available_physical_device,
+            availablePhysicalDevice,
             surface,
-            available_surface_format_count,
-            *available_surface_formats);
+            availableSurfaceFormatCount,
+            *availableSurfaceFormats);
 
         vkGetPhysicalDeviceSurfacePresentModesKHR(
-            available_physical_device,
+            availablePhysicalDevice,
             surface,
-            available_surface_present_mode_count,
-            *available_surface_present_modes);
+            availableSurfacePresentModeCount,
+            *availableSurfacePresentModes);
 
         // Physical-device meets all requirements and will be selected as the physical-device for the context.
-        physical_device = available_physical_device;
+        physicalDevice = availablePhysicalDevice;
         break;
     }
 
-    if(physical_device == VK_NULL_HANDLE)
+    if(physicalDevice == VK_NULL_HANDLE)
     {
-        util_error_exit("VULKAN", nullptr, "failed to find a physical-device that meets requirements\n");
+        utilErrorExit("VULKAN", nullptr, "failed to find a physical-device that meets requirements\n");
     }
 
-    context->physical_device = physical_device;
+    context->physicalDevice = physicalDevice;
 
     // Cleanup
-    free(available_physical_devices);
+    free(availablePhysicalDevices);
 }
 
-static void get_queue_family_indexes(GFX_CONTEXT * context)
+static void getQueueFamilyIndexes(GFXContext * context)
 {
-    VkPhysicalDevice physical_device = context->physical_device;
+    VkPhysicalDevice physicalDevice = context->physicalDevice;
     VkSurfaceKHR surface = context->surface;
 
     // Ensure queue-families can be found.
-    uint32_t queue_family_count = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, nullptr);
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
 
-    if(queue_family_count == 0)
+    if(queueFamilyCount == 0)
     {
-        util_error_exit("VULKAN", nullptr, "no queue-families found for physical-device\n");
+        utilErrorExit("VULKAN", nullptr, "no queue-families found for physical-device\n");
     }
 
     // Get properties for selected physical-device's queue-families.
-    auto queue_family_props_array =
-        (VkQueueFamilyProperties *)malloc(sizeof(VkQueueFamilyProperties) * queue_family_count);
+    auto queueFamilyPropsArray =
+        (VkQueueFamilyProperties *)malloc(sizeof(VkQueueFamilyProperties) * queueFamilyCount);
 
-    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, queue_family_props_array);
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilyPropsArray);
 
     // Find indexes for graphics and present queue-families.
-    int graphics_queue_family_index = -1;
-    int present_queue_family_index = -1;
+    int graphicsQueueFamilyIndex = -1;
+    int presentQueueFamilyIndex = -1;
 
-    for(size_t queue_family_index = 0; queue_family_index < queue_family_count; queue_family_index++)
+    for(size_t queueFamilyIndex = 0; queueFamilyIndex < queueFamilyCount; queueFamilyIndex++)
     {
-        const VkQueueFamilyProperties * queue_family_props = queue_family_props_array + queue_family_index;
+        const VkQueueFamilyProperties * queueFamilyProps = queueFamilyPropsArray + queueFamilyIndex;
 
         // Check for graphics-capable queue-family.
-        if(graphics_queue_family_index == -1
-            && queue_family_props->queueCount > 0
-            && queue_family_props->queueFlags & VK_QUEUE_GRAPHICS_BIT)
+        if(graphicsQueueFamilyIndex == -1
+            && queueFamilyProps->queueCount > 0
+            && queueFamilyProps->queueFlags & VK_QUEUE_GRAPHICS_BIT)
         {
-            graphics_queue_family_index = queue_family_index;
+            graphicsQueueFamilyIndex = queueFamilyIndex;
         }
 
         // Check for present-capable queue-family.
-        if(present_queue_family_index == -1)
+        if(presentQueueFamilyIndex == -1)
         {
-            VkBool32 is_present_queue_family = VK_FALSE;
+            VkBool32 isPresentQueueFamily = VK_FALSE;
 
             vkGetPhysicalDeviceSurfaceSupportKHR(
-                physical_device,
-                queue_family_index,
+                physicalDevice,
+                queueFamilyIndex,
                 surface,
-                &is_present_queue_family);
+                &isPresentQueueFamily);
 
-            if(is_present_queue_family == VK_TRUE)
+            if(isPresentQueueFamily == VK_TRUE)
             {
-                present_queue_family_index = queue_family_index;
+                presentQueueFamilyIndex = queueFamilyIndex;
             }
         }
 
         // When both graphics and present queue-family indexes are found, stop search.
-        if(graphics_queue_family_index != -1 && present_queue_family_index != -1)
+        if(graphicsQueueFamilyIndex != -1 && presentQueueFamilyIndex != -1)
         {
             break;
         }
     }
 
-    if(graphics_queue_family_index == -1)
+    if(graphicsQueueFamilyIndex == -1)
     {
-        util_error_exit("VULKAN", nullptr, "failed to find graphics queue-family for selected physical-device\n");
+        utilErrorExit("VULKAN", nullptr, "failed to find graphics queue-family for selected physical-device\n");
     }
 
-    if(present_queue_family_index == -1)
+    if(presentQueueFamilyIndex == -1)
     {
-        util_error_exit("VULKAN", nullptr, "failed to find present queue-family for selected physical-device\n");
+        utilErrorExit("VULKAN", nullptr, "failed to find present queue-family for selected physical-device\n");
     }
 
-    context->graphics_queue_family_index = graphics_queue_family_index;
-    context->present_queue_family_index = present_queue_family_index;
+    context->graphicsQueueFamilyIndex = graphicsQueueFamilyIndex;
+    context->presentQueueFamilyIndex = presentQueueFamilyIndex;
 
 #ifdef PRISM_DEBUG
-    log_queue_families(queue_family_count, queue_family_props_array);
+    logQueueFamilies(queueFamilyCount, queueFamilyPropsArray);
 #endif
 
     // Cleanup
-    free(queue_family_props_array);
+    free(queueFamilyPropsArray);
 }
 
-static void create_logical_device(GFX_CONTEXT * context)
+static void createLogicalDevice(GFXContext * context)
 {
-    VkPhysicalDevice physical_device = context->physical_device;
+    VkPhysicalDevice physicalDevice = context->physicalDevice;
 
     // Initialize queue creation info for all queues to be used with the logical-device.
     static const uint32_t QUEUE_FAMILY_QUEUE_COUNT = 1; // More than 1 queue is unnecessary per queue-family.
     static const float QUEUE_FAMILY_QUEUE_PRIORITY = 1.0F;
 
-    QUEUE_FAMILY_DATA queue_family_datas[]
+    QueueFamilyData queueFamilyDatas[]
     {
-        { context->graphics_queue_family_index, &context->graphics_queue },
-        { context->present_queue_family_index, &context->present_queue },
+        { context->graphicsQueueFamilyIndex, &context->graphicsQueue },
+        { context->presentQueueFamilyIndex, &context->presentQueue },
     };
 
-    size_t queue_family_data_count = sizeof(queue_family_datas) / sizeof(QUEUE_FAMILY_DATA);
+    size_t queueFamilyDataCount = sizeof(queueFamilyDatas) / sizeof(QueueFamilyData);
 
-    auto logical_device_queue_create_infos =
-        (VkDeviceQueueCreateInfo *)malloc(sizeof(VkDeviceQueueCreateInfo) * queue_family_data_count);
+    auto logicalDeviceQueueCreateInfos =
+        (VkDeviceQueueCreateInfo *)malloc(sizeof(VkDeviceQueueCreateInfo) * queueFamilyDataCount);
 
-    size_t logical_device_queue_create_info_count = 0;
+    size_t logicalDeviceQueueCreateInfoCount = 0;
 
     // Prevent duplicate queue creation for logical-device.
-    for(size_t queue_family_data_index = 0;
-        queue_family_data_index < queue_family_data_count;
-        queue_family_data_index++)
+    for(size_t queueFamilyDataIndex = 0; queueFamilyDataIndex < queueFamilyDataCount; queueFamilyDataIndex++)
     {
-        bool queue_family_already_used = false;
-        uint32_t queue_family_index = queue_family_datas[queue_family_data_index].key;
+        bool queueFamilyAlreadyUsed = false;
+        uint32_t queueFamilyIndex = queueFamilyDatas[queueFamilyDataIndex].key;
 
         // Ensure creation info for another queue-family with the same index doesn't exist.
-        for(size_t logical_device_queue_create_info_index = 0;
-            logical_device_queue_create_info_index < logical_device_queue_create_info_count;
-            logical_device_queue_create_info_index++)
+        for(size_t logicalDeviceQueueCreateInfoIndex = 0;
+            logicalDeviceQueueCreateInfoIndex < logicalDeviceQueueCreateInfoCount;
+            logicalDeviceQueueCreateInfoIndex++)
         {
-            if(logical_device_queue_create_infos[logical_device_queue_create_info_index].queueFamilyIndex
-                == queue_family_index)
+            if(logicalDeviceQueueCreateInfos[logicalDeviceQueueCreateInfoIndex].queueFamilyIndex == queueFamilyIndex)
             {
-                queue_family_already_used = true;
+                queueFamilyAlreadyUsed = true;
                 break;
             }
         }
 
-        if(queue_family_already_used)
+        if(queueFamilyAlreadyUsed)
         {
             continue;
         }
@@ -436,15 +422,15 @@ static void create_logical_device(GFX_CONTEXT * context)
         //     uint32_t                    queueCount;
         //     const float*                pQueuePriorities;
         // } VkDeviceQueueCreateInfo;
-        VkDeviceQueueCreateInfo * logical_device_queue_create_info =
-            logical_device_queue_create_infos + logical_device_queue_create_info_count++;
+        VkDeviceQueueCreateInfo * logicalDeviceQueueCreateInfo =
+            logicalDeviceQueueCreateInfos + logicalDeviceQueueCreateInfoCount++;
 
-        logical_device_queue_create_info->sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        logical_device_queue_create_info->pNext = nullptr;
-        logical_device_queue_create_info->flags = 0;
-        logical_device_queue_create_info->queueFamilyIndex = queue_family_index;
-        logical_device_queue_create_info->queueCount = QUEUE_FAMILY_QUEUE_COUNT;
-        logical_device_queue_create_info->pQueuePriorities = &QUEUE_FAMILY_QUEUE_PRIORITY;
+        logicalDeviceQueueCreateInfo->sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        logicalDeviceQueueCreateInfo->pNext = nullptr;
+        logicalDeviceQueueCreateInfo->flags = 0;
+        logicalDeviceQueueCreateInfo->queueFamilyIndex = queueFamilyIndex;
+        logicalDeviceQueueCreateInfo->queueCount = QUEUE_FAMILY_QUEUE_COUNT;
+        logicalDeviceQueueCreateInfo->pQueuePriorities = &QUEUE_FAMILY_QUEUE_PRIORITY;
     }
 
     // Set enabled physical-device features (empty for now).
@@ -506,7 +492,7 @@ static void create_logical_device(GFX_CONTEXT * context)
     //     VkBool32    variableMultisampleRate;
     //     VkBool32    inheritedQueries;
     // } VkPhysicalDeviceFeatures;
-    VkPhysicalDeviceFeatures physical_device_features = {};
+    VkPhysicalDeviceFeatures physicalDeviceFeatures = {};
 
     // Initialize logical-device creation info.
 
@@ -528,50 +514,48 @@ static void create_logical_device(GFX_CONTEXT * context)
     //     const char* const*                 ppEnabledExtensionNames;
     //     const VkPhysicalDeviceFeatures*    pEnabledFeatures;
     // } VkDeviceCreateInfo;
-    VkDeviceCreateInfo logical_device_create_info = {};
-    logical_device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    logical_device_create_info.pNext = nullptr;
-    logical_device_create_info.flags = 0;
-    logical_device_create_info.queueCreateInfoCount = logical_device_queue_create_info_count;
-    logical_device_create_info.pQueueCreateInfos = logical_device_queue_create_infos;
-    logical_device_create_info.enabledLayerCount = 0; // DEPRECATED
-    logical_device_create_info.ppEnabledLayerNames = nullptr; // DEPRECATED
-    logical_device_create_info.enabledExtensionCount = sizeof(LOGICAL_DEVICE_EXTENSION_NAMES) / sizeof(void *);
-    logical_device_create_info.ppEnabledExtensionNames = LOGICAL_DEVICE_EXTENSION_NAMES;
-    logical_device_create_info.pEnabledFeatures = &physical_device_features;
+    VkDeviceCreateInfo logicalDeviceCreateInfo = {};
+    logicalDeviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    logicalDeviceCreateInfo.pNext = nullptr;
+    logicalDeviceCreateInfo.flags = 0;
+    logicalDeviceCreateInfo.queueCreateInfoCount = logicalDeviceQueueCreateInfoCount;
+    logicalDeviceCreateInfo.pQueueCreateInfos = logicalDeviceQueueCreateInfos;
+    logicalDeviceCreateInfo.enabledLayerCount = 0; // DEPRECATED
+    logicalDeviceCreateInfo.ppEnabledLayerNames = nullptr; // DEPRECATED
+    logicalDeviceCreateInfo.enabledExtensionCount = sizeof(LOGICAL_DEVICE_EXTENSION_NAMES) / sizeof(void *);
+    logicalDeviceCreateInfo.ppEnabledExtensionNames = LOGICAL_DEVICE_EXTENSION_NAMES;
+    logicalDeviceCreateInfo.pEnabledFeatures = &physicalDeviceFeatures;
 
     // Create logical-device.
-    VkDevice logical_device = VK_NULL_HANDLE;
+    VkDevice logicalDevice = VK_NULL_HANDLE;
+    VkResult result = vkCreateDevice(physicalDevice, &logicalDeviceCreateInfo, nullptr, &logicalDevice);
 
-    VkResult create_logical_device_result =
-        vkCreateDevice(physical_device, &logical_device_create_info, nullptr, &logical_device);
-
-    if(create_logical_device_result != VK_SUCCESS)
+    if(result != VK_SUCCESS)
     {
-        util_error_exit(
+        utilErrorExit(
             "VULKAN",
-            util_vk_result_name(create_logical_device_result),
+            utilVkResultName(result),
             "failed to create logical-device for selected physical-device\n");
     }
 
-    context->logical_device = logical_device;
+    context->logicalDevice = logicalDevice;
 
     // Cleanup
-    free(logical_device_queue_create_infos);
+    free(logicalDeviceQueueCreateInfos);
 
     // Get queue-family queues from logical-device.
-    for(size_t i = 0; i < queue_family_data_count; i++)
+    for(size_t i = 0; i < queueFamilyDataCount; i++)
     {
-        const QUEUE_FAMILY_DATA * queue_family = queue_family_datas + i;
-        vkGetDeviceQueue(logical_device, queue_family->key, 0, queue_family->value);
+        const QueueFamilyData * queueFamily = queueFamilyDatas + i;
+        vkGetDeviceQueue(logicalDevice, queueFamily->key, 0, queueFamily->value);
     }
 }
 
-static void create_swapchain(GFX_CONTEXT * context)
+static void createSwapchain(GFXContext * context)
 {
-    const GFX_SWAPCHAIN_INFO * swapchain_info = &context->swapchain_info;
+    const GFXSwapchainInfo * swapchainInfo = &context->swapchainInfo;
     VkSurfaceKHR surface = context->surface;
-    VkDevice logical_device = context->logical_device;
+    VkDevice logicalDevice = context->logicalDevice;
 
     // Select best surface format for swapchain.
     static const VkSurfaceFormatKHR PREFERRED_SURFACE_FORMAT
@@ -580,27 +564,27 @@ static void create_swapchain(GFX_CONTEXT * context)
         VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
     };
 
-    const VkSurfaceFormatKHR * available_surface_formats = swapchain_info->available_surface_formats;
+    const VkSurfaceFormatKHR * availableSurfaceFormats = swapchainInfo->availableSurfaceFormats;
 
     // Default to first available format.
-    VkSurfaceFormatKHR selected_surface_format = available_surface_formats[0];
+    VkSurfaceFormatKHR selectedSurfaceFormat = availableSurfaceFormats[0];
 
     // If default format is undefined (surface has no preferred format), replace with preferred format.
-    if(selected_surface_format.format == VK_FORMAT_UNDEFINED)
+    if(selectedSurfaceFormat.format == VK_FORMAT_UNDEFINED)
     {
-        selected_surface_format = PREFERRED_SURFACE_FORMAT;
+        selectedSurfaceFormat = PREFERRED_SURFACE_FORMAT;
     }
     // Check if preferred format is available, and use if so.
     else
     {
-        for(size_t i = 0; i < swapchain_info->available_surface_format_count; i++)
+        for(size_t i = 0; i < swapchainInfo->availableSurfaceFormatCount; i++)
         {
-            VkSurfaceFormatKHR available_surface_format = available_surface_formats[i];
+            VkSurfaceFormatKHR availableSurfaceFormat = availableSurfaceFormats[i];
 
-            if(available_surface_format.format == PREFERRED_SURFACE_FORMAT.format
-                && available_surface_format.colorSpace == PREFERRED_SURFACE_FORMAT.colorSpace)
+            if(availableSurfaceFormat.format == PREFERRED_SURFACE_FORMAT.format
+                && availableSurfaceFormat.colorSpace == PREFERRED_SURFACE_FORMAT.colorSpace)
             {
-                selected_surface_format = available_surface_format;
+                selectedSurfaceFormat = availableSurfaceFormat;
                 break;
             }
         }
@@ -608,57 +592,57 @@ static void create_swapchain(GFX_CONTEXT * context)
 
     // Select best surface present mode for swapchain.
     static const VkPresentModeKHR PREFERRED_PRESENT_MODE = VK_PRESENT_MODE_MAILBOX_KHR;
-    const VkPresentModeKHR * available_surface_present_modes = swapchain_info->available_surface_present_modes;
+    const VkPresentModeKHR * availableSurfacePresentModes = swapchainInfo->availableSurfacePresentModes;
 
     // FIFO is guaranteed to be available, so use it as a fallback in-case the preferred mode isn't found.
-    VkPresentModeKHR selected_surface_present_mode = VK_PRESENT_MODE_FIFO_KHR;
+    VkPresentModeKHR selectedSurfacePresentMode = VK_PRESENT_MODE_FIFO_KHR;
 
-    for(size_t i = 0; i < swapchain_info->available_surface_present_mode_count; i++)
+    for(size_t i = 0; i < swapchainInfo->availableSurfacePresentModeCount; i++)
     {
-        VkPresentModeKHR available_surface_present_mode = available_surface_present_modes[i];
+        VkPresentModeKHR availableSurfacePresentMode = availableSurfacePresentModes[i];
 
         // Select preferred present mode if available.
-        if(available_surface_present_mode == PREFERRED_PRESENT_MODE)
+        if(availableSurfacePresentMode == PREFERRED_PRESENT_MODE)
         {
-            selected_surface_present_mode = PREFERRED_PRESENT_MODE;
+            selectedSurfacePresentMode = PREFERRED_PRESENT_MODE;
             break;
         }
         // Some drivers don't support FIFO properly, so if immediate mode is available, use that as the fallback in-case
         // the preferred mode isn't found.
-        else if(available_surface_present_mode == VK_PRESENT_MODE_IMMEDIATE_KHR)
+        else if(availableSurfacePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR)
         {
-            selected_surface_present_mode = available_surface_present_mode;
+            selectedSurfacePresentMode = availableSurfacePresentMode;
         }
     }
 
     // Select best extent for swapchain.
-    const VkSurfaceCapabilitiesKHR * surface_capabilities = &swapchain_info->surface_capabilities;
-    VkExtent2D selected_extent = surface_capabilities->currentExtent;
+    const VkSurfaceCapabilitiesKHR * surfaceCapabilities = &swapchainInfo->surfaceCapabilities;
+    VkExtent2D selectedExtent = surfaceCapabilities->currentExtent;
 
     // TODO: add support for other extents.
 
     // Select best image count for swapchain.
     static const uint32_t MIN_PREFERRED_IMAGE_COUNT = 1;
-    uint32_t selected_image_count = surface_capabilities->minImageCount + MIN_PREFERRED_IMAGE_COUNT;
-    uint32_t max_image_count = surface_capabilities->maxImageCount;
+    uint32_t selectedImageCount = surfaceCapabilities->minImageCount + MIN_PREFERRED_IMAGE_COUNT;
+    uint32_t maxImageCount = surfaceCapabilities->maxImageCount;
 
-    if(max_image_count > 0 && selected_image_count > max_image_count)
+    if(maxImageCount > 0 && selectedImageCount > maxImageCount)
     {
-        selected_image_count = max_image_count;
+        selectedImageCount = maxImageCount;
     }
 
     // Store selected surface format and extent for later use.
-    context->swapchain_image_format = selected_surface_format.format;
-    context->swapchain_image_extent = selected_extent;
+    context->swapchainImageFormat = selectedSurfaceFormat.format;
+    context->swapchainImageExtent = selectedExtent;
 
 #ifdef PRISM_DEBUG
-    log_selected_swapchain_config(
-        &selected_surface_format,
-        swapchain_info->available_surface_present_mode_count,
-        available_surface_present_modes,
-        selected_surface_present_mode,
-        &selected_extent,
-        selected_image_count);
+    logSelectedSwapchainConfig(
+        &selectedSurfaceFormat,
+        swapchainInfo->availableSurfacePresentModeCount,
+        availableSurfacePresentModes,
+        selectedSurfacePresentMode,
+        &selectedExtent,
+        selectedImageCount);
 #endif
 
     // Initialize swapchain creation info.
@@ -683,69 +667,67 @@ static void create_swapchain(GFX_CONTEXT * context)
     //     VkBool32                         clipped;
     //     VkSwapchainKHR                   oldSwapchain;
     // } VkSwapchainCreateInfoKHR;
-    VkSwapchainCreateInfoKHR swapchain_create_info = {};
-    swapchain_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    swapchain_create_info.pNext = nullptr;
-    swapchain_create_info.flags = 0; // Reserved for future use.
-    swapchain_create_info.surface = surface;
-    swapchain_create_info.minImageCount = selected_image_count;
-    swapchain_create_info.imageFormat = selected_surface_format.format;
-    swapchain_create_info.imageColorSpace = selected_surface_format.colorSpace;
-    swapchain_create_info.imageExtent = selected_extent;
-    swapchain_create_info.imageArrayLayers = 1; // Always 1 for non-stereoscopic-3D applications.
-    swapchain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    VkSwapchainCreateInfoKHR swapchainCreateInfo = {};
+    swapchainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    swapchainCreateInfo.pNext = nullptr;
+    swapchainCreateInfo.flags = 0; // Reserved for future use.
+    swapchainCreateInfo.surface = surface;
+    swapchainCreateInfo.minImageCount = selectedImageCount;
+    swapchainCreateInfo.imageFormat = selectedSurfaceFormat.format;
+    swapchainCreateInfo.imageColorSpace = selectedSurfaceFormat.colorSpace;
+    swapchainCreateInfo.imageExtent = selectedExtent;
+    swapchainCreateInfo.imageArrayLayers = 1; // Always 1 for non-stereoscopic-3D applications.
+    swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    uint32_t queue_family_indexes[]
+    uint32_t queueFamilyIndexes[]
     {
-        context->graphics_queue_family_index,
-        context->present_queue_family_index,
+        context->graphicsQueueFamilyIndex,
+        context->presentQueueFamilyIndex,
     };
 
     // If queue-family indexes are unique, use concurrent sharing mode. Otherwise, use exclusive sharing mode.
-    if(queue_family_indexes[0] != queue_family_indexes[1])
+    if(queueFamilyIndexes[0] != queueFamilyIndexes[1])
     {
-        swapchain_create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-        swapchain_create_info.queueFamilyIndexCount = sizeof(queue_family_indexes) / sizeof(uint32_t);
-        swapchain_create_info.pQueueFamilyIndices = queue_family_indexes;
+        swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+        swapchainCreateInfo.queueFamilyIndexCount = sizeof(queueFamilyIndexes) / sizeof(uint32_t);
+        swapchainCreateInfo.pQueueFamilyIndices = queueFamilyIndexes;
     }
     else
     {
-        swapchain_create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        swapchain_create_info.queueFamilyIndexCount = 0;
-        swapchain_create_info.pQueueFamilyIndices = nullptr;
+        swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        swapchainCreateInfo.queueFamilyIndexCount = 0;
+        swapchainCreateInfo.pQueueFamilyIndices = nullptr;
     }
 
-    swapchain_create_info.preTransform = surface_capabilities->currentTransform;
-    swapchain_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    swapchain_create_info.presentMode = selected_surface_present_mode;
-    swapchain_create_info.clipped = VK_TRUE; // Ignore obscured pixels for better performance.
-    swapchain_create_info.oldSwapchain = VK_NULL_HANDLE;
+    swapchainCreateInfo.preTransform = surfaceCapabilities->currentTransform;
+    swapchainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    swapchainCreateInfo.presentMode = selectedSurfacePresentMode;
+    swapchainCreateInfo.clipped = VK_TRUE; // Ignore obscured pixels for better performance.
+    swapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 
     // Create swapchain.
     VkSwapchainKHR swapchain;
+    VkResult result = vkCreateSwapchainKHR(logicalDevice, &swapchainCreateInfo, nullptr, &swapchain);
 
-    VkResult create_swapchain_result =
-        vkCreateSwapchainKHR(logical_device, &swapchain_create_info, nullptr, &swapchain);
-
-    if(create_swapchain_result != VK_SUCCESS)
+    if(result != VK_SUCCESS)
     {
-        util_error_exit("VULKAN", util_vk_result_name(create_swapchain_result), "failed to create swapchain\n");
+        utilErrorExit("VULKAN", utilVkResultName(result), "failed to create swapchain\n");
     }
 
     context->swapchain = swapchain;
 
     // Get swapchain images.
-    uint32_t * swapchain_image_count = &context->swapchain_image_count;
-    vkGetSwapchainImagesKHR(logical_device, swapchain, swapchain_image_count, nullptr);
+    uint32_t * swapchainImageCount = &context->swapchainImageCount;
+    vkGetSwapchainImagesKHR(logicalDevice, swapchain, swapchainImageCount, nullptr);
 
-    if(*swapchain_image_count == 0)
+    if(*swapchainImageCount == 0)
     {
-        util_error_exit("VULKAN", nullptr, "failed to get swapchain images\n");
+        utilErrorExit("VULKAN", nullptr, "failed to get swapchain images\n");
     }
 
-    VkImage ** swapchain_images = &context->swapchain_images;
-    *swapchain_images = (VkImage *)malloc(sizeof(VkImage) * *swapchain_image_count);
-    vkGetSwapchainImagesKHR(logical_device, swapchain, swapchain_image_count, *swapchain_images);
+    VkImage ** swapchainImages = &context->swapchainImages;
+    *swapchainImages = (VkImage *)malloc(sizeof(VkImage) * *swapchainImageCount);
+    vkGetSwapchainImagesKHR(logicalDevice, swapchain, swapchainImageCount, *swapchainImages);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -753,45 +735,45 @@ static void create_swapchain(GFX_CONTEXT * context)
 // Interface
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void gfx_create_instance(GFX_CONTEXT * context, GFX_CONFIG * config)
+void gfxCreateInstance(GFXContext * context, GFXConfig * config)
 {
     PRISM_ASSERT(context != nullptr);
     PRISM_ASSERT(config != nullptr);
 
 #ifdef PRISM_DEBUG
-    concat_debug_instance_components(config);
+    concatDebugInstanceComponents(config);
 #endif
 
-    // Initialize extension_info with requested extension names and available extension properties.
-    INSTANCE_COMPONENT_INFO<VkExtensionProperties> extension_info = {};
-    extension_info.type = "extension";
-    extension_info.requested_names = config->requested_extension_names;
-    extension_info.requested_count = config->requested_extension_count;
-    extension_info.props_name_accessor = extension_props_name_accessor;
-    uint32_t available_extension_count = 0;
-    vkEnumerateInstanceExtensionProperties(nullptr, &available_extension_count, nullptr);
-    alloc_available_props(&extension_info, available_extension_count);
-    vkEnumerateInstanceExtensionProperties(nullptr, &available_extension_count, extension_info.available_props);
+    // Initialize extensionInfo with requested extension names and available extension properties.
+    InstanceComponentInfo<VkExtensionProperties> extensionInfo = {};
+    extensionInfo.type = "extension";
+    extensionInfo.requestedNames = config->requestedExtensionNames;
+    extensionInfo.requestedCount = config->requestedExtensionCount;
+    extensionInfo.propsNameAccessor = extensionPropsNameAccessor;
+    uint32_t availableExtensionCount = 0;
+    vkEnumerateInstanceExtensionProperties(nullptr, &availableExtensionCount, nullptr);
+    allocAvailableProps(&extensionInfo, availableExtensionCount);
+    vkEnumerateInstanceExtensionProperties(nullptr, &availableExtensionCount, extensionInfo.availableProps);
 
-    // Initialize layer_info with requested layer names and available layer properties.
-    INSTANCE_COMPONENT_INFO<VkLayerProperties> layer_info = {};
-    layer_info.type = "layer";
-    layer_info.requested_names = config->requested_layer_names;
-    layer_info.requested_count = config->requested_layer_count;
-    layer_info.props_name_accessor = layer_props_name_accessor;
-    uint32_t available_layer_count = 0;
-    vkEnumerateInstanceLayerProperties(&available_layer_count, nullptr);
-    alloc_available_props(&layer_info, available_layer_count);
-    vkEnumerateInstanceLayerProperties(&available_layer_count, layer_info.available_props);
+    // Initialize layerInfo with requested layer names and available layer properties.
+    InstanceComponentInfo<VkLayerProperties> layerInfo = {};
+    layerInfo.type = "layer";
+    layerInfo.requestedNames = config->requestedLayerNames;
+    layerInfo.requestedCount = config->requestedLayerCount;
+    layerInfo.propsNameAccessor = layerPropsNameAccessor;
+    uint32_t availableLayerCount = 0;
+    vkEnumerateInstanceLayerProperties(&availableLayerCount, nullptr);
+    allocAvailableProps(&layerInfo, availableLayerCount);
+    vkEnumerateInstanceLayerProperties(&availableLayerCount, layerInfo.availableProps);
 
 // #ifdef PRISM_DEBUG
-//     log_instance_component_names(&extension_info);
-//     log_instance_component_names(&layer_info);
+//     logInstanceComponentNames(&extensionInfo);
+//     logInstanceComponentNames(&layerInfo);
 // #endif
 
     // Validate requested extensions and layers are available.
-    validate_instance_component_info(&extension_info);
-    validate_instance_component_info(&layer_info);
+    validateInstanceComponentInfo(&extensionInfo);
+    validateInstanceComponentInfo(&layerInfo);
 
     // Initialize application info.
 
@@ -804,14 +786,14 @@ void gfx_create_instance(GFX_CONTEXT * context, GFX_CONFIG * config)
     //     uint32_t           engineVersion;
     //     uint32_t           apiVersion;
     // } VkApplicationInfo;
-    VkApplicationInfo app_info = {};
-    app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    app_info.pNext = nullptr;
-    app_info.pApplicationName = "prism test";
-    app_info.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
-    app_info.pEngineName = "prism";
-    app_info.engineVersion = VK_MAKE_VERSION(0, 1, 0);
-    app_info.apiVersion = VK_API_VERSION_1_1;
+    VkApplicationInfo appInfo = {};
+    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    appInfo.pNext = nullptr;
+    appInfo.pApplicationName = "prism test";
+    appInfo.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
+    appInfo.pEngineName = "prism";
+    appInfo.engineVersion = VK_MAKE_VERSION(0, 1, 0);
+    appInfo.apiVersion = VK_API_VERSION_1_1;
 
     // Initialize instance creation info.
 
@@ -825,82 +807,82 @@ void gfx_create_instance(GFX_CONTEXT * context, GFX_CONFIG * config)
     //     uint32_t                    enabledExtensionCount;
     //     const char* const*          ppEnabledExtensionNames;
     // } VkInstanceCreateInfo;
-    VkInstanceCreateInfo instance_create_info = {};
-    instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    instance_create_info.pNext = nullptr;
-    instance_create_info.flags = 0; // Reserved for future use.
-    instance_create_info.pApplicationInfo = &app_info;
-    instance_create_info.enabledLayerCount = layer_info.requested_count;
-    instance_create_info.ppEnabledLayerNames = layer_info.requested_names;
-    instance_create_info.enabledExtensionCount = extension_info.requested_count;
-    instance_create_info.ppEnabledExtensionNames = extension_info.requested_names;
+    VkInstanceCreateInfo instanceCreateInfo = {};
+    instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    instanceCreateInfo.pNext = nullptr;
+    instanceCreateInfo.flags = 0; // Reserved for future use.
+    instanceCreateInfo.pApplicationInfo = &appInfo;
+    instanceCreateInfo.enabledLayerCount = layerInfo.requestedCount;
+    instanceCreateInfo.ppEnabledLayerNames = layerInfo.requestedNames;
+    instanceCreateInfo.enabledExtensionCount = extensionInfo.requestedCount;
+    instanceCreateInfo.ppEnabledExtensionNames = extensionInfo.requestedNames;
 
     // Create Vulkan instance.
     VkInstance instance = VK_NULL_HANDLE;
-    VkResult create_instance_result = vkCreateInstance(&instance_create_info, nullptr, &instance);
+    VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
 
-    if(create_instance_result != VK_SUCCESS)
+    if(result != VK_SUCCESS)
     {
-        util_error_exit("VULKAN", util_vk_result_name(create_instance_result), "failed to create instance\n");
+        utilErrorExit("VULKAN", utilVkResultName(result), "failed to create instance\n");
     }
 
     context->instance = instance;
 
     // Cleanup
-    free_available_props(&extension_info);
-    free_available_props(&layer_info);
+    freeAvailableProps(&extensionInfo);
+    freeAvailableProps(&layerInfo);
 
 #ifdef PRISM_DEBUG
-    free_debug_instance_components(config);
+    freeDebugInstanceComponents(config);
 #endif
 
 #ifdef PRISM_DEBUG
     // In debug mode, create a debug callback for logging.
-    create_debug_callback(context);
+    createDebugCallback(context);
 #endif
 }
 
-void gfx_load_devices(GFX_CONTEXT * context)
+void gfxLoadDevices(GFXContext * context)
 {
     PRISM_ASSERT(context != nullptr);
     PRISM_ASSERT(context->instance != VK_NULL_HANDLE);
     PRISM_ASSERT(context->surface != VK_NULL_HANDLE);
-    create_physical_device(context);
-    get_queue_family_indexes(context);
-    create_logical_device(context);
-    create_swapchain(context);
+    createPhysicalDevice(context);
+    getQueueFamilyIndexes(context);
+    createLogicalDevice(context);
+    createSwapchain(context);
 }
 
-void gfx_destroy(GFX_CONTEXT * context)
+void gfxDestroy(GFXContext * context)
 {
     PRISM_ASSERT(context != nullptr);
     PRISM_ASSERT(context->instance != VK_NULL_HANDLE);
     PRISM_ASSERT(context->surface != VK_NULL_HANDLE);
-    PRISM_ASSERT(context->logical_device != VK_NULL_HANDLE);
+    PRISM_ASSERT(context->logicalDevice != VK_NULL_HANDLE);
     VkInstance instance = context->instance;
-    VkDevice logical_device = context->logical_device;
-    GFX_SWAPCHAIN_INFO * swapchain_info = &context->swapchain_info;
+    VkDevice logicalDevice = context->logicalDevice;
+    GFXSwapchainInfo * swapchainInfo = &context->swapchainInfo;
 
     // Free array of swapchain image handles.
-    free(context->swapchain_images);
+    free(context->swapchainImages);
 
     // Free swapchain info.
-    free(swapchain_info->available_surface_formats);
-    free(swapchain_info->available_surface_present_modes);
+    free(swapchainInfo->availableSurfaceFormats);
+    free(swapchainInfo->availableSurfacePresentModes);
 
     // Images created for swapchain will be implicitly destroyed.
     // Destroy swapchain before destroying logical-device.
-    vkDestroySwapchainKHR(logical_device, context->swapchain, nullptr);
+    vkDestroySwapchainKHR(logicalDevice, context->swapchain, nullptr);
 
     // Graphics-queue will be implicitly destroyed when logical-device is destroyed.
-    vkDestroyDevice(logical_device, nullptr);
+    vkDestroyDevice(logicalDevice, nullptr);
 
     // Surface must be destroyed before instance.
     vkDestroySurfaceKHR(instance, context->surface, nullptr);
 
 #ifdef PRISM_DEBUG
     // Destroy debug callback before destroying instance.
-    destroy_debug_callback(context);
+    destroyDebugCallback(context);
 #endif
 
     // Physical-device will be implicitly destroyed when instance is destroyed.

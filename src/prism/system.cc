@@ -10,12 +10,12 @@ namespace prism
 // Callbacks
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static void error_callback(int error, const char * description)
+static void errorCallback(int error, const char * description)
 {
-    util_error_exit(description, "GLFW", nullptr);
+    utilErrorExit(description, "GLFW", nullptr);
 }
 
-static void key_callback(GLFWwindow * window, int key, int scancode, int action, int mods)
+static void keyCallback(GLFWwindow * window, int key, int scancode, int action, int mods)
 {
     if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     {
@@ -28,74 +28,74 @@ static void key_callback(GLFWwindow * window, int key, int scancode, int action,
 // Interface
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void sys_init()
+void sysInit()
 {
-    glfwSetErrorCallback(error_callback);
+    glfwSetErrorCallback(errorCallback);
 
     if(glfwInit() == GLFW_FALSE)
     {
-        util_error_exit("GLFW", nullptr, "failed to initialize\n");
+        utilErrorExit("GLFW", nullptr, "failed to initialize\n");
     }
 
     // Required for Vulkan.
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 }
 
-void sys_create_window(SYS_CONTEXT * sys_context, int width, int height, const char * title)
+void sysCreateWindow(SYSContext * sysContext, int width, int height, const char * title)
 {
-    PRISM_ASSERT(sys_context != nullptr);
+    PRISM_ASSERT(sysContext != nullptr);
     PRISM_ASSERT(width > 0);
     PRISM_ASSERT(height > 0);
     PRISM_ASSERT(title != nullptr);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-    GLFWwindow ** window = &sys_context->window;
+    GLFWwindow ** window = &sysContext->window;
     *window = glfwCreateWindow(width, height, title, nullptr, nullptr);
 
     if(*window == nullptr)
     {
-        util_error_exit("GLFW", nullptr, "failed to create window\n");
+        utilErrorExit("GLFW", nullptr, "failed to create window\n");
     }
 
-    glfwSetKeyCallback(*window, key_callback);
+    glfwSetKeyCallback(*window, keyCallback);
 }
 
-void sys_get_required_extension_names(GFX_CONFIG * gfx_config)
+void sysGetRequiredExtensions(GFXConfig * gfxConfig)
 {
-    PRISM_ASSERT(gfx_config != nullptr);
-    gfx_config->requested_extension_names = glfwGetRequiredInstanceExtensions(&gfx_config->requested_extension_count);
+    PRISM_ASSERT(gfxConfig != nullptr);
+    gfxConfig->requestedExtensionNames = glfwGetRequiredInstanceExtensions(&gfxConfig->requestedExtensionCount);
 }
 
-void sys_run(SYS_CONTEXT * sys_context)
+void sysRun(SYSContext * sysContext)
 {
-    PRISM_ASSERT(sys_context != nullptr);
+    PRISM_ASSERT(sysContext != nullptr);
 
-    while(!glfwWindowShouldClose(sys_context->window))
+    while(!glfwWindowShouldClose(sysContext->window))
     {
         glfwPollEvents();
     }
 }
 
-void sys_destroy(SYS_CONTEXT * sys_context)
+void sysDestroy(SYSContext * sysContext)
 {
-    PRISM_ASSERT(sys_context != nullptr);
-    glfwDestroyWindow(sys_context->window);
+    PRISM_ASSERT(sysContext != nullptr);
+    glfwDestroyWindow(sysContext->window);
 }
 
-void sys_create_surface(SYS_CONTEXT * sys_context, GFX_CONTEXT * gfx_context)
+void sysCreateSurface(SYSContext * sysContext, GFXContext * gfxContext)
 {
-    PRISM_ASSERT(sys_context != nullptr);
-    PRISM_ASSERT(gfx_context != nullptr);
-    PRISM_ASSERT(sys_context->window != nullptr);
-    PRISM_ASSERT(gfx_context->instance != VK_NULL_HANDLE);
+    PRISM_ASSERT(sysContext != nullptr);
+    PRISM_ASSERT(gfxContext != nullptr);
+    PRISM_ASSERT(sysContext->window != nullptr);
+    PRISM_ASSERT(gfxContext->instance != VK_NULL_HANDLE);
     VkSurfaceKHR surface = VK_NULL_HANDLE;
-    VkResult result = glfwCreateWindowSurface(gfx_context->instance, sys_context->window, nullptr, &surface);
+    VkResult result = glfwCreateWindowSurface(gfxContext->instance, sysContext->window, nullptr, &surface);
 
     if(result != VK_SUCCESS)
     {
-        util_error_exit("GLFW", nullptr, "failed to create window surface");
+        utilErrorExit("GLFW", nullptr, "failed to create window surface");
     }
 
-    gfx_context->surface = surface;
+    gfxContext->surface = surface;
 }
 
 } // namespace prism

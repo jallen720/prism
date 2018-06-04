@@ -32,14 +32,14 @@ namespace prism
 // Typedefs
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-using VK_RESULT_NAME = PAIR<VkResult, const char *>;
+using VkResultName = PAIR<VkResult, const char *>;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Data
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static const VK_RESULT_NAME VK_RESULT_NAMES[] =
+static const VkResultName VK_RESULT_NAMES[] =
 {
     PRISM_ENUM_NAME_PAIR(VK_SUCCESS),
     PRISM_ENUM_NAME_PAIR(VK_NOT_READY),
@@ -79,20 +79,20 @@ static const VK_RESULT_NAME VK_RESULT_NAMES[] =
     PRISM_ENUM_NAME_PAIR(VK_ERROR_NOT_PERMITTED_EXT),
 };
 
-static const size_t VK_RESULT_NAMES_COUNT = sizeof(VK_RESULT_NAMES) / sizeof(VK_RESULT_NAME);
+static const size_t VK_RESULT_NAMES_COUNT = sizeof(VK_RESULT_NAMES) / sizeof(VkResultName);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Interface
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void util_error_exit(const char * subsystem, const char * error_name, const char * message, ...)
+void utilErrorExit(const char * subsystem, const char * errorName, const char * message, ...)
 {
     const char * system = subsystem != nullptr ? subsystem : "PRISM";
 
-    if(error_name)
+    if(errorName)
     {
-        fprintf(stderr, ANSI_BOLD ANSI_COLOR_RED "%s ERROR -> %s" ANSI_RESET ": ", system, error_name);
+        fprintf(stderr, ANSI_BOLD ANSI_COLOR_RED "%s ERROR -> %s" ANSI_RESET ": ", system, errorName);
     }
     else
     {
@@ -103,21 +103,21 @@ void util_error_exit(const char * subsystem, const char * error_name, const char
     exit(EXIT_FAILURE);
 }
 
-void util_log(const char * subsystem, const char * message, ...)
+void utilLog(const char * subsystem, const char * message, ...)
 {
     fprintf(stdout, ANSI_BOLD ANSI_COLOR_GREEN "%s LOG" ANSI_RESET ": ", subsystem ? subsystem : "PRISM");
     OUTPUT_MESSAGE(stdout)
 }
 
-const char * util_vk_result_name(VkResult result)
+const char * utilVkResultName(VkResult result)
 {
     for(size_t i = 0; i < VK_RESULT_NAMES_COUNT; i++)
     {
-        const VK_RESULT_NAME * vk_result_name = VK_RESULT_NAMES + i;
+        const VkResultName * vkResultName = VK_RESULT_NAMES + i;
 
-        if(vk_result_name->key == result)
+        if(vkResultName->key == result)
         {
-            return vk_result_name->value;
+            return vkResultName->value;
         }
     }
 
