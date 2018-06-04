@@ -46,7 +46,7 @@ struct INSTANCE_COMPONENT_INFO
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Callbacks
+// Debug Utilities
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifdef PRISM_DEBUG
@@ -103,6 +103,39 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     // Should the call being validated be aborted?
     return VK_FALSE;
 }
+
+template<typename COMPONENT_PROPS>
+static void log_instance_component_names(const INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info)
+{
+    const char * component_type = component_info->type;
+    const char ** requested_component_names = component_info->requested_names;
+    uint32_t requested_component_count = component_info->requested_count;
+    const COMPONENT_PROPS * available_component_props = component_info->available_props;
+    uint32_t available_component_count = component_info->available_count;
+    COMPONENT_PROPS_NAME_ACCESSOR<COMPONENT_PROPS> access_component_name = component_info->props_name_accessor;
+    util_log("VULKAN", "requested %s names (%i):\n", component_type, requested_component_count);
+
+    for(size_t i = 0; i < requested_component_count; i++)
+    {
+        util_log("VULKAN", "    %s\n", requested_component_names[i]);
+    }
+
+    util_log("VULKAN", "available %s names (%i):", component_type, available_component_count);
+
+    if(available_component_count == 0)
+    {
+        fprintf(stdout, " none\n");
+    }
+    else
+    {
+        fprintf(stdout, "\n");
+
+        for(uint32_t i = 0; i < available_component_count; i++)
+        {
+            util_log("VULKAN", "    %s\n", access_component_name(available_component_props + i));
+        }
+    }
+}
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -142,14 +175,20 @@ static void validate_instance_component_info(const INSTANCE_COMPONENT_INFO<COMPO
     uint32_t available_component_count = component_info->available_count;
     COMPONENT_PROPS_NAME_ACCESSOR<COMPONENT_PROPS> access_component_name = component_info->props_name_accessor;
 
-    for(size_t i = 0; i < requested_component_count; i++)
+    for(size_t requested_component_index = 0;
+        requested_component_index < requested_component_count;
+        requested_component_index++)
     {
-        const char * requested_component_name = requested_component_names[i];
+        const char * requested_component_name = requested_component_names[requested_component_index];
         bool component_available = false;
 
-        for(size_t j = 0; j < available_component_count; j++)
+        for(size_t available_component_index = 0;
+            available_component_index < available_component_count;
+            available_component_index++)
         {
-            if(strcmp(requested_component_name, access_component_name(available_component_props + j)) == 0)
+            if(strcmp(
+                requested_component_name,
+                access_component_name(available_component_props + available_component_index)) == 0)
             {
                 component_available = true;
                 break;
@@ -167,41 +206,6 @@ static void validate_instance_component_info(const INSTANCE_COMPONENT_INFO<COMPO
         }
     }
 }
-
-// #ifdef PRISM_DEBUG
-// template<typename COMPONENT_PROPS>
-// static void log_instance_component_names(const INSTANCE_COMPONENT_INFO<COMPONENT_PROPS> * component_info)
-// {
-//     const char * component_type = component_info->type;
-//     const char ** requested_component_names = component_info->requested_names;
-//     uint32_t requested_component_count = component_info->requested_count;
-//     const COMPONENT_PROPS * available_component_props = component_info->available_props;
-//     uint32_t available_component_count = component_info->available_count;
-//     COMPONENT_PROPS_NAME_ACCESSOR<COMPONENT_PROPS> access_component_name = component_info->props_name_accessor;
-//     util_log("VULKAN", "requested %s names (%i):\n", component_type, requested_component_count);
-
-//     for(size_t i = 0; i < requested_component_count; i++)
-//     {
-//         util_log("VULKAN", "    %s\n", requested_component_names[i]);
-//     }
-
-//     util_log("VULKAN", "available %s names (%i):", component_type, available_component_count);
-
-//     if(available_component_count == 0)
-//     {
-//         fprintf(stdout, " none\n");
-//     }
-//     else
-//     {
-//         fprintf(stdout, "\n");
-
-//         for(uint32_t i = 0; i < available_component_count; i++)
-//         {
-//             util_log("VULKAN", "    %s\n", access_component_name(available_component_props + i));
-//         }
-//     }
-// }
-// #endif
 
 static void create_physical_device(GFX_CONTEXT * context)
 {
@@ -517,9 +521,9 @@ static void get_queue_family_indexes(GFX_CONTEXT * context)
         util_log("VULKAN", "queue-family (index: %i):\n", queue_family_index);
         util_log("VULKAN", "    queue_flags (%#010x):\n", queue_flags);
 
-        for(size_t j = 0; j < QUEUE_FLAG_NAME_COUNT; j++)
+        for(size_t queue_flag_name_index = 0; queue_flag_name_index < QUEUE_FLAG_NAME_COUNT; queue_flag_name_index++)
         {
-            const QUEUE_FLAG_NAME * queue_flag_name = QUEUE_FLAG_NAMES + j;
+            const QUEUE_FLAG_NAME * queue_flag_name = QUEUE_FLAG_NAMES + queue_flag_name_index;
             VkQueueFlagBits queue_flag_bit = queue_flag_name->key;
 
             if(queue_flags & queue_flag_bit)
@@ -549,29 +553,34 @@ static void create_logical_device(GFX_CONTEXT * context)
     static const uint32_t QUEUE_FAMILY_QUEUE_COUNT = 1; // More than 1 queue is unnecessary per queue-family.
     static const float QUEUE_FAMILY_QUEUE_PRIORITY = 1.0F;
 
-    QUEUE_FAMILY_DATA queue_families[]
+    QUEUE_FAMILY_DATA queue_family_datas[]
     {
         { context->graphics_queue_family_index, &context->graphics_queue },
         { context->present_queue_family_index, &context->present_queue },
     };
 
-    size_t queue_family_count = sizeof(queue_families) / sizeof(QUEUE_FAMILY_DATA);
+    size_t queue_family_data_count = sizeof(queue_family_datas) / sizeof(QUEUE_FAMILY_DATA);
 
     auto logical_device_queue_create_infos =
-        (VkDeviceQueueCreateInfo *)malloc(sizeof(VkDeviceQueueCreateInfo) * queue_family_count);
+        (VkDeviceQueueCreateInfo *)malloc(sizeof(VkDeviceQueueCreateInfo) * queue_family_data_count);
 
     size_t logical_device_queue_create_info_count = 0;
 
     // Prevent duplicate queue creation for logical-device.
-    for(size_t i = 0; i < queue_family_count; i++)
+    for(size_t queue_family_data_index = 0;
+        queue_family_data_index < queue_family_data_count;
+        queue_family_data_index++)
     {
         bool queue_family_already_used = false;
-        uint32_t queue_family_index = queue_families[i].key;
+        uint32_t queue_family_index = queue_family_datas[queue_family_data_index].key;
 
         // Ensure creation info for another queue-family with the same index doesn't exist.
-        for(size_t j = 0; j < logical_device_queue_create_info_count; j++)
+        for(size_t logical_device_queue_create_info_index = 0;
+            logical_device_queue_create_info_index < logical_device_queue_create_info_count;
+            logical_device_queue_create_info_index++)
         {
-            if(logical_device_queue_create_infos[j].queueFamilyIndex == queue_family_index)
+            if(logical_device_queue_create_infos[logical_device_queue_create_info_index].queueFamilyIndex
+                == queue_family_index)
             {
                 queue_family_already_used = true;
                 break;
@@ -717,9 +726,9 @@ static void create_logical_device(GFX_CONTEXT * context)
     free(logical_device_queue_create_infos);
 
     // Get queue-family queues from logical-device.
-    for(size_t i = 0; i < queue_family_count; i++)
+    for(size_t i = 0; i < queue_family_data_count; i++)
     {
-        const QUEUE_FAMILY_DATA * queue_family = queue_families + i;
+        const QUEUE_FAMILY_DATA * queue_family = queue_family_datas + i;
         vkGetDeviceQueue(logical_device, queue_family->key, 0, queue_family->value);
     }
 }
@@ -957,7 +966,6 @@ void gfx_create_instance(GFX_CONTEXT * context, const GFX_CONFIG * config)
     vkEnumerateInstanceLayerProperties(&available_layer_count, layer_info.available_props);
 
 // #ifdef PRISM_DEBUG
-//     // Log requested and available component names before validation.
 //     log_instance_component_names(&extension_info);
 //     log_instance_component_names(&layer_info);
 // #endif
