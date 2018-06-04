@@ -22,8 +22,11 @@ template<typename COMPONENT_PROPS>
 using COMPONENT_PROPS_NAME_ACCESSOR = const char * (*)(const COMPONENT_PROPS *);
 
 using DEBUG_FLAG_NAME = PAIR<VkDebugReportFlagBitsEXT, const char *>;
-using QUEUE_FLAG_NAME = PAIR<VkQueueFlagBits, const char *>;
 using QUEUE_FAMILY_DATA = PAIR<uint32_t, VkQueue *>;
+
+#ifdef PRISM_DEBUG
+using QUEUE_FLAG_NAME = PAIR<VkQueueFlagBits, const char *>;
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
