@@ -253,6 +253,140 @@ static void destroy_debug_callback(GFX_CONTEXT * context)
 
     destroy_debug_callback(instance, context->debug_callback, nullptr);
 }
+
+static void log_physical_device_surface_capabilities(const VkSurfaceCapabilitiesKHR * surface_capabilities)
+{
+    const VkExtent2D * currentExtent = &surface_capabilities->currentExtent;
+    const VkExtent2D * minImageExtent = &surface_capabilities->minImageExtent;
+    const VkExtent2D * maxImageExtent = &surface_capabilities->maxImageExtent;
+    util_log("VULKAN", "physical-device surface capabilities:\n");
+    util_log("VULKAN", "    minImageCount:           %i\n", surface_capabilities->minImageCount);
+    util_log("VULKAN", "    maxImageCount:           %i\n", surface_capabilities->maxImageCount);
+    util_log("VULKAN", "    maxImageArrayLayers:     %i\n", surface_capabilities->maxImageArrayLayers);
+    util_log("VULKAN", "    supportedTransforms:     %#010x\n", surface_capabilities->supportedTransforms);
+    util_log("VULKAN", "    currentTransform:        %#010x\n", surface_capabilities->currentTransform);
+    util_log("VULKAN", "    supportedCompositeAlpha: %#010x\n", surface_capabilities->supportedCompositeAlpha);
+    util_log("VULKAN", "    supportedUsageFlags:     %#010x\n", surface_capabilities->supportedUsageFlags);
+    util_log("VULKAN", "    currentExtent:\n");
+    util_log("VULKAN", "        width:  %i\n", currentExtent->width);
+    util_log("VULKAN", "        height: %i\n", currentExtent->height);
+    util_log("VULKAN", "    minImageExtent:\n");
+    util_log("VULKAN", "        width:  %i\n", minImageExtent->width);
+    util_log("VULKAN", "        height: %i\n", minImageExtent->height);
+    util_log("VULKAN", "    maxImageExtent:\n");
+    util_log("VULKAN", "        width:  %i\n", maxImageExtent->width);
+    util_log("VULKAN", "        height: %i\n", maxImageExtent->height);
+}
+
+static void log_available_physical_device(
+    uint32_t available_physical_device_count,
+    const VkPhysicalDevice * available_physical_devices)
+{
+    static const char * PHYSICAL_DEVICE_TYPE_NAMES[]
+    {
+        "VK_PHYSICAL_DEVICE_TYPE_OTHER",
+        "VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU",
+        "VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU",
+        "VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU",
+        "VK_PHYSICAL_DEVICE_TYPE_CPU",
+    };
+
+    for(size_t i = 0; i < available_physical_device_count; i++)
+    {
+        VkPhysicalDevice available_physical_device = available_physical_devices[i];
+        VkPhysicalDeviceProperties available_physical_device_properties;
+        vkGetPhysicalDeviceProperties(available_physical_device, &available_physical_device_properties);
+        util_log("VULKAN", "physical-device \"%s\":\n", available_physical_device_properties.deviceName);
+        util_log("VULKAN", "    api_version:    %i\n", available_physical_device_properties.apiVersion);
+        util_log("VULKAN", "    driver_version: %i\n", available_physical_device_properties.driverVersion);
+        util_log("VULKAN", "    vendor_id:      %#006x\n", available_physical_device_properties.vendorID);
+        util_log("VULKAN", "    device_id:      %#006x\n", available_physical_device_properties.deviceID);
+
+        util_log("VULKAN", "    device_type:    %s\n",
+            PHYSICAL_DEVICE_TYPE_NAMES[(size_t)available_physical_device_properties.deviceType]);
+
+        // util_log("VULKAN", "    pipelineCacheUUID: %?\n", available_physical_device_properties.pipelineCacheUUID);
+        // util_log("VULKAN", "    limits:            %?\n", available_physical_device_properties.limits);
+        // util_log("VULKAN", "    sparseProperties:  %?\n", available_physical_device_properties.sparseProperties);
+    }
+}
+
+static void log_queue_families(uint32_t queue_family_count, VkQueueFamilyProperties * queue_family_props_array)
+{
+    static const QUEUE_FLAG_NAME QUEUE_FLAG_NAMES[]
+    {
+        PRISM_ENUM_NAME_PAIR(VK_QUEUE_GRAPHICS_BIT),
+        PRISM_ENUM_NAME_PAIR(VK_QUEUE_COMPUTE_BIT),
+        PRISM_ENUM_NAME_PAIR(VK_QUEUE_TRANSFER_BIT),
+        PRISM_ENUM_NAME_PAIR(VK_QUEUE_SPARSE_BINDING_BIT),
+        PRISM_ENUM_NAME_PAIR(VK_QUEUE_PROTECTED_BIT),
+    };
+
+    static const size_t QUEUE_FLAG_NAME_COUNT = sizeof(QUEUE_FLAG_NAMES) / sizeof(QUEUE_FLAG_NAME);
+
+    for(size_t queue_family_index = 0; queue_family_index < queue_family_count; queue_family_index++)
+    {
+        const VkQueueFamilyProperties * queue_family_props = queue_family_props_array + queue_family_index;
+        VkQueueFlags queue_flags = queue_family_props->queueFlags;
+        const VkExtent3D * min_image_transfer_granularity = &queue_family_props->minImageTransferGranularity;
+        util_log("VULKAN", "queue-family (index: %i):\n", queue_family_index);
+        util_log("VULKAN", "    queue_flags (%#010x):\n", queue_flags);
+
+        for(size_t queue_flag_name_index = 0; queue_flag_name_index < QUEUE_FLAG_NAME_COUNT; queue_flag_name_index++)
+        {
+            const QUEUE_FLAG_NAME * queue_flag_name = QUEUE_FLAG_NAMES + queue_flag_name_index;
+            VkQueueFlagBits queue_flag_bit = queue_flag_name->key;
+
+            if(queue_flags & queue_flag_bit)
+            {
+                util_log("VULKAN", "        %s (%#010x)\n", queue_flag_name->value, queue_flag_bit);
+            }
+        }
+
+        util_log("VULKAN", "    queue_count:          %i\n", queue_family_props->queueCount);
+        util_log("VULKAN", "    timestamp_valid_bits: %i\n", queue_family_props->timestampValidBits);
+        util_log("VULKAN", "    minImageTransferGranularity:\n");
+        util_log("VULKAN", "        width:  %i\n", min_image_transfer_granularity->width);
+        util_log("VULKAN", "        height: %i\n", min_image_transfer_granularity->height);
+        util_log("VULKAN", "        depth:  %i\n", min_image_transfer_granularity->depth);
+    }
+}
+
+static void log_selected_swapchain_config(
+    const VkSurfaceFormatKHR * selected_surface_format,
+    uint32_t available_surface_present_mode_count,
+    const VkPresentModeKHR * available_surface_present_modes,
+    VkPresentModeKHR selected_surface_present_mode,
+    const VkExtent2D * selected_extent,
+    uint32_t selected_image_count)
+{
+    static const char * SURFACE_PRESENT_MODE_NAMES[]
+    {
+        "VK_PRESENT_MODE_IMMEDIATE_KHR",
+        "VK_PRESENT_MODE_MAILBOX_KHR",
+        "VK_PRESENT_MODE_FIFO_KHR",
+        "VK_PRESENT_MODE_FIFO_RELAXED_KHR",
+    };
+
+    util_log("VULKAN", "selected surface format:\n");
+    util_log("VULKAN", "    format:      %i\n", selected_surface_format->format);
+    util_log("VULKAN", "    color_space: %i\n", selected_surface_format->colorSpace);
+
+    util_log("VULKAN", "available surface present modes:\n");
+
+    for(size_t i = 0; i < available_surface_present_mode_count; i++)
+    {
+        util_log("VULKAN", "    %s\n", SURFACE_PRESENT_MODE_NAMES[(size_t)available_surface_present_modes[i]]);
+    }
+
+    util_log("VULKAN", "selected surface present mode: %s\n",
+        SURFACE_PRESENT_MODE_NAMES[(size_t)selected_surface_present_mode]);
+
+    util_log("VULKAN", "selected extent:\n");
+    util_log("VULKAN", "    width:  %i\n", selected_extent->width);
+    util_log("VULKAN", "    height: %i\n", selected_extent->height);
+    util_log("VULKAN", "selected image count: %u\n", selected_image_count);
+}
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -329,7 +463,7 @@ static void create_physical_device(GFX_CONTEXT * context)
     VkInstance instance = context->instance;
     VkSurfaceKHR surface = context->surface;
 
-    // Ensure atleast 1 physical-device can be found.
+    // Query available physical-devices.
     uint32_t available_physical_device_count = 0;
     vkEnumeratePhysicalDevices(instance, &available_physical_device_count, nullptr);
 
@@ -338,11 +472,16 @@ static void create_physical_device(GFX_CONTEXT * context)
         util_error_exit("VULKAN", nullptr, "no physical-devices found\n");
     }
 
-    // Find a suitable physical-device for rendering and store handle in context.
     auto available_physical_devices =
         (VkPhysicalDevice *)malloc(sizeof(VkPhysicalDevice) * available_physical_device_count);
 
     vkEnumeratePhysicalDevices(instance, &available_physical_device_count, available_physical_devices);
+
+#ifdef PRISM_DEBUG
+    log_available_physical_device(available_physical_device_count, available_physical_devices);
+#endif
+
+    // Find a suitable physical-device for rendering and store handle in context.
     VkPhysicalDevice physical_device = VK_NULL_HANDLE;
     GFX_SWAPCHAIN_INFO * swapchain_info = &context->swapchain_info;
 
@@ -430,28 +569,8 @@ static void create_physical_device(GFX_CONTEXT * context)
             surface,
             &swapchain_info->surface_capabilities);
 
-#if PRISM_DEBUG
-        const VkSurfaceCapabilitiesKHR * surface_capabilities = &swapchain_info->surface_capabilities;
-        const VkExtent2D * currentExtent = &surface_capabilities->currentExtent;
-        const VkExtent2D * minImageExtent = &surface_capabilities->minImageExtent;
-        const VkExtent2D * maxImageExtent = &surface_capabilities->maxImageExtent;
-        util_log("VULKAN", "physical-device surface capabilities:\n");
-        util_log("VULKAN", "    minImageCount:           %i\n", surface_capabilities->minImageCount);
-        util_log("VULKAN", "    maxImageCount:           %i\n", surface_capabilities->maxImageCount);
-        util_log("VULKAN", "    maxImageArrayLayers:     %i\n", surface_capabilities->maxImageArrayLayers);
-        util_log("VULKAN", "    supportedTransforms:     %#010x\n", surface_capabilities->supportedTransforms);
-        util_log("VULKAN", "    currentTransform:        %#010x\n", surface_capabilities->currentTransform);
-        util_log("VULKAN", "    supportedCompositeAlpha: %#010x\n", surface_capabilities->supportedCompositeAlpha);
-        util_log("VULKAN", "    supportedUsageFlags:     %#010x\n", surface_capabilities->supportedUsageFlags);
-        util_log("VULKAN", "    currentExtent:\n");
-        util_log("VULKAN", "        width:  %i\n", currentExtent->width);
-        util_log("VULKAN", "        height: %i\n", currentExtent->height);
-        util_log("VULKAN", "    minImageExtent:\n");
-        util_log("VULKAN", "        width:  %i\n", minImageExtent->width);
-        util_log("VULKAN", "        height: %i\n", minImageExtent->height);
-        util_log("VULKAN", "    maxImageExtent:\n");
-        util_log("VULKAN", "        width:  %i\n", maxImageExtent->width);
-        util_log("VULKAN", "        height: %i\n", maxImageExtent->height);
+#ifdef PRISM_DEBUG
+        log_physical_device_surface_capabilities(&swapchain_info->surface_capabilities);
 #endif
 
         // Ensure physical-device supports atleast 1 surface-format and 1 present-mode.
@@ -515,36 +634,6 @@ static void create_physical_device(GFX_CONTEXT * context)
     }
 
     context->physical_device = physical_device;
-
-#if PRISM_DEBUG
-    static const char * PHYSICAL_DEVICE_TYPE_NAMES[]
-    {
-        "VK_PHYSICAL_DEVICE_TYPE_OTHER",
-        "VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU",
-        "VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU",
-        "VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU",
-        "VK_PHYSICAL_DEVICE_TYPE_CPU",
-    };
-
-    for(size_t i = 0; i < available_physical_device_count; i++)
-    {
-        VkPhysicalDevice available_physical_device = available_physical_devices[i];
-        VkPhysicalDeviceProperties available_physical_device_properties;
-        vkGetPhysicalDeviceProperties(available_physical_device, &available_physical_device_properties);
-        util_log("VULKAN", "physical-device \"%s\":\n", available_physical_device_properties.deviceName);
-        util_log("VULKAN", "    api_version:    %i\n", available_physical_device_properties.apiVersion);
-        util_log("VULKAN", "    driver_version: %i\n", available_physical_device_properties.driverVersion);
-        util_log("VULKAN", "    vendor_id:      %#006x\n", available_physical_device_properties.vendorID);
-        util_log("VULKAN", "    device_id:      %#006x\n", available_physical_device_properties.deviceID);
-
-        util_log("VULKAN", "    device_type:    %s\n",
-            PHYSICAL_DEVICE_TYPE_NAMES[(size_t)available_physical_device_properties.deviceType]);
-
-        // util_log("VULKAN", "    pipelineCacheUUID: %?\n", available_physical_device_properties.pipelineCacheUUID);
-        // util_log("VULKAN", "    limits:            %?\n", available_physical_device_properties.limits);
-        // util_log("VULKAN", "    sparseProperties:  %?\n", available_physical_device_properties.sparseProperties);
-    }
-#endif
 
     // Cleanup
     free(available_physical_devices);
@@ -624,43 +713,7 @@ static void get_queue_family_indexes(GFX_CONTEXT * context)
     context->present_queue_family_index = present_queue_family_index;
 
 #ifdef PRISM_DEBUG
-    static const QUEUE_FLAG_NAME QUEUE_FLAG_NAMES[]
-    {
-        PRISM_ENUM_NAME_PAIR(VK_QUEUE_GRAPHICS_BIT),
-        PRISM_ENUM_NAME_PAIR(VK_QUEUE_COMPUTE_BIT),
-        PRISM_ENUM_NAME_PAIR(VK_QUEUE_TRANSFER_BIT),
-        PRISM_ENUM_NAME_PAIR(VK_QUEUE_SPARSE_BINDING_BIT),
-        PRISM_ENUM_NAME_PAIR(VK_QUEUE_PROTECTED_BIT),
-    };
-
-    static const size_t QUEUE_FLAG_NAME_COUNT = sizeof(QUEUE_FLAG_NAMES) / sizeof(QUEUE_FLAG_NAME);
-
-    for(size_t queue_family_index = 0; queue_family_index < queue_family_count; queue_family_index++)
-    {
-        const VkQueueFamilyProperties * queue_family_props = queue_family_props_array + queue_family_index;
-        VkQueueFlags queue_flags = queue_family_props->queueFlags;
-        const VkExtent3D * min_image_transfer_granularity = &queue_family_props->minImageTransferGranularity;
-        util_log("VULKAN", "queue-family (index: %i):\n", queue_family_index);
-        util_log("VULKAN", "    queue_flags (%#010x):\n", queue_flags);
-
-        for(size_t queue_flag_name_index = 0; queue_flag_name_index < QUEUE_FLAG_NAME_COUNT; queue_flag_name_index++)
-        {
-            const QUEUE_FLAG_NAME * queue_flag_name = QUEUE_FLAG_NAMES + queue_flag_name_index;
-            VkQueueFlagBits queue_flag_bit = queue_flag_name->key;
-
-            if(queue_flags & queue_flag_bit)
-            {
-                util_log("VULKAN", "        %s (%#010x)\n", queue_flag_name->value, queue_flag_bit);
-            }
-        }
-
-        util_log("VULKAN", "    queue_count:          %i\n", queue_family_props->queueCount);
-        util_log("VULKAN", "    timestamp_valid_bits: %i\n", queue_family_props->timestampValidBits);
-        util_log("VULKAN", "    minImageTransferGranularity:\n");
-        util_log("VULKAN", "        width:  %i\n", min_image_transfer_granularity->width);
-        util_log("VULKAN", "        height: %i\n", min_image_transfer_granularity->height);
-        util_log("VULKAN", "        depth:  %i\n", min_image_transfer_granularity->depth);
-    }
+    log_queue_families(queue_family_count, queue_family_props_array);
 #endif
 
     // Cleanup
@@ -940,32 +993,13 @@ static void create_swapchain(GFX_CONTEXT * context)
     context->swapchain_image_extent = selected_extent;
 
 #ifdef PRISM_DEBUG
-    static const char * SURFACE_PRESENT_MODE_NAMES[]
-    {
-        "VK_PRESENT_MODE_IMMEDIATE_KHR",
-        "VK_PRESENT_MODE_MAILBOX_KHR",
-        "VK_PRESENT_MODE_FIFO_KHR",
-        "VK_PRESENT_MODE_FIFO_RELAXED_KHR",
-    };
-
-    util_log("VULKAN", "selected surface format:\n");
-    util_log("VULKAN", "    format:      %i\n", selected_surface_format.format);
-    util_log("VULKAN", "    color_space: %i\n", selected_surface_format.colorSpace);
-
-    util_log("VULKAN", "available surface present modes:\n");
-
-    for(size_t i = 0; i < swapchain_info->available_surface_present_mode_count; i++)
-    {
-        util_log("VULKAN", "    %s\n", SURFACE_PRESENT_MODE_NAMES[(size_t)available_surface_present_modes[i]]);
-    }
-
-    util_log("VULKAN", "selected surface present mode: %s\n",
-        SURFACE_PRESENT_MODE_NAMES[(size_t)selected_surface_present_mode]);
-
-    util_log("VULKAN", "selected extent:\n");
-    util_log("VULKAN", "    width:  %i\n", selected_extent.width);
-    util_log("VULKAN", "    height: %i\n", selected_extent.height);
-    util_log("VULKAN", "selected image count: %u\n", selected_image_count);
+    log_selected_swapchain_config(
+        &selected_surface_format,
+        swapchain_info->available_surface_present_mode_count,
+        available_surface_present_modes,
+        selected_surface_present_mode,
+        &selected_extent,
+        selected_image_count);
 #endif
 
     // Initialize swapchain creation info.
@@ -1205,7 +1239,7 @@ void gfx_destroy(GFX_CONTEXT * context)
     // Surface must be destroyed before instance.
     vkDestroySurfaceKHR(instance, context->surface, nullptr);
 
-#if PRISM_DEBUG
+#ifdef PRISM_DEBUG
     // Destroy debug callback before destroying instance.
     destroy_debug_callback(context);
 #endif
