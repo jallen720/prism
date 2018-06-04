@@ -12,6 +12,13 @@ using SURFACE_FORMAT_NAME = PAIR<VkFormat, const char *>;
 // Debug Callbacks
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+static void log_divider()
+{
+    util_log("VULKAN", "\n");
+    util_log("VULKAN", "===========================================================================================\n");
+    util_log("VULKAN", "\n");
+}
+
 static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     VkDebugReportFlagsEXT flags,
     VkDebugReportObjectTypeEXT obj_type,
@@ -124,6 +131,7 @@ static void log_instance_component_names(const INSTANCE_COMPONENT_INFO<COMPONENT
     const COMPONENT_PROPS * available_component_props = component_info->available_props;
     uint32_t available_component_count = component_info->available_count;
     COMPONENT_PROPS_NAME_ACCESSOR<COMPONENT_PROPS> access_component_name = component_info->props_name_accessor;
+    log_divider();
     util_log("VULKAN", "requested %s names (%i):\n", component_type, requested_component_count);
 
     for(size_t i = 0; i < requested_component_count; i++)
@@ -226,6 +234,7 @@ static void log_physical_device_surface_capabilities(const VkSurfaceCapabilities
     const VkExtent2D * currentExtent = &surface_capabilities->currentExtent;
     const VkExtent2D * minImageExtent = &surface_capabilities->minImageExtent;
     const VkExtent2D * maxImageExtent = &surface_capabilities->maxImageExtent;
+    log_divider();
     util_log("VULKAN", "physical-device surface capabilities:\n");
     util_log("VULKAN", "    minImageCount:           %i\n", surface_capabilities->minImageCount);
     util_log("VULKAN", "    maxImageCount:           %i\n", surface_capabilities->maxImageCount);
@@ -263,6 +272,7 @@ static void log_available_physical_device(
         VkPhysicalDevice available_physical_device = available_physical_devices[i];
         VkPhysicalDeviceProperties available_physical_device_properties;
         vkGetPhysicalDeviceProperties(available_physical_device, &available_physical_device_properties);
+        log_divider();
         util_log("VULKAN", "physical-device \"%s\":\n", available_physical_device_properties.deviceName);
         util_log("VULKAN", "    api_version:    %i\n", available_physical_device_properties.apiVersion);
         util_log("VULKAN", "    driver_version: %i\n", available_physical_device_properties.driverVersion);
@@ -290,6 +300,7 @@ static void log_queue_families(uint32_t queue_family_count, VkQueueFamilyPropert
     };
 
     static const size_t QUEUE_FLAG_NAME_COUNT = sizeof(QUEUE_FLAG_NAMES) / sizeof(QUEUE_FLAG_NAME);
+    log_divider();
 
     for(size_t queue_family_index = 0; queue_family_index < queue_family_count; queue_family_index++)
     {
@@ -625,6 +636,7 @@ static void log_selected_swapchain_config(
         util_error_exit("VULKAN", nullptr, "failed to find surface format name for VkFormat %i\n", format);
     }
 
+    log_divider();
     util_log("VULKAN", "selected surface format:\n");
     util_log("VULKAN", "    format:      %s\n", surface_format_name->value);
     util_log("VULKAN", "    color_space: %s\n",
