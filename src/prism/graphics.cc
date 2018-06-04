@@ -287,7 +287,7 @@ static void create_physical_device(GFX_CONTEXT * context)
 
     if(physical_device == VK_NULL_HANDLE)
     {
-        util_error_exit("VULKAN", nullptr, "failed to find a physical-device that is a discrete GPU\n");
+        util_error_exit("VULKAN", nullptr, "failed to find a physical-device that meets requirements\n");
     }
 
     context->physical_device = physical_device;
