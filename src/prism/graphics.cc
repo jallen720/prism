@@ -804,6 +804,10 @@ static void create_swapchain(GFX_CONTEXT * context)
         selected_image_count = max_image_count;
     }
 
+    // Store selected surface format and extent for later use.
+    context->swapchain_image_format = selected_surface_format.format;
+    context->swapchain_image_extent = selected_extent;
+
 #ifdef PRISM_DEBUG
     static const char * SURFACE_PRESENT_MODE_NAMES[]
     {
@@ -905,6 +909,19 @@ static void create_swapchain(GFX_CONTEXT * context)
     }
 
     context->swapchain = swapchain;
+
+    // Get swapchain images.
+    uint32_t * swapchain_image_count = &context->swapchain_image_count;
+    vkGetSwapchainImagesKHR(logical_device, swapchain, swapchain_image_count, nullptr);
+
+    if(*swapchain_image_count == 0)
+    {
+        util_error_exit("VULKAN", nullptr, "failed to get swapchain images\n");
+    }
+
+    VkImage ** swapchain_images = &context->swapchain_images;
+    *swapchain_images = (VkImage *)malloc(sizeof(VkImage) * *swapchain_image_count);
+    vkGetSwapchainImagesKHR(logical_device, swapchain, swapchain_image_count, *swapchain_images);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1027,6 +1044,9 @@ void gfx_destroy(GFX_CONTEXT * context)
     VkInstance instance = context->instance;
     VkDevice logical_device = context->logical_device;
     GFX_SWAPCHAIN_INFO * swapchain_info = &context->swapchain_info;
+
+    // Free array of swapchain image handles.
+    free(context->swapchain_images);
 
     // Free swapchain info.
     free(swapchain_info->available_surface_formats);

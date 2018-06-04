@@ -32,6 +32,10 @@ struct GFX_CONTEXT
     uint32_t graphics_queue_family_index;
     uint32_t present_queue_family_index;
     VkSwapchainKHR swapchain = VK_NULL_HANDLE;
+    VkImage * swapchain_images = nullptr;
+    uint32_t swapchain_image_count;
+    VkFormat swapchain_image_format;
+    VkExtent2D swapchain_image_extent;
 
 #ifdef PRISM_DEBUG
     VkDebugReportCallbackEXT debug_callback = VK_NULL_HANDLE;
