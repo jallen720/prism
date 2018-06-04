@@ -11,16 +11,27 @@ namespace prism
 // Data Structures
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+struct GFX_SWAPCHAIN_INFO
+{
+    VkSurfaceCapabilitiesKHR surface_capabilities;
+    VkSurfaceFormatKHR * available_surface_formats;
+    uint32_t available_surface_format_count;
+    VkPresentModeKHR * available_surface_present_modes;
+    uint32_t available_surface_present_mode_count;
+};
+
 struct GFX_CONTEXT
 {
     VkInstance instance = VK_NULL_HANDLE;
     VkSurfaceKHR surface = VK_NULL_HANDLE;
     VkPhysicalDevice physical_device = VK_NULL_HANDLE;
+    GFX_SWAPCHAIN_INFO swapchain_info = {};
     VkDevice logical_device = VK_NULL_HANDLE;
     VkQueue graphics_queue = VK_NULL_HANDLE;
     VkQueue present_queue = VK_NULL_HANDLE;
     uint32_t graphics_queue_family_index;
     uint32_t present_queue_family_index;
+    VkSwapchainKHR swapchain = VK_NULL_HANDLE;
 
 #ifdef PRISM_DEBUG
     VkDebugReportCallbackEXT debug_callback = VK_NULL_HANDLE;

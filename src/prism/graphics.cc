@@ -206,6 +206,7 @@ static void validate_instance_component_info(const INSTANCE_COMPONENT_INFO<COMPO
 static void create_physical_device(GFX_CONTEXT * context)
 {
     VkInstance instance = context->instance;
+    VkSurfaceKHR surface = context->surface;
 
     // Ensure atleast 1 physical-device can be found.
     uint32_t available_physical_device_count = 0;
@@ -222,6 +223,7 @@ static void create_physical_device(GFX_CONTEXT * context)
 
     vkEnumeratePhysicalDevices(instance, &available_physical_device_count, available_physical_devices);
     VkPhysicalDevice physical_device = VK_NULL_HANDLE;
+    GFX_SWAPCHAIN_INFO * swapchain_info = &context->swapchain_info;
 
     for(size_t available_physical_device_index = 0;
         available_physical_device_index < available_physical_device_count;
@@ -282,6 +284,99 @@ static void create_physical_device(GFX_CONTEXT * context)
         {
             continue;
         }
+
+        // Ensure physical-device swapchain meets requirements.
+
+        // typedef struct VkSurfaceCapabilitiesKHR {
+        //     uint32_t                         minImageCount;
+        //     uint32_t                         maxImageCount;
+        //     VkExtent2D                       currentExtent;
+        //     VkExtent2D                       minImageExtent;
+        //     VkExtent2D                       maxImageExtent;
+        //     uint32_t                         maxImageArrayLayers;
+        //     VkSurfaceTransformFlagsKHR       supportedTransforms;
+        //     VkSurfaceTransformFlagBitsKHR    currentTransform;
+        //     VkCompositeAlphaFlagsKHR         supportedCompositeAlpha;
+        //     VkImageUsageFlags                supportedUsageFlags;
+        // } VkSurfaceCapabilitiesKHR;
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+            available_physical_device,
+            surface,
+            &swapchain_info->surface_capabilities);
+
+#if PRISM_DEBUG
+        const VkSurfaceCapabilitiesKHR * surface_capabilities = &swapchain_info->surface_capabilities;
+        const VkExtent2D * currentExtent = &surface_capabilities->currentExtent;
+        const VkExtent2D * minImageExtent = &surface_capabilities->minImageExtent;
+        const VkExtent2D * maxImageExtent = &surface_capabilities->maxImageExtent;
+        util_log("VULKAN", "physical-device surface capabilities:\n");
+        util_log("VULKAN", "    minImageCount:           %i\n", surface_capabilities->minImageCount);
+        util_log("VULKAN", "    maxImageCount:           %i\n", surface_capabilities->maxImageCount);
+        util_log("VULKAN", "    maxImageArrayLayers:     %i\n", surface_capabilities->maxImageArrayLayers);
+        util_log("VULKAN", "    supportedTransforms:     %#010x\n", surface_capabilities->supportedTransforms);
+        util_log("VULKAN", "    currentTransform:        %#010x\n", surface_capabilities->currentTransform);
+        util_log("VULKAN", "    supportedCompositeAlpha: %#010x\n", surface_capabilities->supportedCompositeAlpha);
+        util_log("VULKAN", "    supportedUsageFlags:     %#010x\n", surface_capabilities->supportedUsageFlags);
+        util_log("VULKAN", "    currentExtent:\n");
+        util_log("VULKAN", "        width:  %i\n", currentExtent->width);
+        util_log("VULKAN", "        height: %i\n", currentExtent->height);
+        util_log("VULKAN", "    minImageExtent:\n");
+        util_log("VULKAN", "        width:  %i\n", minImageExtent->width);
+        util_log("VULKAN", "        height: %i\n", minImageExtent->height);
+        util_log("VULKAN", "    maxImageExtent:\n");
+        util_log("VULKAN", "        width:  %i\n", maxImageExtent->width);
+        util_log("VULKAN", "        height: %i\n", maxImageExtent->height);
+#endif
+
+        // Ensure physical-device supports atleast 1 surface-format and 1 present-mode.
+        uint32_t * available_surface_format_count = &swapchain_info->available_surface_format_count;
+        *available_surface_format_count = 10;
+
+        vkGetPhysicalDeviceSurfaceFormatsKHR(
+            available_physical_device,
+            surface,
+            available_surface_format_count,
+            nullptr);
+
+        if(available_surface_format_count == 0)
+        {
+            continue;
+        }
+
+        uint32_t * available_surface_present_mode_count = &swapchain_info->available_surface_present_mode_count;
+
+        vkGetPhysicalDeviceSurfacePresentModesKHR(
+            available_physical_device,
+            surface,
+            available_surface_present_mode_count,
+            nullptr);
+
+        if(available_surface_present_mode_count == 0)
+        {
+            continue;
+        }
+
+        // Surface is valid for use with physical-device, so store surface info in swapchain info.
+        VkSurfaceFormatKHR ** available_surface_formats = &swapchain_info->available_surface_formats;
+        VkPresentModeKHR ** available_surface_present_modes = &swapchain_info->available_surface_present_modes;
+
+        *available_surface_formats =
+            (VkSurfaceFormatKHR *)malloc(sizeof(VkSurfaceFormatKHR) * *available_surface_format_count);
+
+        *available_surface_present_modes =
+            (VkPresentModeKHR *)malloc(sizeof(VkPresentModeKHR) * *available_surface_present_mode_count);
+
+        vkGetPhysicalDeviceSurfaceFormatsKHR(
+            available_physical_device,
+            surface,
+            available_surface_format_count,
+            *available_surface_formats);
+
+        vkGetPhysicalDeviceSurfacePresentModesKHR(
+            available_physical_device,
+            surface,
+            available_surface_present_mode_count,
+            *available_surface_present_modes);
 
         // Physical-device meets all requirements and will be selected as the physical-device for the context.
         physical_device = available_physical_device;
@@ -572,6 +667,12 @@ static void create_logical_device(GFX_CONTEXT * context)
 
     // Initialize logical-device creation info.
 
+    // Must have swapchain extension enabled so swapchains can be created.
+    static const char * LOGICAL_DEVICE_EXTENSION_NAMES[]
+    {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    };
+
     // typedef struct VkDeviceCreateInfo {
     //     VkStructureType                    sType;
     //     const void*                        pNext;
@@ -592,8 +693,8 @@ static void create_logical_device(GFX_CONTEXT * context)
     logical_device_create_info.pQueueCreateInfos = logical_device_queue_create_infos;
     logical_device_create_info.enabledLayerCount = 0; // DEPRECATED
     logical_device_create_info.ppEnabledLayerNames = nullptr; // DEPRECATED
-    logical_device_create_info.enabledExtensionCount = 0;
-    logical_device_create_info.ppEnabledExtensionNames = nullptr;
+    logical_device_create_info.enabledExtensionCount = sizeof(LOGICAL_DEVICE_EXTENSION_NAMES) / sizeof(void *);
+    logical_device_create_info.ppEnabledExtensionNames = LOGICAL_DEVICE_EXTENSION_NAMES;
     logical_device_create_info.pEnabledFeatures = &physical_device_features;
 
     // Create logical-device.
@@ -621,6 +722,189 @@ static void create_logical_device(GFX_CONTEXT * context)
         const QUEUE_FAMILY_DATA * queue_family = queue_families + i;
         vkGetDeviceQueue(logical_device, queue_family->key, 0, queue_family->value);
     }
+}
+
+static void create_swapchain(GFX_CONTEXT * context)
+{
+    const GFX_SWAPCHAIN_INFO * swapchain_info = &context->swapchain_info;
+    VkSurfaceKHR surface = context->surface;
+    VkDevice logical_device = context->logical_device;
+
+    // Select best surface format for swapchain.
+    static const VkSurfaceFormatKHR PREFERRED_SURFACE_FORMAT
+    {
+        VK_FORMAT_B8G8R8A8_UNORM,
+        VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
+    };
+
+    const VkSurfaceFormatKHR * available_surface_formats = swapchain_info->available_surface_formats;
+
+    // Default to first available format.
+    VkSurfaceFormatKHR selected_surface_format = available_surface_formats[0];
+
+    // If default format is undefined (surface has no preferred format), replace with preferred format.
+    if(selected_surface_format.format == VK_FORMAT_UNDEFINED)
+    {
+        selected_surface_format = PREFERRED_SURFACE_FORMAT;
+    }
+    // Check if preferred format is available, and use if so.
+    else
+    {
+        for(size_t i = 0; i < swapchain_info->available_surface_format_count; i++)
+        {
+            VkSurfaceFormatKHR available_surface_format = available_surface_formats[i];
+
+            if(available_surface_format.format == PREFERRED_SURFACE_FORMAT.format
+                && available_surface_format.colorSpace == PREFERRED_SURFACE_FORMAT.colorSpace)
+            {
+                selected_surface_format = available_surface_format;
+                break;
+            }
+        }
+    }
+
+    // Select best surface present mode for swapchain.
+    static const VkPresentModeKHR PREFERRED_PRESENT_MODE = VK_PRESENT_MODE_MAILBOX_KHR;
+    const VkPresentModeKHR * available_surface_present_modes = swapchain_info->available_surface_present_modes;
+
+    // FIFO is guaranteed to be available, so use it as a fallback in-case the preferred mode isn't found.
+    VkPresentModeKHR selected_surface_present_mode = VK_PRESENT_MODE_FIFO_KHR;
+
+    for(size_t i = 0; i < swapchain_info->available_surface_present_mode_count; i++)
+    {
+        VkPresentModeKHR available_surface_present_mode = available_surface_present_modes[i];
+
+        // Select preferred present mode if available.
+        if(available_surface_present_mode == PREFERRED_PRESENT_MODE)
+        {
+            selected_surface_present_mode = PREFERRED_PRESENT_MODE;
+            break;
+        }
+        // Some drivers don't support FIFO properly, so if immediate mode is available, use that as the fallback in-case
+        // the preferred mode isn't found.
+        else if(available_surface_present_mode == VK_PRESENT_MODE_IMMEDIATE_KHR)
+        {
+            selected_surface_present_mode = available_surface_present_mode;
+        }
+    }
+
+    // Select best extent for swapchain.
+    const VkSurfaceCapabilitiesKHR * surface_capabilities = &swapchain_info->surface_capabilities;
+    VkExtent2D selected_extent = surface_capabilities->currentExtent;
+
+    // TODO: add support for other extents.
+
+    // Select best image count for swapchain.
+    static const uint32_t MIN_PREFERRED_IMAGE_COUNT = 1;
+    uint32_t selected_image_count = surface_capabilities->minImageCount + MIN_PREFERRED_IMAGE_COUNT;
+    uint32_t max_image_count = surface_capabilities->maxImageCount;
+
+    if(max_image_count > 0 && selected_image_count > max_image_count)
+    {
+        selected_image_count = max_image_count;
+    }
+
+#ifdef PRISM_DEBUG
+    static const char * SURFACE_PRESENT_MODE_NAMES[]
+    {
+        "VK_PRESENT_MODE_IMMEDIATE_KHR",
+        "VK_PRESENT_MODE_MAILBOX_KHR",
+        "VK_PRESENT_MODE_FIFO_KHR",
+        "VK_PRESENT_MODE_FIFO_RELAXED_KHR",
+    };
+
+    util_log("VULKAN", "selected surface format:\n");
+    util_log("VULKAN", "    format:      %i\n", selected_surface_format.format);
+    util_log("VULKAN", "    color_space: %i\n", selected_surface_format.colorSpace);
+
+    util_log("VULKAN", "available surface present modes:\n");
+
+    for(size_t i = 0; i < swapchain_info->available_surface_present_mode_count; i++)
+    {
+        util_log("VULKAN", "    %s\n", SURFACE_PRESENT_MODE_NAMES[(size_t)available_surface_present_modes[i]]);
+    }
+
+    util_log("VULKAN", "selected surface present mode: %s\n",
+        SURFACE_PRESENT_MODE_NAMES[(size_t)selected_surface_present_mode]);
+
+    util_log("VULKAN", "selected extent:\n");
+    util_log("VULKAN", "    width:  %i\n", selected_extent.width);
+    util_log("VULKAN", "    height: %i\n", selected_extent.height);
+    util_log("VULKAN", "selected image count: %u\n", selected_image_count);
+#endif
+
+    // Initialize swapchain creation info.
+
+    // typedef struct VkSwapchainCreateInfoKHR {
+    //     VkStructureType                  sType;
+    //     const void*                      pNext;
+    //     VkSwapchainCreateFlagsKHR        flags;
+    //     VkSurfaceKHR                     surface;
+    //     uint32_t                         minImageCount;
+    //     VkFormat                         imageFormat;
+    //     VkColorSpaceKHR                  imageColorSpace;
+    //     VkExtent2D                       imageExtent;
+    //     uint32_t                         imageArrayLayers;
+    //     VkImageUsageFlags                imageUsage;
+    //     VkSharingMode                    imageSharingMode;
+    //     uint32_t                         queueFamilyIndexCount;
+    //     const uint32_t*                  pQueueFamilyIndices;
+    //     VkSurfaceTransformFlagBitsKHR    preTransform;
+    //     VkCompositeAlphaFlagBitsKHR      compositeAlpha;
+    //     VkPresentModeKHR                 presentMode;
+    //     VkBool32                         clipped;
+    //     VkSwapchainKHR                   oldSwapchain;
+    // } VkSwapchainCreateInfoKHR;
+    VkSwapchainCreateInfoKHR swapchain_create_info = {};
+    swapchain_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    swapchain_create_info.pNext = nullptr;
+    swapchain_create_info.flags = 0; // Reserved for future use.
+    swapchain_create_info.surface = surface;
+    swapchain_create_info.minImageCount = selected_image_count;
+    swapchain_create_info.imageFormat = selected_surface_format.format;
+    swapchain_create_info.imageColorSpace = selected_surface_format.colorSpace;
+    swapchain_create_info.imageExtent = selected_extent;
+    swapchain_create_info.imageArrayLayers = 1; // Always 1 for non-stereoscopic-3D applications.
+    swapchain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    uint32_t queue_family_indexes[]
+    {
+        context->graphics_queue_family_index,
+        context->present_queue_family_index,
+    };
+
+    // If queue-family indexes are unique, use concurrent sharing mode. Otherwise, use exclusive sharing mode.
+    if(queue_family_indexes[0] != queue_family_indexes[1])
+    {
+        swapchain_create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+        swapchain_create_info.queueFamilyIndexCount = sizeof(queue_family_indexes) / sizeof(uint32_t);
+        swapchain_create_info.pQueueFamilyIndices = queue_family_indexes;
+    }
+    else
+    {
+        swapchain_create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        swapchain_create_info.queueFamilyIndexCount = 0;
+        swapchain_create_info.pQueueFamilyIndices = nullptr;
+    }
+
+    swapchain_create_info.preTransform = surface_capabilities->currentTransform;
+    swapchain_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    swapchain_create_info.presentMode = selected_surface_present_mode;
+    swapchain_create_info.clipped = VK_TRUE; // Ignore obscured pixels for better performance.
+    swapchain_create_info.oldSwapchain = VK_NULL_HANDLE;
+
+    // Create swapchain.
+    VkSwapchainKHR swapchain;
+
+    VkResult create_swapchain_result =
+        vkCreateSwapchainKHR(logical_device, &swapchain_create_info, nullptr, &swapchain);
+
+    if(create_swapchain_result != VK_SUCCESS)
+    {
+        util_error_exit("VULKAN", util_vk_result_name(create_swapchain_result), "failed to create swapchain\n");
+    }
+
+    context->swapchain = swapchain;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -731,6 +1015,7 @@ void gfx_load_devices(GFX_CONTEXT * context)
     create_physical_device(context);
     get_queue_family_indexes(context);
     create_logical_device(context);
+    create_swapchain(context);
 }
 
 void gfx_destroy(GFX_CONTEXT * context)
@@ -742,12 +1027,21 @@ void gfx_destroy(GFX_CONTEXT * context)
     VkInstance * instance = &context->instance;
     VkSurfaceKHR * surface = &context->surface;
     VkDevice * logical_device = &context->logical_device;
+    GFX_SWAPCHAIN_INFO * swapchain_info = &context->swapchain_info;
+    VkSwapchainKHR * swapchain = &context->swapchain;
+
+    // Destroy swapchain before destroying logical-device.
+    vkDestroySwapchainKHR(*logical_device, *swapchain, nullptr);
 
     // Graphics-queue will be implicitly destroyed when logical-device is destroyed.
     vkDestroyDevice(*logical_device, nullptr);
 
     // Surface must be destroyed before instance.
     vkDestroySurfaceKHR(*instance, *surface, nullptr);
+
+    // Free swapchain info.
+    free(swapchain_info->available_surface_formats);
+    free(swapchain_info->available_surface_present_modes);
 
     // Physical-device will be implicitly destroyed when instance is destroyed.
     vkDestroyInstance(*instance, nullptr);
