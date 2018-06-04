@@ -258,6 +258,11 @@ static void create_physical_device(GFX_CONTEXT * context)
             &available_extension_count,
             nullptr);
 
+        if(available_extension_count == 0)
+        {
+            continue;
+        }
+
         auto available_extension_properties_array =
             (VkExtensionProperties *)malloc(sizeof(VkExtensionProperties) * available_extension_count);
 
