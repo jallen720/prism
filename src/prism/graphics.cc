@@ -749,13 +749,13 @@ void gfx_destroy(GFX_CONTEXT * context)
     // Physical-device will be implicitly destroyed when instance is destroyed.
     vkDestroyInstance(*instance, nullptr);
 
-    // Initialize all context data.
-    *instance = VK_NULL_HANDLE;
-    *surface = VK_NULL_HANDLE;
-    context->physical_device = VK_NULL_HANDLE;
-    *logical_device = VK_NULL_HANDLE;
-    context->graphics_queue = VK_NULL_HANDLE;
-    context->present_queue = VK_NULL_HANDLE;
+    // // Initialize all context data.
+    // *instance = VK_NULL_HANDLE;
+    // *surface = VK_NULL_HANDLE;
+    // context->physical_device = VK_NULL_HANDLE;
+    // *logical_device = VK_NULL_HANDLE;
+    // context->graphics_queue = VK_NULL_HANDLE;
+    // context->present_queue = VK_NULL_HANDLE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -880,7 +880,7 @@ void gfx_destroy_debug_callback(GFX_CONTEXT * context)
     }
 
     destroy_debug_callback(instance, *debug_callback, nullptr);
-    *debug_callback = VK_NULL_HANDLE;
+    // *debug_callback = VK_NULL_HANDLE;
 }
 #endif
 
