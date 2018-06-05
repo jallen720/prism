@@ -25,11 +25,22 @@ struct SYSContext
 // Interface
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void sysInit();
-void sysCreateWindow(SYSContext * context, int width, int height, const char * title);
-void sysGetRequiredExtensions(GFXConfig * gfxConfig);
-SurfaceCreator sysGetSurfaceCreator();
-void sysRun(SYSContext * context);
-void sysDestroy(SYSContext * context);
+void
+sysInit();
+
+void
+sysCreateWindow(SYSContext * context, int width, int height, const char * title);
+
+void
+sysGetRequiredExtensions(GFXConfig * gfxConfig);
+
+SurfaceCreator
+sysGetSurfaceCreator();
+
+void
+sysRun(SYSContext * context);
+
+void
+sysDestroy(SYSContext * context);
 
 } // namespace prism

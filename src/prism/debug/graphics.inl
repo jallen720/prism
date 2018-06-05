@@ -12,22 +12,17 @@ using SurfaceFormatName = PAIR<VkFormat, const char *>;
 // Debug Callbacks
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static void logDivider()
+static void
+logDivider()
 {
     utilLog("VULKAN", "\n");
     utilLog("VULKAN", "===========================================================================================\n");
     utilLog("VULKAN", "\n");
 }
 
-static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-    VkDebugReportFlagsEXT flags,
-    VkDebugReportObjectTypeEXT objType,
-    uint64_t obj,
-    size_t location,
-    int32_t code,
-    const char * layerPrefix,
-    const char * msg,
-    void * userData)
+static VKAPI_ATTR VkBool32 VKAPI_CALL
+debugCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType, uint64_t object, size_t location,
+              int32_t messageCode, const char * layerPrefix, const char * message, void * userData)
 {
 #if 0
     static const DebugFlagName DEBUG_FLAG_NAMES[]
@@ -58,15 +53,15 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     }
 
     // Log remaining callback args.
-    utilLog("VULKAN", "    objType:     %i\n", objType);
-    utilLog("VULKAN", "    obj:          %i\n", obj);
-    utilLog("VULKAN", "    location:     %i\n", location);
-    utilLog("VULKAN", "    code:         %i\n", code);
+    utilLog("VULKAN", "    objectType:  %i\n", objectType);
+    utilLog("VULKAN", "    object:      %i\n", object);
+    utilLog("VULKAN", "    location:    %i\n", location);
+    utilLog("VULKAN", "    messageCode: %i\n", messageCode);
     utilLog("VULKAN", "    layerPrefix: %s\n", layerPrefix);
-    utilLog("VULKAN", "    msg:          \"%s\"\n", msg);
+    utilLog("VULKAN", "    message:     \"%s\"\n", message);
     utilLog("VULKAN", "    userData:    %p\n", userData);
 #else
-    utilLog("VULKAN", "validation layer: %s: %s\n", layerPrefix, msg);
+    utilLog("VULKAN", "validation layer: %s: %s\n", layerPrefix, message);
 #endif
 
     // Should the call being validated be aborted?
@@ -78,7 +73,8 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 // Debug Utilities
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static void concatDebugInstanceComponents(GFXConfig * config)
+static void
+concatDebugInstanceComponents(GFXConfig * config)
 {
     PRISM_ASSERT(config != nullptr);
 
@@ -113,7 +109,8 @@ static void concatDebugInstanceComponents(GFXConfig * config)
     config->requestedLayerCount = DEBUG_LAYER_COUNT;
 }
 
-static void freeDebugInstanceComponents(GFXConfig * config)
+static void
+freeDebugInstanceComponents(GFXConfig * config)
 {
     PRISM_ASSERT(config != nullptr);
 
@@ -123,7 +120,8 @@ static void freeDebugInstanceComponents(GFXConfig * config)
 }
 
 template<typename ComponentProps>
-static void logInstanceComponentNames(const InstanceComponentInfo<ComponentProps> * componentInfo)
+static void
+logInstanceComponentNames(const InstanceComponentInfo<ComponentProps> * componentInfo)
 {
     const char * componentType = componentInfo->type;
     const char ** requestedComponentNames = componentInfo->requestedNames;
@@ -156,7 +154,8 @@ static void logInstanceComponentNames(const InstanceComponentInfo<ComponentProps
     }
 }
 
-static VkDebugReportCallbackEXT createDebugCallback(VkInstance instance)
+static VkDebugReportCallbackEXT
+createDebugCallback(VkInstance instance)
 {
     // Ensure debug callback creation function exists.
     auto createDebugCallback =
@@ -227,7 +226,8 @@ static VkDebugReportCallbackEXT createDebugCallback(VkInstance instance)
 //     destroyDebugCallback(instance, context->debugCallback, nullptr);
 // }
 
-static void logPhysicalDeviceSurfaceCapabilities(const VkSurfaceCapabilitiesKHR * surfaceCapabilities)
+static void
+logPhysicalDeviceSurfaceCapabilities(const VkSurfaceCapabilitiesKHR * surfaceCapabilities)
 {
     const VkExtent2D * currentExtent = &surfaceCapabilities->currentExtent;
     const VkExtent2D * minImageExtent = &surfaceCapabilities->minImageExtent;
@@ -252,9 +252,8 @@ static void logPhysicalDeviceSurfaceCapabilities(const VkSurfaceCapabilitiesKHR 
     utilLog("VULKAN", "        height: %i\n", maxImageExtent->height);
 }
 
-static void logAvailablePhysicalDevices(
-    uint32_t availablePhysicalDeviceCount,
-    const VkPhysicalDevice * availablePhysicalDevices)
+static void
+logAvailablePhysicalDevices(uint32_t availablePhysicalDeviceCount, const VkPhysicalDevice * availablePhysicalDevices)
 {
     static const char * PHYSICAL_DEVICE_TYPE_NAMES[]
     {
@@ -286,7 +285,8 @@ static void logAvailablePhysicalDevices(
     }
 }
 
-static void logQueueFamilies(uint32_t queueFamilyCount, VkQueueFamilyProperties * queueFamilyPropsArray)
+static void
+logQueueFamilies(uint32_t queueFamilyCount, VkQueueFamilyProperties * queueFamilyPropsArray)
 {
     static const QueueFlagName QUEUE_FLAG_NAMES[]
     {
@@ -328,13 +328,11 @@ static void logQueueFamilies(uint32_t queueFamilyCount, VkQueueFamilyProperties 
     }
 }
 
-static void logSelectedSwapchainConfig(
-    const VkSurfaceFormatKHR * selectedSurfaceFormat,
-    uint32_t availableSurfacePresentModeCount,
-    const VkPresentModeKHR * availableSurfacePresentModes,
-    VkPresentModeKHR selectedSurfacePresentMode,
-    const VkExtent2D * selectedExtent,
-    uint32_t selectedImageCount)
+static void
+logSelectedSwapchainConfig(const VkSurfaceFormatKHR * selectedSurfaceFormat, uint32_t availableSurfacePresentModeCount,
+                           const VkPresentModeKHR * availableSurfacePresentModes,
+                           VkPresentModeKHR selectedSurfacePresentMode, const VkExtent2D * selectedExtent,
+                           uint32_t selectedImageCount)
 {
     static const char * SURFACE_PRESENT_MODE_NAMES[]
     {

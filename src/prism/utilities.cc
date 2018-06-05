@@ -16,7 +16,7 @@ namespace prism
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #define ANSI_RESET "\x1b[0m"
-#define ANSI_BOLD "\033[1m"
+#define ANSI_BOLD "\x1b[1m"
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
 #define ANSI_COLOR_PURPLE "\x1b[35m"
@@ -86,7 +86,8 @@ static const size_t VK_RESULT_NAMES_COUNT = sizeof(VK_RESULT_NAMES) / sizeof(VkR
 // Interface
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void utilErrorExit(const char * subsystem, const char * errorName, const char * message, ...)
+void
+utilErrorExit(const char * subsystem, const char * errorName, const char * message, ...)
 {
     const char * system = subsystem != nullptr ? subsystem : "PRISM";
 
@@ -103,19 +104,22 @@ void utilErrorExit(const char * subsystem, const char * errorName, const char * 
     exit(EXIT_FAILURE);
 }
 
-void utilLog(const char * subsystem, const char * message, ...)
+void
+utilLog(const char * subsystem, const char * message, ...)
 {
     fprintf(stdout, ANSI_BOLD ANSI_COLOR_GREEN "%s LOG" ANSI_RESET ": ", subsystem ? subsystem : "PRISM");
     OUTPUT_MESSAGE(stdout)
 }
 
-void utilWarning(const char * subsystem, const char * message, ...)
+void
+utilWarning(const char * subsystem, const char * message, ...)
 {
     fprintf(stdout, ANSI_BOLD ANSI_COLOR_PURPLE "%s WARNING" ANSI_RESET ": ", subsystem ? subsystem : "PRISM");
     OUTPUT_MESSAGE(stdout)
 }
 
-const char * utilVkResultName(VkResult result)
+const char *
+utilVkResultName(VkResult result)
 {
     for(size_t i = 0; i < VK_RESULT_NAMES_COUNT; i++)
     {

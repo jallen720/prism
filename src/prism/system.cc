@@ -10,12 +10,14 @@ namespace prism
 // Callbacks
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static void errorCallback(int error, const char * description)
+static void
+errorCallback(int error, const char * description)
 {
     utilErrorExit(description, "GLFW", nullptr);
 }
 
-static void keyCallback(GLFWwindow * window, int key, int scancode, int action, int mods)
+static void
+keyCallback(GLFWwindow * window, int key, int scancode, int action, int mods)
 {
     if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     {
@@ -23,7 +25,8 @@ static void keyCallback(GLFWwindow * window, int key, int scancode, int action, 
     }
 }
 
-static VkSurfaceKHR createSurface(const void * data, VkInstance instance)
+static VkSurfaceKHR
+createSurface(const void * data, VkInstance instance)
 {
     PRISM_ASSERT(data != nullptr);
     auto context = (const SYSContext *)data;
@@ -43,7 +46,8 @@ static VkSurfaceKHR createSurface(const void * data, VkInstance instance)
 // Interface
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void sysInit()
+void
+sysInit()
 {
     glfwSetErrorCallback(errorCallback);
 
@@ -56,7 +60,8 @@ void sysInit()
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 }
 
-void sysCreateWindow(SYSContext * context, int width, int height, const char * title)
+void
+sysCreateWindow(SYSContext * context, int width, int height, const char * title)
 {
     PRISM_ASSERT(context != nullptr);
     PRISM_ASSERT(width > 0);
@@ -74,18 +79,21 @@ void sysCreateWindow(SYSContext * context, int width, int height, const char * t
     glfwSetKeyCallback(*window, keyCallback);
 }
 
-void sysGetRequiredExtensions(GFXConfig * gfxConfig)
+void
+sysGetRequiredExtensions(GFXConfig * gfxConfig)
 {
     PRISM_ASSERT(gfxConfig != nullptr);
     gfxConfig->requestedExtensionNames = glfwGetRequiredInstanceExtensions(&gfxConfig->requestedExtensionCount);
 }
 
-SurfaceCreator sysGetSurfaceCreator()
+SurfaceCreator
+sysGetSurfaceCreator()
 {
     return createSurface;
 }
 
-void sysRun(SYSContext * context)
+void
+sysRun(SYSContext * context)
 {
     PRISM_ASSERT(context != nullptr);
 
@@ -95,7 +103,8 @@ void sysRun(SYSContext * context)
     }
 }
 
-void sysDestroy(SYSContext * context)
+void
+sysDestroy(SYSContext * context)
 {
     PRISM_ASSERT(context != nullptr);
     glfwDestroyWindow(context->window);

@@ -95,31 +95,36 @@ struct GFXSwapchainImages
 // Utilities
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static const char * layerPropsNameAccessor(const VkLayerProperties * layerProps)
+static const char *
+layerPropsNameAccessor(const VkLayerProperties * layerProps)
 {
     return layerProps->layerName;
 }
 
-static const char * extensionPropsNameAccessor(const VkExtensionProperties * extensionProps)
+static const char *
+extensionPropsNameAccessor(const VkExtensionProperties * extensionProps)
 {
     return extensionProps->extensionName;
 }
 
 template<typename ComponentProps>
-static void allocAvailableProps(InstanceComponentInfo<ComponentProps> * componentInfo, uint32_t availableCount)
+static void
+allocAvailableProps(InstanceComponentInfo<ComponentProps> * componentInfo, uint32_t availableCount)
 {
     componentInfo->availableCount = availableCount;
     componentInfo->availableProps = (ComponentProps *)malloc(sizeof(ComponentProps) * availableCount);
 }
 
 template<typename ComponentProps>
-static void freeAvailableProps(InstanceComponentInfo<ComponentProps> * componentInfo)
+static void
+freeAvailableProps(InstanceComponentInfo<ComponentProps> * componentInfo)
 {
     free(componentInfo->availableProps);
 }
 
 template<typename ComponentProps>
-static void validateInstanceComponentInfo(const InstanceComponentInfo<ComponentProps> * componentInfo)
+static void
+validateInstanceComponentInfo(const InstanceComponentInfo<ComponentProps> * componentInfo)
 {
     const char ** requestedComponentNames = componentInfo->requestedNames;
     uint32_t requestedComponentCount = componentInfo->requestedCount;
@@ -569,10 +574,12 @@ createLogicalDevice(VkPhysicalDevice physicalDevice, GFXQueues * queues)
     // Cleanup
     free(logicalDeviceQueueCreateInfos);
 
-    // Get queue-family queues from logical-device.
-    for(size_t i = 0; i < QUEUE_FAMILY_COUNT; i++)
+    // Get queues for each queue-family from logical-device.
+    static const uint32_t QUEUE_INDEX = 0;
+
+    for(size_t queueFamily = 0; queueFamily < QUEUE_FAMILY_COUNT; queueFamily++)
     {
-        vkGetDeviceQueue(logicalDevice, queues->familyIndexes[i], 0, queues->queues + i);
+        vkGetDeviceQueue(logicalDevice, queues->familyIndexes[queueFamily], QUEUE_INDEX, queues->queues + queueFamily);
     }
 
     return logicalDevice;
@@ -750,7 +757,8 @@ createSwapchain(VkSurfaceKHR surface, VkLogicalDevice logicalDevice, const GFXQu
     return swapchain;
 }
 
-static VkInstance createInstance(GFXConfig * config)
+static VkInstance
+createInstance(GFXConfig * config)
 {
     PRISM_ASSERT(config != nullptr);
 
@@ -848,7 +856,8 @@ static VkInstance createInstance(GFXConfig * config)
 // Interface
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void gfxInit(GFXConfig * config)
+void
+gfxInit(GFXConfig * config)
 {
     PRISM_ASSERT(config != nullptr);
     GFXSwapchainInfo swapchainInfo = {};
@@ -874,7 +883,8 @@ void gfxInit(GFXConfig * config)
     VkSwapchainKHR swapchain = createSwapchain(surface, logicalDevice, &queues, &swapchainInfo, &swapchainImages);
 }
 
-// void gfxDestroy(GFXContext * context)
+// void
+// gfxDestroy(GFXContext * context)
 // {
 //     PRISM_ASSERT(context != nullptr);
 //     PRISM_ASSERT(context->instance != VK_NULL_HANDLE);

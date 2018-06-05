@@ -33,7 +33,10 @@ struct GFXConfig
 // Interface
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void gfxInit(GFXConfig * config);
-// void gfxDestroy(GFXContext * context);
+void
+gfxInit(GFXConfig * config);
+
+// void
+// gfxDestroy(GFXContext * context);
 
 } // namespace prism
