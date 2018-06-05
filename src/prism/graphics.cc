@@ -15,13 +15,21 @@ namespace prism
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
+// Macros
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#define QUEUE_FAMILY_INDEX(FAMILY) (size_t)GFXQueues::Families::FAMILY
+#define QUEUE_FAMILY_COUNT QUEUE_FAMILY_INDEX(COUNT)
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
 // Typedefs
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename ComponentProps>
 using ComponentPropsNameAccessor = const char * (*)(const ComponentProps *);
 
-using QueueFamilyData = PAIR<uint32_t, VkQueue *>;
+using VkLogicalDevice = VkDevice;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -37,6 +45,40 @@ struct InstanceComponentInfo
     ComponentProps * availableProps;
     uint32_t availableCount;
     ComponentPropsNameAccessor<ComponentProps> propsNameAccessor;
+};
+
+struct GFXSwapchainInfo
+{
+    VkSurfaceCapabilitiesKHR surfaceCapabilities;
+    VkSurfaceFormatKHR * availableSurfaceFormats;
+    uint32_t availableSurfaceFormatCount;
+    VkPresentModeKHR * availableSurfacePresentModes;
+    uint32_t availableSurfacePresentModeCount;
+};
+
+struct GFXQueueFamily
+{
+    uint32_t index;
+    VkQueue queue;
+};
+
+struct GFXQueues
+{
+    enum class Families
+    {
+        GRAPHICS = 0,
+        PRESENT = 1,
+        COUNT = 2,
+    };
+
+    VkQueue queues[(size_t)Families::COUNT];
+    uint32_t familyIndexes[(size_t)Families::COUNT];
+};
+
+struct GFXSwapchainImages
+{
+    VkImage * images;
+    uint32_t count;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -117,11 +159,9 @@ static void validateInstanceComponentInfo(const InstanceComponentInfo<ComponentP
     }
 }
 
-static void createPhysicalDevice(GFXContext * context)
+static VkPhysicalDevice
+createPhysicalDevice(VkInstance instance, VkSurfaceKHR surface, GFXSwapchainInfo * swapchainInfo)
 {
-    VkInstance instance = context->instance;
-    VkSurfaceKHR surface = context->surface;
-
     // Query available physical-devices.
     uint32_t availablePhysicalDeviceCount = 0;
     vkEnumeratePhysicalDevices(instance, &availablePhysicalDeviceCount, nullptr);
@@ -142,7 +182,6 @@ static void createPhysicalDevice(GFXContext * context)
 
     // Find a suitable physical-device for rendering and store handle in context.
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-    GFXSwapchainInfo * swapchainInfo = &context->swapchainInfo;
 
     for(size_t availablePhysicalDeviceIndex = 0;
         availablePhysicalDeviceIndex < availablePhysicalDeviceCount;
@@ -281,17 +320,15 @@ static void createPhysicalDevice(GFXContext * context)
         utilErrorExit("VULKAN", nullptr, "failed to find a physical-device that meets requirements\n");
     }
 
-    context->physicalDevice = physicalDevice;
-
     // Cleanup
     free(availablePhysicalDevices);
+
+    return physicalDevice;
 }
 
-static void getQueueFamilyIndexes(GFXContext * context)
+static void
+getQueueFamilyIndexes(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, GFXQueues * queues)
 {
-    VkPhysicalDevice physicalDevice = context->physicalDevice;
-    VkSurfaceKHR surface = context->surface;
-
     // Ensure queue-families can be found.
     uint32_t queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
@@ -357,8 +394,8 @@ static void getQueueFamilyIndexes(GFXContext * context)
         utilErrorExit("VULKAN", nullptr, "failed to find present queue-family for selected physical-device\n");
     }
 
-    context->graphicsQueueFamilyIndex = graphicsQueueFamilyIndex;
-    context->presentQueueFamilyIndex = presentQueueFamilyIndex;
+    queues->familyIndexes[QUEUE_FAMILY_INDEX(GRAPHICS)] = graphicsQueueFamilyIndex;
+    queues->familyIndexes[QUEUE_FAMILY_INDEX(PRESENT)] = presentQueueFamilyIndex;
 
 #ifdef PRISM_DEBUG
     logQueueFamilies(queueFamilyCount, queueFamilyPropsArray);
@@ -368,32 +405,23 @@ static void getQueueFamilyIndexes(GFXContext * context)
     free(queueFamilyPropsArray);
 }
 
-static void createLogicalDevice(GFXContext * context)
+static VkLogicalDevice
+createLogicalDevice(VkPhysicalDevice physicalDevice, GFXQueues * queues)
 {
-    VkPhysicalDevice physicalDevice = context->physicalDevice;
-
     // Initialize queue creation info for all queues to be used with the logical-device.
     static const uint32_t QUEUE_FAMILY_QUEUE_COUNT = 1; // More than 1 queue is unnecessary per queue-family.
     static const float QUEUE_FAMILY_QUEUE_PRIORITY = 1.0F;
 
-    QueueFamilyData queueFamilyDatas[]
-    {
-        { context->graphicsQueueFamilyIndex, &context->graphicsQueue },
-        { context->presentQueueFamilyIndex, &context->presentQueue },
-    };
-
-    size_t queueFamilyDataCount = sizeof(queueFamilyDatas) / sizeof(QueueFamilyData);
-
     auto logicalDeviceQueueCreateInfos =
-        (VkDeviceQueueCreateInfo *)malloc(sizeof(VkDeviceQueueCreateInfo) * queueFamilyDataCount);
+        (VkDeviceQueueCreateInfo *)malloc(sizeof(VkDeviceQueueCreateInfo) * QUEUE_FAMILY_COUNT);
 
     size_t logicalDeviceQueueCreateInfoCount = 0;
 
     // Prevent duplicate queue creation for logical-device.
-    for(size_t queueFamilyDataIndex = 0; queueFamilyDataIndex < queueFamilyDataCount; queueFamilyDataIndex++)
+    for(size_t queueIndex = 0; queueIndex < QUEUE_FAMILY_COUNT; queueIndex++)
     {
         bool queueFamilyAlreadyUsed = false;
-        uint32_t queueFamilyIndex = queueFamilyDatas[queueFamilyDataIndex].key;
+        uint32_t queueFamilyIndex = queues->familyIndexes[queueIndex];
 
         // Ensure creation info for another queue-family with the same index doesn't exist.
         for(size_t logicalDeviceQueueCreateInfoIndex = 0;
@@ -527,7 +555,7 @@ static void createLogicalDevice(GFXContext * context)
     logicalDeviceCreateInfo.pEnabledFeatures = &physicalDeviceFeatures;
 
     // Create logical-device.
-    VkDevice logicalDevice = VK_NULL_HANDLE;
+    VkLogicalDevice logicalDevice = VK_NULL_HANDLE;
     VkResult result = vkCreateDevice(physicalDevice, &logicalDeviceCreateInfo, nullptr, &logicalDevice);
 
     if(result != VK_SUCCESS)
@@ -538,25 +566,22 @@ static void createLogicalDevice(GFXContext * context)
             "failed to create logical-device for selected physical-device\n");
     }
 
-    context->logicalDevice = logicalDevice;
-
     // Cleanup
     free(logicalDeviceQueueCreateInfos);
 
     // Get queue-family queues from logical-device.
-    for(size_t i = 0; i < queueFamilyDataCount; i++)
+    for(size_t i = 0; i < QUEUE_FAMILY_COUNT; i++)
     {
-        const QueueFamilyData * queueFamily = queueFamilyDatas + i;
-        vkGetDeviceQueue(logicalDevice, queueFamily->key, 0, queueFamily->value);
+        vkGetDeviceQueue(logicalDevice, queues->familyIndexes[i], 0, queues->queues + i);
     }
+
+    return logicalDevice;
 }
 
-static void createSwapchain(GFXContext * context)
+static VkSwapchainKHR
+createSwapchain(VkSurfaceKHR surface, VkLogicalDevice logicalDevice, const GFXQueues * queues,
+                const GFXSwapchainInfo * swapchainInfo, GFXSwapchainImages * swapchainImages)
 {
-    const GFXSwapchainInfo * swapchainInfo = &context->swapchainInfo;
-    VkSurfaceKHR surface = context->surface;
-    VkDevice logicalDevice = context->logicalDevice;
-
     // Select best surface format for swapchain.
     static const VkSurfaceFormatKHR PREFERRED_SURFACE_FORMAT
     {
@@ -631,9 +656,10 @@ static void createSwapchain(GFXContext * context)
         selectedImageCount = maxImageCount;
     }
 
-    // Store selected surface format and extent for later use.
-    context->swapchainImageFormat = selectedSurfaceFormat.format;
-    context->swapchainImageExtent = selectedExtent;
+    // // Store selected surface format and extent for later use.
+    // ?->swapchainImageFormat = selectedSurfaceFormat.format;
+    // ?->swapchainImageExtent = selectedExtent;
+    utilWarning("VULKAN", "reimplement storing swapchain image format and extent for later user\n");
 
 #ifdef PRISM_DEBUG
     logSelectedSwapchainConfig(
@@ -679,18 +705,12 @@ static void createSwapchain(GFXContext * context)
     swapchainCreateInfo.imageArrayLayers = 1; // Always 1 for non-stereoscopic-3D applications.
     swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    uint32_t queueFamilyIndexes[]
-    {
-        context->graphicsQueueFamilyIndex,
-        context->presentQueueFamilyIndex,
-    };
-
     // If queue-family indexes are unique, use concurrent sharing mode. Otherwise, use exclusive sharing mode.
-    if(queueFamilyIndexes[0] != queueFamilyIndexes[1])
+    if(queues->familyIndexes[QUEUE_FAMILY_INDEX(GRAPHICS)] != queues->familyIndexes[QUEUE_FAMILY_INDEX(PRESENT)])
     {
         swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-        swapchainCreateInfo.queueFamilyIndexCount = sizeof(queueFamilyIndexes) / sizeof(uint32_t);
-        swapchainCreateInfo.pQueueFamilyIndices = queueFamilyIndexes;
+        swapchainCreateInfo.queueFamilyIndexCount = QUEUE_FAMILY_COUNT;
+        swapchainCreateInfo.pQueueFamilyIndices = queues->familyIndexes;
     }
     else
     {
@@ -714,10 +734,8 @@ static void createSwapchain(GFXContext * context)
         utilErrorExit("VULKAN", utilVkResultName(result), "failed to create swapchain\n");
     }
 
-    context->swapchain = swapchain;
-
     // Get swapchain images.
-    uint32_t * swapchainImageCount = &context->swapchainImageCount;
+    uint32_t * swapchainImageCount = &swapchainImages->count;
     vkGetSwapchainImagesKHR(logicalDevice, swapchain, swapchainImageCount, nullptr);
 
     if(*swapchainImageCount == 0)
@@ -725,24 +743,16 @@ static void createSwapchain(GFXContext * context)
         utilErrorExit("VULKAN", nullptr, "failed to get swapchain images\n");
     }
 
-    VkImage ** swapchainImages = &context->swapchainImages;
-    *swapchainImages = (VkImage *)malloc(sizeof(VkImage) * *swapchainImageCount);
-    vkGetSwapchainImagesKHR(logicalDevice, swapchain, swapchainImageCount, *swapchainImages);
+    VkImage ** images = &swapchainImages->images;
+    *images = (VkImage *)malloc(sizeof(VkImage) * *swapchainImageCount);
+    vkGetSwapchainImagesKHR(logicalDevice, swapchain, swapchainImageCount, *images);
+
+    return swapchain;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Interface
-//
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void gfxCreateInstance(GFXContext * context, GFXConfig * config)
+static VkInstance createInstance(GFXConfig * config)
 {
-    PRISM_ASSERT(context != nullptr);
     PRISM_ASSERT(config != nullptr);
-
-#ifdef PRISM_DEBUG
-    concatDebugInstanceComponents(config);
-#endif
 
     // Initialize extensionInfo with requested extension names and available extension properties.
     InstanceComponentInfo<VkExtensionProperties> extensionInfo = {};
@@ -826,67 +836,78 @@ void gfxCreateInstance(GFXContext * context, GFXConfig * config)
         utilErrorExit("VULKAN", utilVkResultName(result), "failed to create instance\n");
     }
 
-    context->instance = instance;
-
     // Cleanup
     freeAvailableProps(&extensionInfo);
     freeAvailableProps(&layerInfo);
 
+    return instance;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Interface
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void gfxInit(GFXConfig * config)
+{
+    PRISM_ASSERT(config != nullptr);
+    GFXSwapchainInfo swapchainInfo = {};
+    GFXQueues queues = {};
+    GFXSwapchainImages swapchainImages = {};
+
 #ifdef PRISM_DEBUG
+    concatDebugInstanceComponents(config);
+    VkInstance instance = createInstance(config);
     freeDebugInstanceComponents(config);
-#endif
 
-#ifdef PRISM_DEBUG
     // In debug mode, create a debug callback for logging.
-    createDebugCallback(context);
-#endif
-}
-
-void gfxLoadDevices(GFXContext * context)
-{
-    PRISM_ASSERT(context != nullptr);
-    PRISM_ASSERT(context->instance != VK_NULL_HANDLE);
-    PRISM_ASSERT(context->surface != VK_NULL_HANDLE);
-    createPhysicalDevice(context);
-    getQueueFamilyIndexes(context);
-    createLogicalDevice(context);
-    createSwapchain(context);
-}
-
-void gfxDestroy(GFXContext * context)
-{
-    PRISM_ASSERT(context != nullptr);
-    PRISM_ASSERT(context->instance != VK_NULL_HANDLE);
-    PRISM_ASSERT(context->surface != VK_NULL_HANDLE);
-    PRISM_ASSERT(context->logicalDevice != VK_NULL_HANDLE);
-    VkInstance instance = context->instance;
-    VkDevice logicalDevice = context->logicalDevice;
-    GFXSwapchainInfo * swapchainInfo = &context->swapchainInfo;
-
-    // Free array of swapchain image handles.
-    free(context->swapchainImages);
-
-    // Free swapchain info.
-    free(swapchainInfo->availableSurfaceFormats);
-    free(swapchainInfo->availableSurfacePresentModes);
-
-    // Images created for swapchain will be implicitly destroyed.
-    // Destroy swapchain before destroying logical-device.
-    vkDestroySwapchainKHR(logicalDevice, context->swapchain, nullptr);
-
-    // Graphics-queue will be implicitly destroyed when logical-device is destroyed.
-    vkDestroyDevice(logicalDevice, nullptr);
-
-    // Surface must be destroyed before instance.
-    vkDestroySurfaceKHR(instance, context->surface, nullptr);
-
-#ifdef PRISM_DEBUG
-    // Destroy debug callback before destroying instance.
-    destroyDebugCallback(context);
+    VkDebugReportCallbackEXT debugCallbackHandle = createDebugCallback(instance);
+#else
+    VkInstance instance = createInstance(config);
 #endif
 
-    // Physical-device will be implicitly destroyed when instance is destroyed.
-    vkDestroyInstance(instance, nullptr);
+    VkSurfaceKHR surface = config->createSurface(config->createSurfaceData, instance);
+    VkPhysicalDevice physicalDevice = createPhysicalDevice(instance, surface, &swapchainInfo);
+    getQueueFamilyIndexes(physicalDevice, surface, &queues);
+    VkLogicalDevice logicalDevice = createLogicalDevice(physicalDevice, &queues);
+
+    VkSwapchainKHR swapchain = createSwapchain(surface, logicalDevice, &queues, &swapchainInfo, &swapchainImages);
 }
+
+// void gfxDestroy(GFXContext * context)
+// {
+//     PRISM_ASSERT(context != nullptr);
+//     PRISM_ASSERT(context->instance != VK_NULL_HANDLE);
+//     PRISM_ASSERT(context->surface != VK_NULL_HANDLE);
+//     PRISM_ASSERT(context->logicalDevice != VK_NULL_HANDLE);
+//     VkInstance instance = context->instance;
+//     VkLogicalDevice logicalDevice = context->logicalDevice;
+//     GFXSwapchainInfo * swapchainInfo = &context->swapchainInfo;
+
+//     // Free array of swapchain image handles.
+//     free(context->swapchainImages);
+
+//     // Free swapchain info.
+//     free(swapchainInfo->availableSurfaceFormats);
+//     free(swapchainInfo->availableSurfacePresentModes);
+
+//     // Images created for swapchain will be implicitly destroyed.
+//     // Destroy swapchain before destroying logical-device.
+//     vkDestroySwapchainKHR(logicalDevice, context->swapchain, nullptr);
+
+//     // Graphics-queue will be implicitly destroyed when logical-device is destroyed.
+//     vkDestroyDevice(logicalDevice, nullptr);
+
+//     // Surface must be destroyed before instance.
+//     vkDestroySurfaceKHR(instance, context->surface, nullptr);
+
+// #ifdef PRISM_DEBUG
+//     // Destroy debug callback before destroying instance.
+//     destroyDebugCallback(context);
+// #endif
+
+//     // Physical-device will be implicitly destroyed when instance is destroyed.
+//     vkDestroyInstance(instance, nullptr);
+// }
 
 } // namespace prism

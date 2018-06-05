@@ -1,47 +1,39 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstdint>
-#include "prism/defines.h"
-#include "ctk/data.h"
 
-using ctk::PAIR;
-
-typedef enum VkDebugReportFlagBitsEXT {
-    VK_DEBUG_REPORT_INFORMATION_BIT_EXT = 0x00000001,
-    VK_DEBUG_REPORT_WARNING_BIT_EXT = 0x00000002,
-    VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT = 0x00000004,
-    VK_DEBUG_REPORT_ERROR_BIT_EXT = 0x00000008,
-    VK_DEBUG_REPORT_DEBUG_BIT_EXT = 0x00000010,
-} VkDebugReportFlagBitsEXT;
-
-static const PAIR<VkDebugReportFlagBitsEXT, const char *> DEBUG_FLAG_NAMES[]
+struct GFXQueues
 {
-    PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_INFORMATION_BIT_EXT),
-    PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_WARNING_BIT_EXT),
-    PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT),
-    PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_ERROR_BIT_EXT),
-    PRISM_ENUM_NAME_PAIR(VK_DEBUG_REPORT_DEBUG_BIT_EXT),
+    enum Families
+    {
+        GRAPHICS = 0,
+        PRESENT = 1,
+        COUNT = 2,
+    };
+
+    float queues[COUNT];
+    uint32_t indexes[COUNT];
 };
 
 int main()
 {
-    uint32_t mask = VK_DEBUG_REPORT_DEBUG_BIT_EXT;
-
-    puts("mask contains flags:");
-
-    for(size_t i = 0; i < 5; i++)
+    GFXQueues queueFamilies =
     {
-        const PAIR<VkDebugReportFlagBitsEXT, const char *> * debug_flag_name = DEBUG_FLAG_NAMES + i;
-        const VkDebugReportFlagBitsEXT debug_flag_bit = debug_flag_name->key;
+        { 0.5f, 2.5f },
+        { 0, 1 },
+    };
 
-        printf("    checking %s (%#010x) against mask (%#010x)\n", debug_flag_name->value, debug_flag_bit, mask);
-        printf("        %#010x & %#010x = %#010x\n", debug_flag_bit, mask, debug_flag_bit & mask);
+    GFXQueues::Families test = GFXQueues::GRAPHICS;
 
-        if((debug_flag_bit & mask) == debug_flag_bit)
-        {
-            printf("        %s fits\n", debug_flag_name->value);
-        }
-    }
+    printf(
+        "graphics: %f %i\n",
+        queueFamilies.queues[GFXQueues::GRAPHICS],
+        queueFamilies.indexes[GFXQueues::GRAPHICS]);
+
+    printf(
+        "present: %f %i\n",
+        queueFamilies.queues[GFXQueues::PRESENT],
+        queueFamilies.indexes[GFXQueues::PRESENT]);
 
     return EXIT_SUCCESS;
 }

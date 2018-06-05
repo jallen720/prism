@@ -6,17 +6,14 @@
 #include "ctk/yaml.h"
 
 using prism::SYSContext;
-using prism::sysCreateSurface;
 using prism::sysInit;
+using prism::sysGetSurfaceCreator;
 using prism::sysGetRequiredExtensions;
 using prism::sysCreateWindow;
 using prism::sysRun;
 using prism::sysDestroy;
-using prism::GFXContext;
 using prism::GFXConfig;
-using prism::gfxCreateInstance;
-using prism::gfxLoadDevices;
-using prism::gfxDestroy;
+using prism::gfxInit;
 using ctk::YAML_NODE;
 using ctk::yaml_read_file;
 using ctk::yaml_get_s;
@@ -41,12 +38,11 @@ int main()
     yaml_free(windowConfig);
 
     // Initialize graphics context.
-    GFXContext gfxContext = {};
     GFXConfig config = {};
     sysGetRequiredExtensions(&config);
-    gfxCreateInstance(&gfxContext, &config);
-    sysCreateSurface(&sysContext, &gfxContext);
-    gfxLoadDevices(&gfxContext);
+    config.createSurfaceData = &sysContext;
+    config.createSurface = sysGetSurfaceCreator();
+    gfxInit(&config);
 
     // Run main loop.
     sysRun(&sysContext);
@@ -55,7 +51,7 @@ int main()
     sysDestroy(&sysContext);
 
     // Cleanup graphics context.
-    gfxDestroy(&gfxContext);
+    // gfxDestroy(&gfxContext);
 
     return EXIT_SUCCESS;
 }

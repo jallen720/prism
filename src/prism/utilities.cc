@@ -19,7 +19,7 @@ namespace prism
 #define ANSI_BOLD "\033[1m"
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
-#define ANSI_COLOR_YELLOW "\x1b[33m"
+#define ANSI_COLOR_PURPLE "\x1b[35m"
 
 #define OUTPUT_MESSAGE(OUTPUT) \
     va_list args; \
@@ -106,6 +106,12 @@ void utilErrorExit(const char * subsystem, const char * errorName, const char * 
 void utilLog(const char * subsystem, const char * message, ...)
 {
     fprintf(stdout, ANSI_BOLD ANSI_COLOR_GREEN "%s LOG" ANSI_RESET ": ", subsystem ? subsystem : "PRISM");
+    OUTPUT_MESSAGE(stdout)
+}
+
+void utilWarning(const char * subsystem, const char * message, ...)
+{
+    fprintf(stdout, ANSI_BOLD ANSI_COLOR_PURPLE "%s WARNING" ANSI_RESET ": ", subsystem ? subsystem : "PRISM");
     OUTPUT_MESSAGE(stdout)
 }
 

@@ -156,12 +156,8 @@ static void logInstanceComponentNames(const InstanceComponentInfo<ComponentProps
     }
 }
 
-static void createDebugCallback(GFXContext * context)
+static VkDebugReportCallbackEXT createDebugCallback(VkInstance instance)
 {
-    PRISM_ASSERT(context != nullptr);
-    PRISM_ASSERT(context->instance != VK_NULL_HANDLE);
-    VkInstance instance = context->instance;
-
     // Ensure debug callback creation function exists.
     auto createDebugCallback =
         (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
@@ -198,35 +194,38 @@ static void createDebugCallback(GFXContext * context)
     debugCallbackCreateInfo.pUserData = nullptr;
 
     // Create debug callback.
-    VkResult result = createDebugCallback(instance, &debugCallbackCreateInfo, nullptr, &context->debugCallback);
+    VkDebugReportCallbackEXT debugCallbackHandle;
+    VkResult result = createDebugCallback(instance, &debugCallbackCreateInfo, nullptr, &debugCallbackHandle);
 
     if(result != VK_SUCCESS)
     {
         utilErrorExit("VULKAN", utilVkResultName(result), "failed to create debug callback");
     }
+
+    return debugCallbackHandle;
 }
 
-static void destroyDebugCallback(GFXContext * context)
-{
-    PRISM_ASSERT(context != nullptr);
-    PRISM_ASSERT(context->instance != VK_NULL_HANDLE);
-    PRISM_ASSERT(context->debugCallback != VK_NULL_HANDLE);
-    VkInstance instance = context->instance;
+// static void destroyDebugCallback(GFXContext * context)
+// {
+//     PRISM_ASSERT(context != nullptr);
+//     PRISM_ASSERT(context->instance != VK_NULL_HANDLE);
+//     PRISM_ASSERT(context->debugCallback != VK_NULL_HANDLE);
+//     VkInstance instance = context->instance;
 
-    // Destroy debug callback.
-    auto destroyDebugCallback =
-        (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
+//     // Destroy debug callback.
+//     auto destroyDebugCallback =
+//         (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
 
-    if(destroyDebugCallback == nullptr)
-    {
-        utilErrorExit(
-            "VULKAN",
-            utilVkResultName(VK_ERROR_EXTENSION_NOT_PRESENT),
-            "extension for destroying debug callback is not available\n");
-    }
+//     if(destroyDebugCallback == nullptr)
+//     {
+//         utilErrorExit(
+//             "VULKAN",
+//             utilVkResultName(VK_ERROR_EXTENSION_NOT_PRESENT),
+//             "extension for destroying debug callback is not available\n");
+//     }
 
-    destroyDebugCallback(instance, context->debugCallback, nullptr);
-}
+//     destroyDebugCallback(instance, context->debugCallback, nullptr);
+// }
 
 static void logPhysicalDeviceSurfaceCapabilities(const VkSurfaceCapabilitiesKHR * surfaceCapabilities)
 {
