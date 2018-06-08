@@ -776,13 +776,7 @@ createSwapchainConfig(const SwapchainInfo * swapchainInfo, SwapchainConfig * swa
     swapchainConfig->currentTransform = surfaceCapabilities->currentTransform;
 
 #ifdef PRISM_DEBUG
-    logSelectedSwapchainConfig(
-        &selectedSurfaceFormat,
-        swapchainInfo->availableSurfacePresentModeCount,
-        availableSurfacePresentModes,
-        selectedSurfacePresentMode,
-        &selectedExtent,
-        selectedImageCount);
+    logSelectedSwapchainConfig(swapchainConfig, swapchainInfo);
 #endif
 }
 

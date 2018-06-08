@@ -329,10 +329,7 @@ logQueueFamilies(uint32_t queueFamilyCount, VkQueueFamilyProperties * queueFamil
 }
 
 static void
-logSelectedSwapchainConfig(const VkSurfaceFormatKHR * selectedSurfaceFormat, uint32_t availableSurfacePresentModeCount,
-                           const VkPresentModeKHR * availableSurfacePresentModes,
-                           VkPresentModeKHR selectedSurfacePresentMode, const VkExtent2D * selectedExtent,
-                           uint32_t selectedImageCount)
+logSelectedSwapchainConfig(const SwapchainConfig * swapchainConfig, const SwapchainInfo * swapchainInfo)
 {
     static const char * SURFACE_PRESENT_MODE_NAMES[]
     {
@@ -614,7 +611,8 @@ logSelectedSwapchainConfig(const VkSurfaceFormatKHR * selectedSurfaceFormat, uin
         "VK_COLOR_SPACE_SRGB_NONLINEAR_KHR",
     };
 
-    VkFormat format = selectedSurfaceFormat->format;
+    const VkSurfaceFormatKHR * surfaceFormat = &swapchainConfig->surfaceFormat;
+    VkFormat format = surfaceFormat->format;
     const SurfaceFormatName * surfaceFormatName = nullptr;
 
     for(size_t i = 0; i < SURFACE_FORMAT_NAME_COUNT; i++)
@@ -635,21 +633,21 @@ logSelectedSwapchainConfig(const VkSurfaceFormatKHR * selectedSurfaceFormat, uin
     logDivider();
     utilLog("VULKAN", "selected surface format:\n");
     utilLog("VULKAN", "    format:     %s\n", surfaceFormatName->value);
-    utilLog("VULKAN", "    colorSpace: %s\n",
-        SURFACE_FORMAT_COLOR_SPACE_NAMES[(size_t)selectedSurfaceFormat->colorSpace]);
-
+    utilLog("VULKAN", "    colorSpace: %s\n", SURFACE_FORMAT_COLOR_SPACE_NAMES[(size_t)surfaceFormat->colorSpace]);
     utilLog("VULKAN", "available surface present modes:\n");
+    const VkPresentModeKHR * availableSurfacePresentModes = swapchainInfo->availableSurfacePresentModes;
 
-    for(size_t i = 0; i < availableSurfacePresentModeCount; i++)
+    for(size_t i = 0; i < swapchainInfo->availableSurfacePresentModeCount; i++)
     {
         utilLog("VULKAN", "    %s\n", SURFACE_PRESENT_MODE_NAMES[(size_t)availableSurfacePresentModes[i]]);
     }
 
     utilLog("VULKAN", "selected surface present mode: %s\n",
-        SURFACE_PRESENT_MODE_NAMES[(size_t)selectedSurfacePresentMode]);
+        SURFACE_PRESENT_MODE_NAMES[(size_t)swapchainConfig->surfacePresentMode]);
 
+    const VkExtent2D * extent = &swapchainConfig->extent;
     utilLog("VULKAN", "selected extent:\n");
-    utilLog("VULKAN", "    width:  %i\n", selectedExtent->width);
-    utilLog("VULKAN", "    height: %i\n", selectedExtent->height);
-    utilLog("VULKAN", "selected image count: %u\n", selectedImageCount);
+    utilLog("VULKAN", "    width:  %i\n", extent->width);
+    utilLog("VULKAN", "    height: %i\n", extent->height);
+    utilLog("VULKAN", "selected image count: %u\n", swapchainConfig->imageCount);
 }
