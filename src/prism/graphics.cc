@@ -18,7 +18,7 @@ namespace prism
 // Macros
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#define QUEUE_FAMILY_INDEX(FAMILY) (size_t)Queues::Families::FAMILY
+#define QUEUE_FAMILY_INDEX(FAMILY) (size_t)QueueInfo::Families::FAMILY
 #define QUEUE_FAMILY_COUNT QUEUE_FAMILY_INDEX(COUNT)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -65,7 +65,7 @@ struct SwapchainConfig
     VkSurfaceTransformFlagBitsKHR currentTransform;
 };
 
-struct Queues
+struct QueueInfo
 {
     enum class Families
     {
@@ -412,7 +412,7 @@ createPhysicalDevice(VkInstance instance, VkSurfaceKHR surface, SwapchainInfo * 
             availableSurfacePresentModeCount,
             *availableSurfacePresentModes);
 
-        // Physical-device meets all requirements and will be selected as the physical-device for the context.
+        // Physical-device meets all requirements.
         physicalDevice = availablePhysicalDevice;
         break;
     }
@@ -429,7 +429,7 @@ createPhysicalDevice(VkInstance instance, VkSurfaceKHR surface, SwapchainInfo * 
 }
 
 static void
-getQueueFamilyIndexes(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, Queues * queues)
+getQueueFamilyIndexes(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, QueueInfo * queueInfo)
 {
     // Ensure queue-families can be found.
     uint32_t queueFamilyCount = 0;
@@ -496,8 +496,8 @@ getQueueFamilyIndexes(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, Que
         utilErrorExit("VULKAN", nullptr, "failed to find present queue-family for selected physical-device\n");
     }
 
-    queues->familyIndexes[QUEUE_FAMILY_INDEX(GRAPHICS)] = graphicsQueueFamilyIndex;
-    queues->familyIndexes[QUEUE_FAMILY_INDEX(PRESENT)] = presentQueueFamilyIndex;
+    queueInfo->familyIndexes[QUEUE_FAMILY_INDEX(GRAPHICS)] = graphicsQueueFamilyIndex;
+    queueInfo->familyIndexes[QUEUE_FAMILY_INDEX(PRESENT)] = presentQueueFamilyIndex;
 
 #ifdef PRISM_DEBUG
     logQueueFamilies(queueFamilyCount, queueFamilyPropsArray);
@@ -508,11 +508,11 @@ getQueueFamilyIndexes(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, Que
 }
 
 static VkLogicalDevice
-createLogicalDevice(VkPhysicalDevice physicalDevice, Queues * queues)
+createLogicalDevice(VkPhysicalDevice physicalDevice, const QueueInfo * queueInfo)
 {
-    // Initialize queue creation info for all queues to be used with the logical-device.
+    // Initialize queue creation info for all queueInfo to be used with the logical-device.
     static const uint32_t QUEUE_FAMILY_QUEUE_COUNT = 1; // More than 1 queue is unnecessary per queue-family.
-    static const float QUEUE_FAMILY_QUEUE_PRIORITY = 1.0F;
+    static const float QUEUE_FAMILY_QUEUE_PRIORITY = 1.0f;
 
     auto logicalDeviceQueueCreateInfos =
         (VkDeviceQueueCreateInfo *)malloc(sizeof(VkDeviceQueueCreateInfo) * QUEUE_FAMILY_COUNT);
@@ -523,7 +523,7 @@ createLogicalDevice(VkPhysicalDevice physicalDevice, Queues * queues)
     for(size_t queueIndex = 0; queueIndex < QUEUE_FAMILY_COUNT; queueIndex++)
     {
         bool queueFamilyAlreadyUsed = false;
-        uint32_t queueFamilyIndex = queues->familyIndexes[queueIndex];
+        uint32_t queueFamilyIndex = queueInfo->familyIndexes[queueIndex];
 
         // Ensure creation info for another queue-family with the same index doesn't exist.
         for(size_t logicalDeviceQueueCreateInfoIndex = 0;
@@ -671,15 +671,19 @@ createLogicalDevice(VkPhysicalDevice physicalDevice, Queues * queues)
     // Cleanup
     free(logicalDeviceQueueCreateInfos);
 
+    return logicalDevice;
+}
+
+static void
+getQueues(VkLogicalDevice logicalDevice, QueueInfo * queueInfo)
+{
     // Get queues for each queue-family from logical-device.
     static const uint32_t QUEUE_INDEX = 0;
 
-    for(size_t queueFamily = 0; queueFamily < QUEUE_FAMILY_COUNT; queueFamily++)
+    for(size_t i = 0; i < QUEUE_FAMILY_COUNT; i++)
     {
-        vkGetDeviceQueue(logicalDevice, queues->familyIndexes[queueFamily], QUEUE_INDEX, queues->queues + queueFamily);
+        vkGetDeviceQueue(logicalDevice, queueInfo->familyIndexes[i], QUEUE_INDEX, queueInfo->queues + i);
     }
-
-    return logicalDevice;
 }
 
 static void
@@ -783,7 +787,7 @@ createSwapchainConfig(const SwapchainInfo * swapchainInfo, SwapchainConfig * swa
 }
 
 static VkSwapchainKHR
-createSwapchain(VkSurfaceKHR surface, VkLogicalDevice logicalDevice, const Queues * queues,
+createSwapchain(VkSurfaceKHR surface, VkLogicalDevice logicalDevice, const QueueInfo * queueInfo,
                 const SwapchainConfig * swapchainConfig)
 {
     // Initialize swapchain creation info.
@@ -822,11 +826,11 @@ createSwapchain(VkSurfaceKHR surface, VkLogicalDevice logicalDevice, const Queue
     swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
     // If queue-family indexes are unique, use concurrent sharing mode. Otherwise, use exclusive sharing mode.
-    if(queues->familyIndexes[QUEUE_FAMILY_INDEX(GRAPHICS)] != queues->familyIndexes[QUEUE_FAMILY_INDEX(PRESENT)])
+    if(queueInfo->familyIndexes[QUEUE_FAMILY_INDEX(GRAPHICS)] != queueInfo->familyIndexes[QUEUE_FAMILY_INDEX(PRESENT)])
     {
         swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         swapchainCreateInfo.queueFamilyIndexCount = QUEUE_FAMILY_COUNT;
-        swapchainCreateInfo.pQueueFamilyIndices = queues->familyIndexes;
+        swapchainCreateInfo.pQueueFamilyIndices = queueInfo->familyIndexes;
     }
     else
     {
@@ -854,7 +858,7 @@ createSwapchain(VkSurfaceKHR surface, VkLogicalDevice logicalDevice, const Queue
 }
 
 void
-loadSwapchainImages(VkLogicalDevice logicalDevice, VkSwapchainKHR swapchain, SwapchainImages * swapchainImages)
+getSwapchainImages(VkLogicalDevice logicalDevice, VkSwapchainKHR swapchain, SwapchainImages * swapchainImages)
 {
     // Get swapchain images.
     uint32_t count = 0;
@@ -880,7 +884,7 @@ void
 gfxInit(GFXConfig * config)
 {
     PRISM_ASSERT(config != nullptr);
-    Queues queues = {};
+    QueueInfo queueInfo = {};
     SwapchainInfo swapchainInfo = {};
     SwapchainConfig swapchainConfig = {};
     SwapchainImages swapchainImages = {};
@@ -897,12 +901,17 @@ gfxInit(GFXConfig * config)
 #endif
 
     VkSurfaceKHR surface = config->createSurfaceFn(config->createSurfaceFnData, instance);
+
+    // Create devices.
     VkPhysicalDevice physicalDevice = createPhysicalDevice(instance, surface, &swapchainInfo);
-    getQueueFamilyIndexes(physicalDevice, surface, &queues);
-    VkLogicalDevice logicalDevice = createLogicalDevice(physicalDevice, &queues);
+    getQueueFamilyIndexes(physicalDevice, surface, &queueInfo);
+    VkLogicalDevice logicalDevice = createLogicalDevice(physicalDevice, &queueInfo);
+    getQueues(logicalDevice, &queueInfo);
+
+    // Create swapchain.
     createSwapchainConfig(&swapchainInfo, &swapchainConfig);
-    VkSwapchainKHR swapchain = createSwapchain(surface, logicalDevice, &queues, &swapchainConfig);
-    loadSwapchainImages(logicalDevice, swapchain, &swapchainImages);
+    VkSwapchainKHR swapchain = createSwapchain(surface, logicalDevice, &queueInfo, &swapchainConfig);
+    getSwapchainImages(logicalDevice, swapchain, &swapchainImages);
 }
 
 // void
