@@ -20,7 +20,8 @@ using ctk::yaml_get_s;
 using ctk::yaml_get_i;
 using ctk::yaml_free;
 
-int main()
+int
+main()
 {
     // Initialize system module.
     sysInit();

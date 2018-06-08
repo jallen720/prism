@@ -164,6 +164,100 @@ validateInstanceComponentInfo(const InstanceComponentInfo<ComponentProps> * comp
     }
 }
 
+static VkInstance
+createInstance(GFXConfig * config)
+{
+    PRISM_ASSERT(config != nullptr);
+
+    // Initialize extensionInfo with requested extension names and available extension properties.
+    InstanceComponentInfo<VkExtensionProperties> extensionInfo = {};
+    extensionInfo.type = "extension";
+    extensionInfo.requestedNames = config->requestedExtensionNames;
+    extensionInfo.requestedCount = config->requestedExtensionCount;
+    extensionInfo.propsNameAccessor = extensionPropsNameAccessor;
+    uint32_t availableExtensionCount = 0;
+    vkEnumerateInstanceExtensionProperties(nullptr, &availableExtensionCount, nullptr);
+    allocAvailableProps(&extensionInfo, availableExtensionCount);
+    vkEnumerateInstanceExtensionProperties(nullptr, &availableExtensionCount, extensionInfo.availableProps);
+
+    // Initialize layerInfo with requested layer names and available layer properties.
+    InstanceComponentInfo<VkLayerProperties> layerInfo = {};
+    layerInfo.type = "layer";
+    layerInfo.requestedNames = config->requestedLayerNames;
+    layerInfo.requestedCount = config->requestedLayerCount;
+    layerInfo.propsNameAccessor = layerPropsNameAccessor;
+    uint32_t availableLayerCount = 0;
+    vkEnumerateInstanceLayerProperties(&availableLayerCount, nullptr);
+    allocAvailableProps(&layerInfo, availableLayerCount);
+    vkEnumerateInstanceLayerProperties(&availableLayerCount, layerInfo.availableProps);
+
+// #ifdef PRISM_DEBUG
+//     logInstanceComponentNames(&extensionInfo);
+//     logInstanceComponentNames(&layerInfo);
+// #endif
+
+    // Validate requested extensions and layers are available.
+    validateInstanceComponentInfo(&extensionInfo);
+    validateInstanceComponentInfo(&layerInfo);
+
+    // Initialize application info.
+
+    // typedef struct VkApplicationInfo {
+    //     VkStructureType    sType;
+    //     const void*        pNext;
+    //     const char*        pApplicationName;
+    //     uint32_t           applicationVersion;
+    //     const char*        pEngineName;
+    //     uint32_t           engineVersion;
+    //     uint32_t           apiVersion;
+    // } VkApplicationInfo;
+    VkApplicationInfo appInfo = {};
+    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    appInfo.pNext = nullptr;
+    appInfo.pApplicationName = "prism test";
+    appInfo.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
+    appInfo.pEngineName = "prism";
+    appInfo.engineVersion = VK_MAKE_VERSION(0, 1, 0);
+    appInfo.apiVersion = VK_API_VERSION_1_1;
+
+    // Initialize instance creation info.
+
+    // typedef struct VkInstanceCreateInfo {
+    //     VkStructureType             sType;
+    //     const void*                 pNext;
+    //     VkInstanceCreateFlags       flags;
+    //     const VkApplicationInfo*    pApplicationInfo;
+    //     uint32_t                    enabledLayerCount;
+    //     const char* const*          ppEnabledLayerNames;
+    //     uint32_t                    enabledExtensionCount;
+    //     const char* const*          ppEnabledExtensionNames;
+    // } VkInstanceCreateInfo;
+    VkInstanceCreateInfo instanceCreateInfo = {};
+    instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    instanceCreateInfo.pNext = nullptr;
+    instanceCreateInfo.flags = 0; // Reserved for future use.
+    instanceCreateInfo.pApplicationInfo = &appInfo;
+    instanceCreateInfo.enabledLayerCount = layerInfo.requestedCount;
+    instanceCreateInfo.ppEnabledLayerNames = layerInfo.requestedNames;
+    instanceCreateInfo.enabledExtensionCount = extensionInfo.requestedCount;
+    instanceCreateInfo.ppEnabledExtensionNames = extensionInfo.requestedNames;
+
+    // Create Vulkan instance.
+    VkInstance instance = VK_NULL_HANDLE;
+    VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
+
+    if(result != VK_SUCCESS)
+    {
+        utilErrorExit("VULKAN", utilVkResultName(result), "failed to create instance\n");
+    }
+
+    // Cleanup
+    freeAvailableProps(&extensionInfo);
+    freeAvailableProps(&layerInfo);
+
+    return instance;
+}
+
 static VkPhysicalDevice
 createPhysicalDevice(VkInstance instance, VkSurfaceKHR surface, GFXSwapchainInfo * swapchainInfo)
 {
@@ -666,7 +760,7 @@ createSwapchain(VkSurfaceKHR surface, VkLogicalDevice logicalDevice, const GFXQu
     // // Store selected surface format and extent for later use.
     // ?->swapchainImageFormat = selectedSurfaceFormat.format;
     // ?->swapchainImageExtent = selectedExtent;
-    utilWarning("VULKAN", "reimplement storing swapchain image format and extent for later user\n");
+    utilWarning("VULKAN", "reimplement storing swapchain image format and extent for later use\n");
 
 #ifdef PRISM_DEBUG
     logSelectedSwapchainConfig(
@@ -755,100 +849,6 @@ createSwapchain(VkSurfaceKHR surface, VkLogicalDevice logicalDevice, const GFXQu
     vkGetSwapchainImagesKHR(logicalDevice, swapchain, swapchainImageCount, *images);
 
     return swapchain;
-}
-
-static VkInstance
-createInstance(GFXConfig * config)
-{
-    PRISM_ASSERT(config != nullptr);
-
-    // Initialize extensionInfo with requested extension names and available extension properties.
-    InstanceComponentInfo<VkExtensionProperties> extensionInfo = {};
-    extensionInfo.type = "extension";
-    extensionInfo.requestedNames = config->requestedExtensionNames;
-    extensionInfo.requestedCount = config->requestedExtensionCount;
-    extensionInfo.propsNameAccessor = extensionPropsNameAccessor;
-    uint32_t availableExtensionCount = 0;
-    vkEnumerateInstanceExtensionProperties(nullptr, &availableExtensionCount, nullptr);
-    allocAvailableProps(&extensionInfo, availableExtensionCount);
-    vkEnumerateInstanceExtensionProperties(nullptr, &availableExtensionCount, extensionInfo.availableProps);
-
-    // Initialize layerInfo with requested layer names and available layer properties.
-    InstanceComponentInfo<VkLayerProperties> layerInfo = {};
-    layerInfo.type = "layer";
-    layerInfo.requestedNames = config->requestedLayerNames;
-    layerInfo.requestedCount = config->requestedLayerCount;
-    layerInfo.propsNameAccessor = layerPropsNameAccessor;
-    uint32_t availableLayerCount = 0;
-    vkEnumerateInstanceLayerProperties(&availableLayerCount, nullptr);
-    allocAvailableProps(&layerInfo, availableLayerCount);
-    vkEnumerateInstanceLayerProperties(&availableLayerCount, layerInfo.availableProps);
-
-// #ifdef PRISM_DEBUG
-//     logInstanceComponentNames(&extensionInfo);
-//     logInstanceComponentNames(&layerInfo);
-// #endif
-
-    // Validate requested extensions and layers are available.
-    validateInstanceComponentInfo(&extensionInfo);
-    validateInstanceComponentInfo(&layerInfo);
-
-    // Initialize application info.
-
-    // typedef struct VkApplicationInfo {
-    //     VkStructureType    sType;
-    //     const void*        pNext;
-    //     const char*        pApplicationName;
-    //     uint32_t           applicationVersion;
-    //     const char*        pEngineName;
-    //     uint32_t           engineVersion;
-    //     uint32_t           apiVersion;
-    // } VkApplicationInfo;
-    VkApplicationInfo appInfo = {};
-    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pNext = nullptr;
-    appInfo.pApplicationName = "prism test";
-    appInfo.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
-    appInfo.pEngineName = "prism";
-    appInfo.engineVersion = VK_MAKE_VERSION(0, 1, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_1;
-
-    // Initialize instance creation info.
-
-    // typedef struct VkInstanceCreateInfo {
-    //     VkStructureType             sType;
-    //     const void*                 pNext;
-    //     VkInstanceCreateFlags       flags;
-    //     const VkApplicationInfo*    pApplicationInfo;
-    //     uint32_t                    enabledLayerCount;
-    //     const char* const*          ppEnabledLayerNames;
-    //     uint32_t                    enabledExtensionCount;
-    //     const char* const*          ppEnabledExtensionNames;
-    // } VkInstanceCreateInfo;
-    VkInstanceCreateInfo instanceCreateInfo = {};
-    instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    instanceCreateInfo.pNext = nullptr;
-    instanceCreateInfo.flags = 0; // Reserved for future use.
-    instanceCreateInfo.pApplicationInfo = &appInfo;
-    instanceCreateInfo.enabledLayerCount = layerInfo.requestedCount;
-    instanceCreateInfo.ppEnabledLayerNames = layerInfo.requestedNames;
-    instanceCreateInfo.enabledExtensionCount = extensionInfo.requestedCount;
-    instanceCreateInfo.ppEnabledExtensionNames = extensionInfo.requestedNames;
-
-    // Create Vulkan instance.
-    VkInstance instance = VK_NULL_HANDLE;
-    VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
-
-    if(result != VK_SUCCESS)
-    {
-        utilErrorExit("VULKAN", utilVkResultName(result), "failed to create instance\n");
-    }
-
-    // Cleanup
-    freeAvailableProps(&extensionInfo);
-    freeAvailableProps(&layerInfo);
-
-    return instance;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
