@@ -681,7 +681,7 @@ createLogicalDevice(VkPhysicalDevice physicalDevice, GFXQueues * queues)
 
 static VkSwapchainKHR
 createSwapchain(VkSurfaceKHR surface, VkLogicalDevice logicalDevice, const GFXQueues * queues,
-                const GFXSwapchainInfo * swapchainInfo, GFXSwapchainImages * swapchainImages)
+                const GFXSwapchainInfo * swapchainInfo)
 {
     // Select best surface format for swapchain.
     static const VkSurfaceFormatKHR PREFERRED_SURFACE_FORMAT
@@ -835,20 +835,25 @@ createSwapchain(VkSurfaceKHR surface, VkLogicalDevice logicalDevice, const GFXQu
         utilErrorExit("VULKAN", utilVkResultName(result), "failed to create swapchain\n");
     }
 
-    // Get swapchain images.
-    uint32_t * swapchainImageCount = &swapchainImages->count;
-    vkGetSwapchainImagesKHR(logicalDevice, swapchain, swapchainImageCount, nullptr);
+    return swapchain;
+}
 
-    if(*swapchainImageCount == 0)
+void
+loadSwapchainImages(VkLogicalDevice logicalDevice, VkSwapchainKHR swapchain, GFXSwapchainImages * swapchainImages)
+{
+    // Get swapchain images.
+    uint32_t count = 0;
+    vkGetSwapchainImagesKHR(logicalDevice, swapchain, &count, nullptr);
+
+    if(count == 0)
     {
         utilErrorExit("VULKAN", nullptr, "failed to get swapchain images\n");
     }
 
-    VkImage ** images = &swapchainImages->images;
-    *images = (VkImage *)malloc(sizeof(VkImage) * *swapchainImageCount);
-    vkGetSwapchainImagesKHR(logicalDevice, swapchain, swapchainImageCount, *images);
-
-    return swapchain;
+    auto images = (VkImage *)malloc(sizeof(VkImage) * count);
+    vkGetSwapchainImagesKHR(logicalDevice, swapchain, &count, images);
+    swapchainImages->count = count;
+    swapchainImages->images = images;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -879,8 +884,8 @@ gfxInit(GFXConfig * config)
     VkPhysicalDevice physicalDevice = createPhysicalDevice(instance, surface, &swapchainInfo);
     getQueueFamilyIndexes(physicalDevice, surface, &queues);
     VkLogicalDevice logicalDevice = createLogicalDevice(physicalDevice, &queues);
-
-    VkSwapchainKHR swapchain = createSwapchain(surface, logicalDevice, &queues, &swapchainInfo, &swapchainImages);
+    VkSwapchainKHR swapchain = createSwapchain(surface, logicalDevice, &queues, &swapchainInfo);
+    loadSwapchainImages(logicalDevice, swapchain, &swapchainImages);
 }
 
 // void
