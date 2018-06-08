@@ -56,6 +56,15 @@ struct SwapchainInfo
     uint32_t availableSurfacePresentModeCount;
 };
 
+struct SwapchainConfig
+{
+    VkSurfaceFormatKHR surfaceFormat;
+    VkPresentModeKHR surfacePresentMode;
+    VkExtent2D extent;
+    uint32_t imageCount;
+    VkSurfaceTransformFlagBitsKHR currentTransform;
+};
+
 struct Queues
 {
     enum class Families
@@ -673,9 +682,8 @@ createLogicalDevice(VkPhysicalDevice physicalDevice, Queues * queues)
     return logicalDevice;
 }
 
-static VkSwapchainKHR
-createSwapchain(VkSurfaceKHR surface, VkLogicalDevice logicalDevice, const Queues * queues,
-                const SwapchainInfo * swapchainInfo)
+static void
+createSwapchainConfig(const SwapchainInfo * swapchainInfo, SwapchainConfig * swapchainConfig)
 {
     // Select best surface format for swapchain.
     static const VkSurfaceFormatKHR PREFERRED_SURFACE_FORMAT
@@ -735,6 +743,7 @@ createSwapchain(VkSurfaceKHR surface, VkLogicalDevice logicalDevice, const Queue
         }
     }
 
+
     // Select best extent for swapchain.
     const VkSurfaceCapabilitiesKHR * surfaceCapabilities = &swapchainInfo->surfaceCapabilities;
     VkExtent2D selectedExtent = surfaceCapabilities->currentExtent;
@@ -756,6 +765,12 @@ createSwapchain(VkSurfaceKHR surface, VkLogicalDevice logicalDevice, const Queue
     // ?->swapchainImageExtent = selectedExtent;
     utilWarning("VULKAN", "reimplement storing swapchain image format and extent for later use\n");
 
+    swapchainConfig->surfaceFormat = selectedSurfaceFormat;
+    swapchainConfig->surfacePresentMode = selectedSurfacePresentMode;
+    swapchainConfig->extent = selectedExtent;
+    swapchainConfig->imageCount = selectedImageCount;
+    swapchainConfig->currentTransform = surfaceCapabilities->currentTransform;
+
 #ifdef PRISM_DEBUG
     logSelectedSwapchainConfig(
         &selectedSurfaceFormat,
@@ -765,8 +780,14 @@ createSwapchain(VkSurfaceKHR surface, VkLogicalDevice logicalDevice, const Queue
         &selectedExtent,
         selectedImageCount);
 #endif
+}
 
+static VkSwapchainKHR
+createSwapchain(VkSurfaceKHR surface, VkLogicalDevice logicalDevice, const Queues * queues,
+                const SwapchainConfig * swapchainConfig)
+{
     // Initialize swapchain creation info.
+    const VkSurfaceFormatKHR * surfaceFormat = &swapchainConfig->surfaceFormat;
 
     // typedef struct VkSwapchainCreateInfoKHR {
     //     VkStructureType                  sType;
@@ -793,10 +814,10 @@ createSwapchain(VkSurfaceKHR surface, VkLogicalDevice logicalDevice, const Queue
     swapchainCreateInfo.pNext = nullptr;
     swapchainCreateInfo.flags = 0; // Reserved for future use.
     swapchainCreateInfo.surface = surface;
-    swapchainCreateInfo.minImageCount = selectedImageCount;
-    swapchainCreateInfo.imageFormat = selectedSurfaceFormat.format;
-    swapchainCreateInfo.imageColorSpace = selectedSurfaceFormat.colorSpace;
-    swapchainCreateInfo.imageExtent = selectedExtent;
+    swapchainCreateInfo.minImageCount = swapchainConfig->imageCount;
+    swapchainCreateInfo.imageFormat = surfaceFormat->format;
+    swapchainCreateInfo.imageColorSpace = surfaceFormat->colorSpace;
+    swapchainCreateInfo.imageExtent = swapchainConfig->extent;
     swapchainCreateInfo.imageArrayLayers = 1; // Always 1 for non-stereoscopic-3D applications.
     swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
@@ -814,9 +835,9 @@ createSwapchain(VkSurfaceKHR surface, VkLogicalDevice logicalDevice, const Queue
         swapchainCreateInfo.pQueueFamilyIndices = nullptr;
     }
 
-    swapchainCreateInfo.preTransform = surfaceCapabilities->currentTransform;
+    swapchainCreateInfo.preTransform = swapchainConfig->currentTransform;
     swapchainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    swapchainCreateInfo.presentMode = selectedSurfacePresentMode;
+    swapchainCreateInfo.presentMode = swapchainConfig->surfacePresentMode;
     swapchainCreateInfo.clipped = VK_TRUE; // Ignore obscured pixels for better performance.
     swapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 
@@ -859,8 +880,9 @@ void
 gfxInit(GFXConfig * config)
 {
     PRISM_ASSERT(config != nullptr);
-    SwapchainInfo swapchainInfo = {};
     Queues queues = {};
+    SwapchainInfo swapchainInfo = {};
+    SwapchainConfig swapchainConfig = {};
     SwapchainImages swapchainImages = {};
 
 #ifdef PRISM_DEBUG
@@ -878,7 +900,8 @@ gfxInit(GFXConfig * config)
     VkPhysicalDevice physicalDevice = createPhysicalDevice(instance, surface, &swapchainInfo);
     getQueueFamilyIndexes(physicalDevice, surface, &queues);
     VkLogicalDevice logicalDevice = createLogicalDevice(physicalDevice, &queues);
-    VkSwapchainKHR swapchain = createSwapchain(surface, logicalDevice, &queues, &swapchainInfo);
+    createSwapchainConfig(&swapchainInfo, &swapchainConfig);
+    VkSwapchainKHR swapchain = createSwapchain(surface, logicalDevice, &queues, &swapchainConfig);
     loadSwapchainImages(logicalDevice, swapchain, &swapchainImages);
 }
 
