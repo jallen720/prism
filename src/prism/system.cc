@@ -86,8 +86,8 @@ sysGetRequiredExtensions(GFXConfig * gfxConfig)
     gfxConfig->requestedExtensionNames = glfwGetRequiredInstanceExtensions(&gfxConfig->requestedExtensionCount);
 }
 
-SurfaceCreator
-sysGetSurfaceCreator()
+GFXCreateSurfaceFn
+sysGetCreateSurfaceFn()
 {
     return createSurface;
 }

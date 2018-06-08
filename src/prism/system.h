@@ -34,8 +34,8 @@ sysCreateWindow(SYSContext * context, int width, int height, const char * title)
 void
 sysGetRequiredExtensions(GFXConfig * gfxConfig);
 
-SurfaceCreator
-sysGetSurfaceCreator();
+GFXCreateSurfaceFn
+sysGetCreateSurfaceFn();
 
 void
 sysRun(SYSContext * context);

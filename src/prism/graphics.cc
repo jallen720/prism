@@ -18,7 +18,7 @@ namespace prism
 // Macros
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#define QUEUE_FAMILY_INDEX(FAMILY) (size_t)GFXQueues::Families::FAMILY
+#define QUEUE_FAMILY_INDEX(FAMILY) (size_t)Queues::Families::FAMILY
 #define QUEUE_FAMILY_COUNT QUEUE_FAMILY_INDEX(COUNT)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -47,7 +47,7 @@ struct InstanceComponentInfo
     ComponentPropsNameAccessor<ComponentProps> propsNameAccessor;
 };
 
-struct GFXSwapchainInfo
+struct SwapchainInfo
 {
     VkSurfaceCapabilitiesKHR surfaceCapabilities;
     VkSurfaceFormatKHR * availableSurfaceFormats;
@@ -56,13 +56,7 @@ struct GFXSwapchainInfo
     uint32_t availableSurfacePresentModeCount;
 };
 
-struct GFXQueueFamily
-{
-    uint32_t index;
-    VkQueue queue;
-};
-
-struct GFXQueues
+struct Queues
 {
     enum class Families
     {
@@ -75,7 +69,7 @@ struct GFXQueues
     uint32_t familyIndexes[(size_t)Families::COUNT];
 };
 
-struct GFXSwapchainImages
+struct SwapchainImages
 {
     VkImage * images;
     uint32_t count;
@@ -259,7 +253,7 @@ createInstance(GFXConfig * config)
 }
 
 static VkPhysicalDevice
-createPhysicalDevice(VkInstance instance, VkSurfaceKHR surface, GFXSwapchainInfo * swapchainInfo)
+createPhysicalDevice(VkInstance instance, VkSurfaceKHR surface, SwapchainInfo * swapchainInfo)
 {
     // Query available physical-devices.
     uint32_t availablePhysicalDeviceCount = 0;
@@ -426,7 +420,7 @@ createPhysicalDevice(VkInstance instance, VkSurfaceKHR surface, GFXSwapchainInfo
 }
 
 static void
-getQueueFamilyIndexes(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, GFXQueues * queues)
+getQueueFamilyIndexes(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, Queues * queues)
 {
     // Ensure queue-families can be found.
     uint32_t queueFamilyCount = 0;
@@ -505,7 +499,7 @@ getQueueFamilyIndexes(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, GFX
 }
 
 static VkLogicalDevice
-createLogicalDevice(VkPhysicalDevice physicalDevice, GFXQueues * queues)
+createLogicalDevice(VkPhysicalDevice physicalDevice, Queues * queues)
 {
     // Initialize queue creation info for all queues to be used with the logical-device.
     static const uint32_t QUEUE_FAMILY_QUEUE_COUNT = 1; // More than 1 queue is unnecessary per queue-family.
@@ -680,8 +674,8 @@ createLogicalDevice(VkPhysicalDevice physicalDevice, GFXQueues * queues)
 }
 
 static VkSwapchainKHR
-createSwapchain(VkSurfaceKHR surface, VkLogicalDevice logicalDevice, const GFXQueues * queues,
-                const GFXSwapchainInfo * swapchainInfo)
+createSwapchain(VkSurfaceKHR surface, VkLogicalDevice logicalDevice, const Queues * queues,
+                const SwapchainInfo * swapchainInfo)
 {
     // Select best surface format for swapchain.
     static const VkSurfaceFormatKHR PREFERRED_SURFACE_FORMAT
@@ -839,7 +833,7 @@ createSwapchain(VkSurfaceKHR surface, VkLogicalDevice logicalDevice, const GFXQu
 }
 
 void
-loadSwapchainImages(VkLogicalDevice logicalDevice, VkSwapchainKHR swapchain, GFXSwapchainImages * swapchainImages)
+loadSwapchainImages(VkLogicalDevice logicalDevice, VkSwapchainKHR swapchain, SwapchainImages * swapchainImages)
 {
     // Get swapchain images.
     uint32_t count = 0;
@@ -865,9 +859,9 @@ void
 gfxInit(GFXConfig * config)
 {
     PRISM_ASSERT(config != nullptr);
-    GFXSwapchainInfo swapchainInfo = {};
-    GFXQueues queues = {};
-    GFXSwapchainImages swapchainImages = {};
+    SwapchainInfo swapchainInfo = {};
+    Queues queues = {};
+    SwapchainImages swapchainImages = {};
 
 #ifdef PRISM_DEBUG
     concatDebugInstanceComponents(config);
@@ -880,7 +874,7 @@ gfxInit(GFXConfig * config)
     VkInstance instance = createInstance(config);
 #endif
 
-    VkSurfaceKHR surface = config->createSurface(config->createSurfaceData, instance);
+    VkSurfaceKHR surface = config->createSurfaceFn(config->createSurfaceFnData, instance);
     VkPhysicalDevice physicalDevice = createPhysicalDevice(instance, surface, &swapchainInfo);
     getQueueFamilyIndexes(physicalDevice, surface, &queues);
     VkLogicalDevice logicalDevice = createLogicalDevice(physicalDevice, &queues);
@@ -897,7 +891,7 @@ gfxInit(GFXConfig * config)
 //     PRISM_ASSERT(context->logicalDevice != VK_NULL_HANDLE);
 //     VkInstance instance = context->instance;
 //     VkLogicalDevice logicalDevice = context->logicalDevice;
-//     GFXSwapchainInfo * swapchainInfo = &context->swapchainInfo;
+//     SwapchainInfo * swapchainInfo = &context->swapchainInfo;
 
 //     // Free array of swapchain image handles.
 //     free(context->swapchainImages);
