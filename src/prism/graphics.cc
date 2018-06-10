@@ -49,7 +49,20 @@ struct InstanceComponentInfo
 
 struct SwapchainInfo
 {
+    // typedef struct VkSurfaceCapabilitiesKHR {
+    //     uint32_t                         minImageCount;
+    //     uint32_t                         maxImageCount;
+    //     VkExtent2D                       currentExtent;
+    //     VkExtent2D                       minImageExtent;
+    //     VkExtent2D                       maxImageExtent;
+    //     uint32_t                         maxImageArrayLayers;
+    //     VkSurfaceTransformFlagsKHR       supportedTransforms;
+    //     VkSurfaceTransformFlagBitsKHR    currentTransform;
+    //     VkCompositeAlphaFlagsKHR         supportedCompositeAlpha;
+    //     VkImageUsageFlags                supportedUsageFlags;
+    // } VkSurfaceCapabilitiesKHR;
     VkSurfaceCapabilitiesKHR surfaceCapabilities;
+
     VkSurfaceFormatKHR * availableSurfaceFormats;
     uint32_t availableSurfaceFormatCount;
     VkPresentModeKHR * availableSurfacePresentModes;
@@ -261,6 +274,81 @@ createInstance(GFXConfig * config)
     return instance;
 }
 
+static bool
+supportsSwapchain(VkPhysicalDevice physicalDevice)
+{
+    uint32_t availableExtensionCount = 0;
+    vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &availableExtensionCount, nullptr);
+
+    if(availableExtensionCount == 0)
+    {
+        return false;
+    }
+
+    auto availableExtensionPropsArray =
+        (VkExtensionProperties *)malloc(sizeof(VkExtensionProperties) * availableExtensionCount);
+
+    vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &availableExtensionCount,
+                                         availableExtensionPropsArray);
+
+    // Check for swapchain extension.
+    bool result = false;
+
+    for(size_t availableExtensionIndex = 0;
+        availableExtensionIndex < availableExtensionCount;
+        availableExtensionIndex++)
+    {
+        if(strcmp(
+            availableExtensionPropsArray[availableExtensionIndex].extensionName,
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
+        {
+            result = true;
+            break;
+        }
+    }
+
+    // Cleanup
+    free(availableExtensionPropsArray);
+
+    return result;
+}
+
+static void
+getSwapchainInfo(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, SwapchainInfo * swapchainInfo)
+{
+    // Get surface capabilities.
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &swapchainInfo->surfaceCapabilities);
+
+#ifdef PRISM_DEBUG
+    logPhysicalDeviceSurfaceCapabilities(&swapchainInfo->surfaceCapabilities);
+#endif
+
+    // Get available surface format info.
+    uint32_t availableSurfaceFormatCount = 0;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &availableSurfaceFormatCount, nullptr);
+
+    auto availableSurfaceFormats =
+        (VkSurfaceFormatKHR *)malloc(sizeof(VkSurfaceFormatKHR) * availableSurfaceFormatCount);
+
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &availableSurfaceFormatCount,
+                                         availableSurfaceFormats);
+
+    // Get available surface present-mode info.
+    uint32_t availableSurfacePresentModeCount = 0;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &availableSurfacePresentModeCount, nullptr);
+
+    auto availableSurfacePresentModes =
+        (VkPresentModeKHR *)malloc(sizeof(VkPresentModeKHR) * availableSurfacePresentModeCount);
+
+    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &availableSurfacePresentModeCount,
+                                              availableSurfacePresentModes);
+
+    swapchainInfo->availableSurfaceFormatCount = availableSurfaceFormatCount;
+    swapchainInfo->availableSurfaceFormats = availableSurfaceFormats;
+    swapchainInfo->availableSurfacePresentModeCount = availableSurfacePresentModeCount;
+    swapchainInfo->availableSurfacePresentModes = availableSurfacePresentModes;
+}
+
 static VkPhysicalDevice
 getPhysicalDevice(VkInstance instance, VkSurfaceKHR surface, SwapchainInfo * swapchainInfo)
 {
@@ -299,118 +387,26 @@ getPhysicalDevice(VkInstance instance, VkSurfaceKHR surface, SwapchainInfo * swa
 
         // TODO: implement robust physical-device requirements specification.
 
-        // Currently, prism only supports discrete GPUs.
+        // Ensure physical-device is a discrete GPUs.
         if(availablePhysicalDeviceProperties.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
         {
             continue;
         }
 
         // Ensure physical-device supports swapchain.
-        uint32_t availableExtensionCount = 0;
-        vkEnumerateDeviceExtensionProperties(availablePhysicalDevice, nullptr, &availableExtensionCount, nullptr);
-
-        if(availableExtensionCount == 0)
-        {
-            continue;
-        }
-
-        auto availableExtensionPropsArray =
-            (VkExtensionProperties *)malloc(sizeof(VkExtensionProperties) * availableExtensionCount);
-
-        vkEnumerateDeviceExtensionProperties(
-            availablePhysicalDevice,
-            nullptr,
-            &availableExtensionCount,
-            availableExtensionPropsArray);
-
-        bool supportsSwapChain = false;
-
-        for(size_t availableExtensionIndex = 0;
-            availableExtensionIndex < availableExtensionCount;
-            availableExtensionIndex++)
-        {
-            if(strcmp(
-                availableExtensionPropsArray[availableExtensionIndex].extensionName,
-                VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
-            {
-                supportsSwapChain = true;
-                break;
-            }
-        }
-
-        free(availableExtensionPropsArray);
-
-        if(!supportsSwapChain)
+        if(!supportsSwapchain(availablePhysicalDevice))
         {
             continue;
         }
 
         // Ensure physical-device swapchain meets requirements.
+        getSwapchainInfo(availablePhysicalDevice, surface, swapchainInfo);
 
-        // typedef struct VkSurfaceCapabilitiesKHR {
-        //     uint32_t                         minImageCount;
-        //     uint32_t                         maxImageCount;
-        //     VkExtent2D                       currentExtent;
-        //     VkExtent2D                       minImageExtent;
-        //     VkExtent2D                       maxImageExtent;
-        //     uint32_t                         maxImageArrayLayers;
-        //     VkSurfaceTransformFlagsKHR       supportedTransforms;
-        //     VkSurfaceTransformFlagBitsKHR    currentTransform;
-        //     VkCompositeAlphaFlagsKHR         supportedCompositeAlpha;
-        //     VkImageUsageFlags                supportedUsageFlags;
-        // } VkSurfaceCapabilitiesKHR;
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-            availablePhysicalDevice,
-            surface,
-            &swapchainInfo->surfaceCapabilities);
-
-#ifdef PRISM_DEBUG
-        logPhysicalDeviceSurfaceCapabilities(&swapchainInfo->surfaceCapabilities);
-#endif
-
-        // Ensure physical-device supports atleast 1 surface-format and 1 present-mode.
-        uint32_t * availableSurfaceFormatCount = &swapchainInfo->availableSurfaceFormatCount;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(availablePhysicalDevice, surface, availableSurfaceFormatCount, nullptr);
-
-        if(*availableSurfaceFormatCount == 0)
+        if(swapchainInfo->availableSurfaceFormatCount == 0
+            || swapchainInfo->availableSurfacePresentModeCount == 0)
         {
             continue;
         }
-
-        uint32_t * availableSurfacePresentModeCount = &swapchainInfo->availableSurfacePresentModeCount;
-
-        vkGetPhysicalDeviceSurfacePresentModesKHR(
-            availablePhysicalDevice,
-            surface,
-            availableSurfacePresentModeCount,
-            nullptr);
-
-        if(*availableSurfacePresentModeCount == 0)
-        {
-            continue;
-        }
-
-        // Surface is valid for use with physical-device, so store surface info in swapchain info.
-        VkSurfaceFormatKHR ** availableSurfaceFormats = &swapchainInfo->availableSurfaceFormats;
-        VkPresentModeKHR ** availableSurfacePresentModes = &swapchainInfo->availableSurfacePresentModes;
-
-        *availableSurfaceFormats =
-            (VkSurfaceFormatKHR *)malloc(sizeof(VkSurfaceFormatKHR) * *availableSurfaceFormatCount);
-
-        *availableSurfacePresentModes =
-            (VkPresentModeKHR *)malloc(sizeof(VkPresentModeKHR) * *availableSurfacePresentModeCount);
-
-        vkGetPhysicalDeviceSurfaceFormatsKHR(
-            availablePhysicalDevice,
-            surface,
-            availableSurfaceFormatCount,
-            *availableSurfaceFormats);
-
-        vkGetPhysicalDeviceSurfacePresentModesKHR(
-            availablePhysicalDevice,
-            surface,
-            availableSurfacePresentModeCount,
-            *availableSurfacePresentModes);
 
         // Physical-device meets all requirements.
         physicalDevice = availablePhysicalDevice;
