@@ -120,7 +120,7 @@ allocAvailableProps(InstanceComponentInfo<ComponentProps> * componentInfo, uint3
 
 template<typename ComponentProps>
 static void
-freeAvailableProps(InstanceComponentInfo<ComponentProps> * componentInfo)
+freeAvailableProps(const InstanceComponentInfo<ComponentProps> * componentInfo)
 {
     free(componentInfo->availableProps);
 }
@@ -262,7 +262,7 @@ createInstance(GFXConfig * config)
 }
 
 static VkPhysicalDevice
-createPhysicalDevice(VkInstance instance, VkSurfaceKHR surface, SwapchainInfo * swapchainInfo)
+getPhysicalDevice(VkInstance instance, VkSurfaceKHR surface, SwapchainInfo * swapchainInfo)
 {
     // Query available physical-devices.
     uint32_t availablePhysicalDeviceCount = 0;
@@ -372,7 +372,7 @@ createPhysicalDevice(VkInstance instance, VkSurfaceKHR surface, SwapchainInfo * 
         uint32_t * availableSurfaceFormatCount = &swapchainInfo->availableSurfaceFormatCount;
         vkGetPhysicalDeviceSurfaceFormatsKHR(availablePhysicalDevice, surface, availableSurfaceFormatCount, nullptr);
 
-        if(availableSurfaceFormatCount == 0)
+        if(*availableSurfaceFormatCount == 0)
         {
             continue;
         }
@@ -385,7 +385,7 @@ createPhysicalDevice(VkInstance instance, VkSurfaceKHR surface, SwapchainInfo * 
             availableSurfacePresentModeCount,
             nullptr);
 
-        if(availableSurfacePresentModeCount == 0)
+        if(*availableSurfacePresentModeCount == 0)
         {
             continue;
         }
@@ -897,7 +897,7 @@ gfxInit(GFXConfig * config)
     VkSurfaceKHR surface = config->createSurfaceFn(config->createSurfaceFnData, instance);
 
     // Create devices.
-    VkPhysicalDevice physicalDevice = createPhysicalDevice(instance, surface, &swapchainInfo);
+    VkPhysicalDevice physicalDevice = getPhysicalDevice(instance, surface, &swapchainInfo);
     getQueueFamilyIndexes(physicalDevice, surface, &queueInfo);
     VkLogicalDevice logicalDevice = createLogicalDevice(physicalDevice, &queueInfo);
     getQueues(logicalDevice, &queueInfo);

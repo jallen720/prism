@@ -276,7 +276,7 @@ logAvailablePhysicalDevices(uint32_t availablePhysicalDeviceCount, const VkPhysi
         utilLog("VULKAN", "    vendorID:      %#006x\n", availablePhysicalDeviceProperties.vendorID);
         utilLog("VULKAN", "    deviceID:      %#006x\n", availablePhysicalDeviceProperties.deviceID);
 
-        utilLog("VULKAN", "    device_type:    %s\n",
+        utilLog("VULKAN", "    deviceType:    %s\n",
             PHYSICAL_DEVICE_TYPE_NAMES[(size_t)availablePhysicalDeviceProperties.deviceType]);
 
         // utilLog("VULKAN", "    pipelineCacheUUID: %?\n", availablePhysicalDeviceProperties.pipelineCacheUUID);
