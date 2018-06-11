@@ -7,7 +7,7 @@
 
 using prism::SYSContext;
 using prism::sysInit;
-using prism::sysGetCreateSurfaceFn;
+using prism::sysCreateSurface;
 using prism::sysGetRequiredExtensions;
 using prism::sysCreateWindow;
 using prism::sysRun;
@@ -40,9 +40,9 @@ main()
 
     // Initialize graphics context.
     GFXConfig config = {};
-    sysGetRequiredExtensions(&config);
+    config.requestedExtensionNames = sysGetRequiredExtensions(&config.requestedExtensionCount);
     config.createSurfaceFnData = &sysContext;
-    config.createSurfaceFn = sysGetCreateSurfaceFn();
+    config.createSurfaceFn = sysCreateSurface;
     gfxInit(&config);
 
     // Run main loop.

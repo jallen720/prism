@@ -5,7 +5,6 @@
 #include <GLFW/glfw3.h>
 
 #include <cstdint>
-#include "prism/graphics.h"
 
 namespace prism
 {
@@ -31,11 +30,11 @@ sysInit();
 void
 sysCreateWindow(SYSContext * context, int width, int height, const char * title);
 
-void
-sysGetRequiredExtensions(GFXConfig * gfxConfig);
+const char **
+sysGetRequiredExtensions(uint32_t * requiredExtensionCount);
 
-GFXCreateSurfaceFn
-sysGetCreateSurfaceFn();
+VkSurfaceKHR
+sysCreateSurface(const void * data, VkInstance instance);
 
 void
 sysRun(SYSContext * context);

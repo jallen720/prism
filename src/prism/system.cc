@@ -25,22 +25,6 @@ keyCallback(GLFWwindow * window, int key, int scancode, int action, int mods)
     }
 }
 
-static VkSurfaceKHR
-createSurface(const void * data, VkInstance instance)
-{
-    PRISM_ASSERT(data != nullptr);
-    auto context = (const SYSContext *)data;
-    VkSurfaceKHR surface = VK_NULL_HANDLE;
-    VkResult result = glfwCreateWindowSurface(instance, context->window, nullptr, &surface);
-
-    if(result != VK_SUCCESS)
-    {
-        utilErrorExit("GLFW", nullptr, "failed to create window surface");
-    }
-
-    return surface;
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Interface
@@ -79,17 +63,27 @@ sysCreateWindow(SYSContext * context, int width, int height, const char * title)
     glfwSetKeyCallback(*window, keyCallback);
 }
 
-void
-sysGetRequiredExtensions(GFXConfig * gfxConfig)
+const char **
+sysGetRequiredExtensions(uint32_t * requiredExtensionCount)
 {
-    PRISM_ASSERT(gfxConfig != nullptr);
-    gfxConfig->requestedExtensionNames = glfwGetRequiredInstanceExtensions(&gfxConfig->requestedExtensionCount);
+    PRISM_ASSERT(requiredExtensionCount != nullptr);
+    return glfwGetRequiredInstanceExtensions(requiredExtensionCount);
 }
 
-GFXCreateSurfaceFn
-sysGetCreateSurfaceFn()
+VkSurfaceKHR
+sysCreateSurface(const void * data, VkInstance instance)
 {
-    return createSurface;
+    PRISM_ASSERT(data != nullptr);
+    auto context = (const SYSContext *)data;
+    VkSurfaceKHR surface = VK_NULL_HANDLE;
+    VkResult result = glfwCreateWindowSurface(instance, context->window, nullptr, &surface);
+
+    if(result != VK_SUCCESS)
+    {
+        utilErrorExit("GLFW", nullptr, "failed to create window surface");
+    }
+
+    return surface;
 }
 
 void
