@@ -1,7 +1,5 @@
 #pragma once
 
-#include "vulkan/vulkan.h"
-
 namespace prism
 {
 
@@ -18,8 +16,5 @@ utilLog(const char * subsystem, const char * message, ...);
 
 void
 utilWarning(const char * subsystem, const char * message, ...);
-
-const char *
-utilVkResultName(VkResult result);
 
 } // namespace prism

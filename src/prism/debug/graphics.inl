@@ -165,7 +165,7 @@ createDebugCallback(VkInstance instance)
     {
         utilErrorExit(
             "VULKAN",
-            utilVkResultName(VK_ERROR_EXTENSION_NOT_PRESENT),
+            getVkResultName(VK_ERROR_EXTENSION_NOT_PRESENT),
             "extension for creating debug callback is not available\n");
     }
 
@@ -198,7 +198,7 @@ createDebugCallback(VkInstance instance)
 
     if(result != VK_SUCCESS)
     {
-        utilErrorExit("VULKAN", utilVkResultName(result), "failed to create debug callback");
+        utilErrorExit("VULKAN", getVkResultName(result), "failed to create debug callback");
     }
 
     return debugCallbackHandle;
@@ -219,7 +219,7 @@ createDebugCallback(VkInstance instance)
 //     {
 //         utilErrorExit(
 //             "VULKAN",
-//             utilVkResultName(VK_ERROR_EXTENSION_NOT_PRESENT),
+//             getVkResultName(VK_ERROR_EXTENSION_NOT_PRESENT),
 //             "extension for destroying debug callback is not available\n");
 //     }
 
