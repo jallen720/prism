@@ -4,6 +4,7 @@
 #include "prism/graphics.h"
 #include "prism/utilities.h"
 #include "prism/defines.h"
+#include "prism/containers.h"
 #include "ctk/memory.h"
 #include "ctk/data.h"
 
@@ -90,12 +91,6 @@ struct QueueInfo
 
     VkQueue queues[(size_t)Families::COUNT];
     uint32_t familyIndexes[(size_t)Families::COUNT];
-};
-
-struct SwapchainImages
-{
-    VkImage * images;
-    uint32_t count;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -906,8 +901,8 @@ createSwapchain(VkSurfaceKHR surface, VkLogicalDevice logicalDevice, const Queue
     return swapchain;
 }
 
-void
-getSwapchainImages(VkLogicalDevice logicalDevice, VkSwapchainKHR swapchain, SwapchainImages * swapchainImages)
+Container<VkImage>
+getSwapchainImages(VkLogicalDevice logicalDevice, VkSwapchainKHR swapchain)
 {
     // Get swapchain images.
     uint32_t count = 0;
@@ -918,10 +913,9 @@ getSwapchainImages(VkLogicalDevice logicalDevice, VkSwapchainKHR swapchain, Swap
         utilErrorExit("VULKAN", nullptr, "failed to get swapchain images\n");
     }
 
-    auto images = (VkImage *)malloc(sizeof(VkImage) * count);
-    vkGetSwapchainImagesKHR(logicalDevice, swapchain, &count, images);
-    swapchainImages->count = count;
-    swapchainImages->images = images;
+    auto swapchainImages = createContainer<VkImage>(count);
+    vkGetSwapchainImagesKHR(logicalDevice, swapchain, &count, swapchainImages.data);
+    return swapchainImages;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -936,7 +930,6 @@ gfxInit(GFXConfig * config)
     QueueInfo queueInfo = {};
     SwapchainInfo swapchainInfo = {};
     SwapchainConfig swapchainConfig = {};
-    SwapchainImages swapchainImages = {};
 
 #ifdef PRISM_DEBUG
     concatDebugInstanceComponents(config);
@@ -960,7 +953,10 @@ gfxInit(GFXConfig * config)
     // Create swapchain.
     createSwapchainConfig(&swapchainInfo, &swapchainConfig);
     VkSwapchainKHR swapchain = createSwapchain(surface, logicalDevice, &queueInfo, &swapchainConfig);
-    getSwapchainImages(logicalDevice, swapchain, &swapchainImages);
+    Container<VkImage> swapchainImages = getSwapchainImages(logicalDevice, swapchain);
+
+    // Cleanup.
+    freeContainer(&swapchainImages);
 }
 
 // void
