@@ -803,7 +803,6 @@ createSwapchainConfig(const SwapchainInfo * swapchainInfo, SwapchainConfig * swa
         }
     }
 
-
     // Select best extent for swapchain.
     const VkSurfaceCapabilitiesKHR * surfaceCapabilities = &swapchainInfo->surfaceCapabilities;
     VkExtent2D selectedExtent = surfaceCapabilities->currentExtent;
