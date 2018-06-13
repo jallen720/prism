@@ -4,7 +4,7 @@ all: lib/libprism.a bin/test bin/simd bin/sandbox
 import_prism_libs:
 	@:
 
-obj/src/prism/graphics.o: src/prism/graphics.cc src/prism/graphics.h src/prism/utilities.h src/prism/defines.h src/prism/containers.h /home/joel/Desktop/projects/ctk/src/ctk/memory.h /home/joel/Desktop/projects/ctk/src/ctk/data.h src/prism/debug/graphics.inl
+obj/src/prism/graphics.o: src/prism/graphics.cc src/prism/graphics.h src/prism/utilities.h src/prism/defines.h src/prism/memory.h /home/joel/Desktop/projects/ctk/src/ctk/memory.h /home/joel/Desktop/projects/ctk/src/ctk/data.h src/prism/debug/graphics.inl
 	@echo compiling $<
 	@mkdir -p obj/src/prism
 	@g++ -std=c++14 -ggdb -Wall -Wextra -pedantic-errors -c -DPRISM_DEBUG -I/home/joel/Desktop/projects/ctk/src -Isrc -I/home/joel/Desktop/packages/VulkanSDK/1.1.73.0/x86_64/include $< -o $@

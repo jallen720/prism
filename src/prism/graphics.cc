@@ -1,10 +1,9 @@
-#include <cstdlib>
 #include <cstdio>
 #include <cstring>
 #include "prism/graphics.h"
 #include "prism/utilities.h"
 #include "prism/defines.h"
-#include "prism/containers.h"
+#include "prism/memory.h"
 #include "ctk/memory.h"
 #include "ctk/data.h"
 
@@ -44,8 +43,7 @@ struct InstanceComponentInfo
     const char * type;
     const char ** requestedNames;
     uint32_t requestedCount;
-    ComponentProps * availableProps;
-    uint32_t availableCount;
+    Container<ComponentProps> availableProps;
     ComponentPropsNameAccessor<ComponentProps> propsNameAccessor;
 };
 
@@ -65,10 +63,8 @@ struct SwapchainInfo
     // } VkSurfaceCapabilitiesKHR;
     VkSurfaceCapabilitiesKHR surfaceCapabilities;
 
-    VkSurfaceFormatKHR * availableSurfaceFormats;
-    uint32_t availableSurfaceFormatCount;
-    VkPresentModeKHR * availableSurfacePresentModes;
-    uint32_t availableSurfacePresentModeCount;
+    Container<VkSurfaceFormatKHR> availableSurfaceFormats;
+    Container<VkPresentModeKHR> availableSurfacePresentModes;
 };
 
 struct SwapchainConfig
@@ -180,27 +176,11 @@ extensionPropsNameAccessor(const VkExtensionProperties * extensionProps)
 
 template<typename ComponentProps>
 static void
-allocAvailableProps(InstanceComponentInfo<ComponentProps> * componentInfo, uint32_t availableCount)
-{
-    componentInfo->availableCount = availableCount;
-    componentInfo->availableProps = (ComponentProps *)malloc(sizeof(ComponentProps) * availableCount);
-}
-
-template<typename ComponentProps>
-static void
-freeAvailableProps(const InstanceComponentInfo<ComponentProps> * componentInfo)
-{
-    free(componentInfo->availableProps);
-}
-
-template<typename ComponentProps>
-static void
 validateInstanceComponentInfo(const InstanceComponentInfo<ComponentProps> * componentInfo)
 {
     const char ** requestedComponentNames = componentInfo->requestedNames;
     uint32_t requestedComponentCount = componentInfo->requestedCount;
-    const ComponentProps * availableComponentProps = componentInfo->availableProps;
-    uint32_t availableComponentCount = componentInfo->availableCount;
+    const Container<ComponentProps> * availableComponentProps = &componentInfo->availableProps;
     ComponentPropsNameAccessor<ComponentProps> accessComponentName = componentInfo->propsNameAccessor;
 
     for(size_t requestedComponentIndex = 0;
@@ -211,12 +191,12 @@ validateInstanceComponentInfo(const InstanceComponentInfo<ComponentProps> * comp
         bool componentAvailable = false;
 
         for(size_t availableComponentIndex = 0;
-            availableComponentIndex < availableComponentCount;
+            availableComponentIndex < availableComponentProps->count;
             availableComponentIndex++)
         {
             if(strcmp(
                 requestedComponentName,
-                accessComponentName(availableComponentProps + availableComponentIndex)) == 0)
+                accessComponentName(availableComponentProps->data + availableComponentIndex)) == 0)
             {
                 componentAvailable = true;
                 break;
@@ -248,8 +228,8 @@ createInstance(GFXConfig * config)
     extensionInfo.propsNameAccessor = extensionPropsNameAccessor;
     uint32_t availableExtensionCount = 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &availableExtensionCount, nullptr);
-    allocAvailableProps(&extensionInfo, availableExtensionCount);
-    vkEnumerateInstanceExtensionProperties(nullptr, &availableExtensionCount, extensionInfo.availableProps);
+    extensionInfo.availableProps = memCreateContainer<VkExtensionProperties>(availableExtensionCount);
+    vkEnumerateInstanceExtensionProperties(nullptr, &availableExtensionCount, extensionInfo.availableProps.data);
 
     // Initialize layerInfo with requested layer names and available layer properties.
     InstanceComponentInfo<VkLayerProperties> layerInfo = {};
@@ -259,13 +239,13 @@ createInstance(GFXConfig * config)
     layerInfo.propsNameAccessor = layerPropsNameAccessor;
     uint32_t availableLayerCount = 0;
     vkEnumerateInstanceLayerProperties(&availableLayerCount, nullptr);
-    allocAvailableProps(&layerInfo, availableLayerCount);
-    vkEnumerateInstanceLayerProperties(&availableLayerCount, layerInfo.availableProps);
+    layerInfo.availableProps = memCreateContainer<VkLayerProperties>(availableLayerCount);
+    vkEnumerateInstanceLayerProperties(&availableLayerCount, layerInfo.availableProps.data);
 
-// #ifdef PRISM_DEBUG
-//     logInstanceComponentNames(&extensionInfo);
-//     logInstanceComponentNames(&layerInfo);
-// #endif
+#ifdef PRISM_DEBUG
+    logInstanceComponentNames(&extensionInfo);
+    logInstanceComponentNames(&layerInfo);
+#endif
 
     // Validate requested extensions and layers are available.
     validateInstanceComponentInfo(&extensionInfo);
@@ -323,8 +303,8 @@ createInstance(GFXConfig * config)
     }
 
     // Cleanup
-    freeAvailableProps(&extensionInfo);
-    freeAvailableProps(&layerInfo);
+    memFreeContainer(&extensionInfo.availableProps);
+    memFreeContainer(&layerInfo.availableProps);
 
     return instance;
 }
@@ -340,11 +320,8 @@ supportsSwapchain(VkPhysicalDevice physicalDevice)
         return false;
     }
 
-    auto availableExtensionPropsArray =
-        (VkExtensionProperties *)malloc(sizeof(VkExtensionProperties) * availableExtensionCount);
-
-    vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &availableExtensionCount,
-                                         availableExtensionPropsArray);
+    auto availableExtensionProps = memAlloc<VkExtensionProperties>(availableExtensionCount);
+    vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &availableExtensionCount, availableExtensionProps);
 
     // Check for swapchain extension.
     bool result = false;
@@ -354,7 +331,7 @@ supportsSwapchain(VkPhysicalDevice physicalDevice)
         availableExtensionIndex++)
     {
         if(strcmp(
-            availableExtensionPropsArray[availableExtensionIndex].extensionName,
+            availableExtensionProps[availableExtensionIndex].extensionName,
             VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
         {
             result = true;
@@ -363,7 +340,7 @@ supportsSwapchain(VkPhysicalDevice physicalDevice)
     }
 
     // Cleanup
-    free(availableExtensionPropsArray);
+    free(availableExtensionProps);
 
     return result;
 }
@@ -381,26 +358,20 @@ getSwapchainInfo(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, Swapchai
     // Get available surface format info.
     uint32_t availableSurfaceFormatCount = 0;
     vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &availableSurfaceFormatCount, nullptr);
-
-    auto availableSurfaceFormats =
-        (VkSurfaceFormatKHR *)malloc(sizeof(VkSurfaceFormatKHR) * availableSurfaceFormatCount);
+    auto availableSurfaceFormats = memCreateContainer<VkSurfaceFormatKHR>(availableSurfaceFormatCount);
 
     vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &availableSurfaceFormatCount,
-                                         availableSurfaceFormats);
+                                         availableSurfaceFormats.data);
 
     // Get available surface present-mode info.
     uint32_t availableSurfacePresentModeCount = 0;
     vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &availableSurfacePresentModeCount, nullptr);
-
-    auto availableSurfacePresentModes =
-        (VkPresentModeKHR *)malloc(sizeof(VkPresentModeKHR) * availableSurfacePresentModeCount);
+    auto availableSurfacePresentModes = memCreateContainer<VkPresentModeKHR>(availableSurfacePresentModeCount);
 
     vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &availableSurfacePresentModeCount,
-                                              availableSurfacePresentModes);
+                                              availableSurfacePresentModes.data);
 
-    swapchainInfo->availableSurfaceFormatCount = availableSurfaceFormatCount;
     swapchainInfo->availableSurfaceFormats = availableSurfaceFormats;
-    swapchainInfo->availableSurfacePresentModeCount = availableSurfacePresentModeCount;
     swapchainInfo->availableSurfacePresentModes = availableSurfacePresentModes;
 }
 
@@ -416,9 +387,7 @@ getPhysicalDevice(VkInstance instance, VkSurfaceKHR surface, SwapchainInfo * swa
         utilErrorExit("VULKAN", nullptr, "no physical-devices found\n");
     }
 
-    auto availablePhysicalDevices =
-        (VkPhysicalDevice *)malloc(sizeof(VkPhysicalDevice) * availablePhysicalDeviceCount);
-
+    auto availablePhysicalDevices = memAlloc<VkPhysicalDevice>(availablePhysicalDeviceCount);
     vkEnumeratePhysicalDevices(instance, &availablePhysicalDeviceCount, availablePhysicalDevices);
 
 #ifdef PRISM_DEBUG
@@ -457,8 +426,8 @@ getPhysicalDevice(VkInstance instance, VkSurfaceKHR surface, SwapchainInfo * swa
         // Ensure physical-device swapchain meets requirements.
         getSwapchainInfo(availablePhysicalDevice, surface, swapchainInfo);
 
-        if(swapchainInfo->availableSurfaceFormatCount == 0
-            || swapchainInfo->availableSurfacePresentModeCount == 0)
+        if(swapchainInfo->availableSurfaceFormats.count == 0
+            || swapchainInfo->availableSurfacePresentModes.count == 0)
         {
             continue;
         }
@@ -492,9 +461,7 @@ getQueueFamilyIndexes(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, Que
     }
 
     // Get properties for selected physical-device's queue-families.
-    auto queueFamilyPropsArray =
-        (VkQueueFamilyProperties *)malloc(sizeof(VkQueueFamilyProperties) * queueFamilyCount);
-
+    auto queueFamilyPropsArray = memAlloc<VkQueueFamilyProperties>(queueFamilyCount);
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilyPropsArray);
 
     // Find indexes for graphics and present queue-families.
@@ -565,9 +532,7 @@ createLogicalDevice(VkPhysicalDevice physicalDevice, const QueueInfo * queueInfo
     static const uint32_t QUEUE_FAMILY_QUEUE_COUNT = 1; // More than 1 queue is unnecessary per queue-family.
     static const float QUEUE_FAMILY_QUEUE_PRIORITY = 1.0f;
 
-    auto logicalDeviceQueueCreateInfos =
-        (VkDeviceQueueCreateInfo *)malloc(sizeof(VkDeviceQueueCreateInfo) * QUEUE_FAMILY_COUNT);
-
+    VkDeviceQueueCreateInfo logicalDeviceQueueCreateInfos[QUEUE_FAMILY_COUNT] = {};
     size_t logicalDeviceQueueCreateInfoCount = 0;
 
     // Prevent duplicate queue creation for logical-device.
@@ -719,9 +684,6 @@ createLogicalDevice(VkPhysicalDevice physicalDevice, const QueueInfo * queueInfo
             "failed to create logical-device for selected physical-device\n");
     }
 
-    // Cleanup
-    free(logicalDeviceQueueCreateInfos);
-
     return logicalDevice;
 }
 
@@ -747,10 +709,10 @@ createSwapchainConfig(const SwapchainInfo * swapchainInfo, SwapchainConfig * swa
         VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
     };
 
-    const VkSurfaceFormatKHR * availableSurfaceFormats = swapchainInfo->availableSurfaceFormats;
+    const Container<VkSurfaceFormatKHR> * availableSurfaceFormats = &swapchainInfo->availableSurfaceFormats;
 
     // Default to first available format.
-    VkSurfaceFormatKHR selectedSurfaceFormat = availableSurfaceFormats[0];
+    VkSurfaceFormatKHR selectedSurfaceFormat = availableSurfaceFormats->data[0];
 
     // If default format is undefined (surface has no preferred format), replace with preferred format.
     if(selectedSurfaceFormat.format == VK_FORMAT_UNDEFINED)
@@ -760,9 +722,9 @@ createSwapchainConfig(const SwapchainInfo * swapchainInfo, SwapchainConfig * swa
     // Check if preferred format is available, and use if so.
     else
     {
-        for(size_t i = 0; i < swapchainInfo->availableSurfaceFormatCount; i++)
+        for(size_t i = 0; i < availableSurfaceFormats->count; i++)
         {
-            VkSurfaceFormatKHR availableSurfaceFormat = availableSurfaceFormats[i];
+            VkSurfaceFormatKHR availableSurfaceFormat = availableSurfaceFormats->data[i];
 
             if(availableSurfaceFormat.format == PREFERRED_SURFACE_FORMAT.format
                 && availableSurfaceFormat.colorSpace == PREFERRED_SURFACE_FORMAT.colorSpace)
@@ -775,14 +737,14 @@ createSwapchainConfig(const SwapchainInfo * swapchainInfo, SwapchainConfig * swa
 
     // Select best surface present mode for swapchain.
     static const VkPresentModeKHR PREFERRED_PRESENT_MODE = VK_PRESENT_MODE_MAILBOX_KHR;
-    const VkPresentModeKHR * availableSurfacePresentModes = swapchainInfo->availableSurfacePresentModes;
+    const Container<VkPresentModeKHR> * availableSurfacePresentModes = &swapchainInfo->availableSurfacePresentModes;
 
     // FIFO is guaranteed to be available, so use it as a fallback in-case the preferred mode isn't found.
     VkPresentModeKHR selectedSurfacePresentMode = VK_PRESENT_MODE_FIFO_KHR;
 
-    for(size_t i = 0; i < swapchainInfo->availableSurfacePresentModeCount; i++)
+    for(size_t i = 0; i < availableSurfacePresentModes->count; i++)
     {
-        VkPresentModeKHR availableSurfacePresentMode = availableSurfacePresentModes[i];
+        VkPresentModeKHR availableSurfacePresentMode = availableSurfacePresentModes->data[i];
 
         // Select preferred present mode if available.
         if(availableSurfacePresentMode == PREFERRED_PRESENT_MODE)
@@ -913,7 +875,7 @@ getSwapchainImages(VkLogicalDevice logicalDevice, VkSwapchainKHR swapchain)
         utilErrorExit("VULKAN", nullptr, "failed to get swapchain images\n");
     }
 
-    auto swapchainImages = createContainer<VkImage>(count);
+    auto swapchainImages = memCreateContainer<VkImage>(count);
     vkGetSwapchainImagesKHR(logicalDevice, swapchain, &count, swapchainImages.data);
     return swapchainImages;
 }
@@ -956,7 +918,7 @@ gfxInit(GFXConfig * config)
     Container<VkImage> swapchainImages = getSwapchainImages(logicalDevice, swapchain);
 
     // Cleanup.
-    freeContainer(&swapchainImages);
+    memFreeContainer(&swapchainImages);
 }
 
 // void

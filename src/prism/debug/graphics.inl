@@ -86,14 +86,10 @@ concatDebugInstanceComponents(GFXConfig * config)
 
     static const size_t DEBUG_EXTENSION_COUNT = sizeof(DEBUG_EXTENSION_NAMES) / sizeof(void *);
     const size_t allExtensionCount = DEBUG_EXTENSION_COUNT + config->requestedExtensionCount;
-    auto allExtensionNames = (const char **)malloc(sizeof(void *) * allExtensionCount);
+    auto allExtensionNames = memAlloc<const char *>(allExtensionCount);
 
-    mem_concat(
-        config->requestedExtensionNames,
-        config->requestedExtensionCount,
-        DEBUG_EXTENSION_NAMES,
-        DEBUG_EXTENSION_COUNT,
-        allExtensionNames);
+    mem_concat(config->requestedExtensionNames, config->requestedExtensionCount, DEBUG_EXTENSION_NAMES,
+               DEBUG_EXTENSION_COUNT, allExtensionNames);
 
     config->requestedExtensionNames = allExtensionNames;
     config->requestedExtensionCount = allExtensionCount;
@@ -126,8 +122,7 @@ logInstanceComponentNames(const InstanceComponentInfo<ComponentProps> * componen
     const char * componentType = componentInfo->type;
     const char ** requestedComponentNames = componentInfo->requestedNames;
     uint32_t requestedComponentCount = componentInfo->requestedCount;
-    const ComponentProps * availableComponentProps = componentInfo->availableProps;
-    uint32_t availableComponentCount = componentInfo->availableCount;
+    const Container<ComponentProps> * availableComponentProps = &componentInfo->availableProps;
     ComponentPropsNameAccessor<ComponentProps> accessComponentName = componentInfo->propsNameAccessor;
     logDivider();
     utilLog("VULKAN", "requested %s names (%i):\n", componentType, requestedComponentCount);
@@ -137,9 +132,9 @@ logInstanceComponentNames(const InstanceComponentInfo<ComponentProps> * componen
         utilLog("VULKAN", "    %s\n", requestedComponentNames[i]);
     }
 
-    utilLog("VULKAN", "available %s names (%i):", componentType, availableComponentCount);
+    utilLog("VULKAN", "available %s names (%i):", componentType, availableComponentProps->count);
 
-    if(availableComponentCount == 0)
+    if(availableComponentProps->count == 0)
     {
         fprintf(stdout, " none\n");
     }
@@ -147,9 +142,9 @@ logInstanceComponentNames(const InstanceComponentInfo<ComponentProps> * componen
     {
         fprintf(stdout, "\n");
 
-        for(uint32_t i = 0; i < availableComponentCount; i++)
+        for(uint32_t i = 0; i < availableComponentProps->count; i++)
         {
-            utilLog("VULKAN", "    %s\n", accessComponentName(availableComponentProps + i));
+            utilLog("VULKAN", "    %s\n", accessComponentName(availableComponentProps->data + i));
         }
     }
 }
@@ -635,11 +630,11 @@ logSelectedSwapchainConfig(const SwapchainConfig * swapchainConfig, const Swapch
     utilLog("VULKAN", "    format:     %s\n", surfaceFormatName->value);
     utilLog("VULKAN", "    colorSpace: %s\n", SURFACE_FORMAT_COLOR_SPACE_NAMES[(size_t)surfaceFormat->colorSpace]);
     utilLog("VULKAN", "available surface present modes:\n");
-    const VkPresentModeKHR * availableSurfacePresentModes = swapchainInfo->availableSurfacePresentModes;
+    const Container<VkPresentModeKHR> * availableSurfacePresentModes = &swapchainInfo->availableSurfacePresentModes;
 
-    for(size_t i = 0; i < swapchainInfo->availableSurfacePresentModeCount; i++)
+    for(size_t i = 0; i < availableSurfacePresentModes->count; i++)
     {
-        utilLog("VULKAN", "    %s\n", SURFACE_PRESENT_MODE_NAMES[(size_t)availableSurfacePresentModes[i]]);
+        utilLog("VULKAN", "    %s\n", SURFACE_PRESENT_MODE_NAMES[(size_t)availableSurfacePresentModes->data[i]]);
     }
 
     utilLog("VULKAN", "selected surface present mode: %s\n",
