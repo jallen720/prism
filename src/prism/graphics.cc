@@ -937,7 +937,7 @@ gfxInit(GFXConfig * config)
     freeDebugInstanceComponents(config);
 
     // In debug mode, create a debug callback for logging.
-    VkDebugReportCallbackEXT debugCallbackHandle = createDebugCallback(instance);
+    /*VkDebugReportCallbackEXT debugCallbackHandle = */createDebugCallback(instance);
 #else
     VkInstance instance = createInstance(config);
 #endif
