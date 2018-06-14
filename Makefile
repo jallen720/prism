@@ -58,7 +58,7 @@ bin/simd: obj/src/simd.o lib/libprism.a /home/joel/Desktop/projects/ctk/lib/libc
 import_sandbox_libs: bin/lib/libvulkan.so.1
 	@:
 
-obj/src/sandbox.o: src/sandbox.cc
+obj/src/sandbox.o: src/sandbox.cc src/prism/memory.h
 	@echo compiling $<
 	@mkdir -p obj/src
 	@g++ -std=c++14 -ggdb -Wall -Wextra -pedantic-errors -c -DPRISM_DEBUG -Isrc -I/home/joel/Desktop/packages/VulkanSDK/1.1.73.0/x86_64/include -I/home/joel/Desktop/projects/ctk/src $< -o $@
