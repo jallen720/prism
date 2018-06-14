@@ -138,6 +138,18 @@ static const size_t VK_RESULT_NAMES_COUNT = sizeof(VK_RESULT_NAMES) / sizeof(VkR
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
+// Debug Utilities
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+static const char *
+getVkResultName(VkResult result);
+
+#ifdef PRISM_DEBUG
+#include "prism/debug/graphics.inl"
+#endif
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
 // Utilities
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -156,11 +168,6 @@ getVkResultName(VkResult result)
 
     return nullptr;
 }
-
-// Include debug utilities.
-#ifdef PRISM_DEBUG
-#include "prism/debug/graphics.inl"
-#endif
 
 static const char *
 layerPropsNameAccessor(const VkLayerProperties * layerProps)
@@ -776,11 +783,6 @@ createSwapchainConfig(const SwapchainInfo * swapchainInfo, SwapchainConfig * swa
         selectedImageCount = maxImageCount;
     }
 
-    // // Store selected surface format and extent for later use.
-    // ?->swapchainImageFormat = selectedSurfaceFormat.format;
-    // ?->swapchainImageExtent = selectedExtent;
-    utilWarning("VULKAN", "reimplement storing swapchain image format and extent for later use\n");
-
     swapchainConfig->surfaceFormat = selectedSurfaceFormat;
     swapchainConfig->surfacePresentMode = selectedSurfacePresentMode;
     swapchainConfig->extent = selectedExtent;
@@ -863,10 +865,9 @@ createSwapchain(VkSurfaceKHR surface, VkLogicalDevice logicalDevice, const Queue
     return swapchain;
 }
 
-Container<VkImage>
+static Container<VkImage>
 getSwapchainImages(VkLogicalDevice logicalDevice, VkSwapchainKHR swapchain)
 {
-    // Get swapchain images.
     uint32_t count = 0;
     vkGetSwapchainImagesKHR(logicalDevice, swapchain, &count, nullptr);
 
@@ -878,6 +879,76 @@ getSwapchainImages(VkLogicalDevice logicalDevice, VkSwapchainKHR swapchain)
     auto swapchainImages = memCreateContainer<VkImage>(count);
     vkGetSwapchainImagesKHR(logicalDevice, swapchain, &count, swapchainImages.data);
     return swapchainImages;
+}
+
+static Container<VkImageView>
+createSwapchainImageViews(VkLogicalDevice logicalDevice, const Container<VkImage> * swapchainImages,
+                          const SwapchainConfig * swapchainConfig)
+{
+    // typedef struct VkComponentMapping {
+    //     VkComponentSwizzle    r;
+    //     VkComponentSwizzle    g;
+    //     VkComponentSwizzle    b;
+    //     VkComponentSwizzle    a;
+    // } VkComponentMapping;
+    static const VkComponentMapping IDENTITY_COMPONENT_MAPPING
+    {
+        VK_COMPONENT_SWIZZLE_IDENTITY,
+        VK_COMPONENT_SWIZZLE_IDENTITY,
+        VK_COMPONENT_SWIZZLE_IDENTITY,
+        VK_COMPONENT_SWIZZLE_IDENTITY,
+    };
+
+    // typedef struct VkImageSubresourceRange {
+    //     VkImageAspectFlags    aspectMask;
+    //     uint32_t              baseMipLevel;
+    //     uint32_t              levelCount;
+    //     uint32_t              baseArrayLayer;
+    //     uint32_t              layerCount;
+    // } VkImageSubresourceRange;
+    static const VkImageSubresourceRange DEFAULT_IMAGE_SUBRESOURCE_RANGE
+    {
+        VK_IMAGE_ASPECT_COLOR_BIT,
+        0,
+        1,
+        0,
+        1,
+    };
+
+    auto swapchainImageViews = memCreateContainer<VkImageView>(swapchainImages->count);
+
+    for(size_t i = 0; i < swapchainImages->count; i++)
+    {
+        // typedef struct VkImageViewCreateInfo {
+        //     VkStructureType            sType;
+        //     const void*                pNext;
+        //     VkImageViewCreateFlags     flags;
+        //     VkImage                    image;
+        //     VkImageViewType            viewType;
+        //     VkFormat                   format;
+        //     VkComponentMapping         components;
+        //     VkImageSubresourceRange    subresourceRange;
+        // } VkImageViewCreateInfo;
+        VkImageViewCreateInfo imageViewCreateInfo = {};
+        imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        imageViewCreateInfo.pNext = nullptr;
+        imageViewCreateInfo.flags = 0; // Reserved for future use.
+        imageViewCreateInfo.image = swapchainImages->data[i];
+        imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        imageViewCreateInfo.format = swapchainConfig->surfaceFormat.format;
+        imageViewCreateInfo.components = IDENTITY_COMPONENT_MAPPING;
+        imageViewCreateInfo.subresourceRange = DEFAULT_IMAGE_SUBRESOURCE_RANGE;
+
+        // Create image view from image.
+        VkResult result = vkCreateImageView(logicalDevice, &imageViewCreateInfo, nullptr, swapchainImageViews.data + i);
+
+        if(result != VK_SUCCESS)
+        {
+            utilErrorExit("VULKAN", getVkResultName(result), "failed to create image view\n");
+        }
+    }
+
+    return swapchainImageViews;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -917,8 +988,11 @@ gfxInit(GFXConfig * config)
     VkSwapchainKHR swapchain = createSwapchain(surface, logicalDevice, &queueInfo, &swapchainConfig);
     Container<VkImage> swapchainImages = getSwapchainImages(logicalDevice, swapchain);
 
-    // Cleanup.
-    memFreeContainer(&swapchainImages);
+    Container<VkImageView> swapchainImageViews =
+        createSwapchainImageViews(logicalDevice, &swapchainImages, &swapchainConfig);
+
+    // // Cleanup.
+    // memFreeContainer(&swapchainImages);
 }
 
 // void
