@@ -201,9 +201,8 @@ validateInstanceComponentInfo(const InstanceComponentInfo<ComponentProps> * comp
             availableComponentIndex < availableComponentProps->count;
             availableComponentIndex++)
         {
-            if(strcmp(
-                requestedComponentName,
-                accessComponentName(availableComponentProps->data + availableComponentIndex)) == 0)
+            if(strcmp(requestedComponentName,
+                      accessComponentName(availableComponentProps->data + availableComponentIndex)) == 0)
             {
                 componentAvailable = true;
                 break;
@@ -212,12 +211,8 @@ validateInstanceComponentInfo(const InstanceComponentInfo<ComponentProps> * comp
 
         if(!componentAvailable)
         {
-            utilErrorExit(
-                "VULKAN",
-                nullptr,
-                "requested %s \"%s\" is not available\n",
-                componentInfo->type,
-                requestedComponentName);
+            utilErrorExit("VULKAN", nullptr, "requested %s \"%s\" is not available\n", componentInfo->type,
+                          requestedComponentName);
         }
     }
 }
@@ -337,9 +332,8 @@ supportsSwapchain(VkPhysicalDevice physicalDevice)
         availableExtensionIndex < availableExtensionCount;
         availableExtensionIndex++)
     {
-        if(strcmp(
-            availableExtensionProps[availableExtensionIndex].extensionName,
-            VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
+        if(strcmp(availableExtensionProps[availableExtensionIndex].extensionName,
+                  VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
         {
             result = true;
             break;
@@ -491,12 +485,7 @@ getQueueFamilyIndexes(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, Que
         if(presentQueueFamilyIndex == -1)
         {
             VkBool32 isPresentQueueFamily = VK_FALSE;
-
-            vkGetPhysicalDeviceSurfaceSupportKHR(
-                physicalDevice,
-                queueFamilyIndex,
-                surface,
-                &isPresentQueueFamily);
+            vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, queueFamilyIndex, surface, &isPresentQueueFamily);
 
             if(isPresentQueueFamily == VK_TRUE)
             {
@@ -685,10 +674,8 @@ createLogicalDevice(VkPhysicalDevice physicalDevice, const QueueInfo * queueInfo
 
     if(result != VK_SUCCESS)
     {
-        utilErrorExit(
-            "VULKAN",
-            getVkResultName(result),
-            "failed to create logical-device for selected physical-device\n");
+        utilErrorExit("VULKAN", getVkResultName(result),
+                      "failed to create logical-device for selected physical-device\n");
     }
 
     return logicalDevice;
