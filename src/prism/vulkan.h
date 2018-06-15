@@ -12,7 +12,24 @@ namespace prism
 // Interface
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-template<typename T, typename Output>
+template<typename Output>
+static ctk::Container<Output>
+createVulkanContainer(VkResult (* vulkanGetFn)(uint32_t *, Output *))
+{
+    uint32_t count = 0;
+    vulkanGetFn(&count, nullptr);
+
+    if(count == 0)
+    {
+        return {};
+    }
+
+    auto container = ctk::containerCreate<Output>(count);
+    vulkanGetFn(&count, container.data);
+    return container;
+}
+
+template<typename Output, typename T>
 static ctk::Container<Output>
 createVulkanContainer(VkResult (* vulkanGetFn)(T, uint32_t *, Output *), T arg0)
 {
@@ -29,7 +46,7 @@ createVulkanContainer(VkResult (* vulkanGetFn)(T, uint32_t *, Output *), T arg0)
     return container;
 }
 
-template<typename T, typename U, typename Output>
+template<typename Output, typename T, typename U>
 static ctk::Container<Output>
 createVulkanContainer(VkResult (* vulkanGetFn)(T, U, uint32_t *, Output *), T arg0, U arg1)
 {
@@ -46,7 +63,7 @@ createVulkanContainer(VkResult (* vulkanGetFn)(T, U, uint32_t *, Output *), T ar
     return container;
 }
 
-template<typename T, typename U, typename V, typename Output>
+template<typename Output, typename T, typename U, typename V>
 static ctk::Container<Output>
 createVulkanContainer(VkResult (* vulkanGetFn)(T, U, V, uint32_t *, Output *), T arg0, U arg1, V arg2)
 {
