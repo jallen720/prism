@@ -29,7 +29,7 @@ createVulkanContainer(VkResult (* vulkanGetFn)(uint32_t *, Output *))
     return container;
 }
 
-template<typename Output, typename T>
+template<typename T, typename Output>
 static ctk::Container<Output>
 createVulkanContainer(VkResult (* vulkanGetFn)(T, uint32_t *, Output *), T arg0)
 {
@@ -46,7 +46,7 @@ createVulkanContainer(VkResult (* vulkanGetFn)(T, uint32_t *, Output *), T arg0)
     return container;
 }
 
-template<typename Output, typename T, typename U>
+template<typename T, typename U, typename Output>
 static ctk::Container<Output>
 createVulkanContainer(VkResult (* vulkanGetFn)(T, U, uint32_t *, Output *), T arg0, U arg1)
 {
@@ -63,7 +63,7 @@ createVulkanContainer(VkResult (* vulkanGetFn)(T, U, uint32_t *, Output *), T ar
     return container;
 }
 
-template<typename Output, typename T, typename U, typename V>
+template<typename T, typename U, typename V, typename Output>
 static ctk::Container<Output>
 createVulkanContainer(VkResult (* vulkanGetFn)(T, U, V, uint32_t *, Output *), T arg0, U arg1, V arg2)
 {
