@@ -3,9 +3,9 @@
 // Debug Typedefs
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-using DebugFlagName = PAIR<VkDebugReportFlagBitsEXT, const char *>;
-using QueueFlagName = PAIR<VkQueueFlagBits, const char *>;
-using SurfaceFormatName = PAIR<VkFormat, const char *>;
+using DebugFlagName = Pair<VkDebugReportFlagBitsEXT, const char *>;
+using QueueFlagName = Pair<VkQueueFlagBits, const char *>;
+using SurfaceFormatName = Pair<VkFormat, const char *>;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -88,8 +88,8 @@ concatDebugInstanceComponents(GFXConfig * config)
     const size_t allExtensionCount = DEBUG_EXTENSION_COUNT + config->requestedExtensionCount;
     auto allExtensionNames = memAlloc<const char *>(allExtensionCount);
 
-    mem_concat(config->requestedExtensionNames, config->requestedExtensionCount, DEBUG_EXTENSION_NAMES,
-               DEBUG_EXTENSION_COUNT, allExtensionNames);
+    memConcat(config->requestedExtensionNames, config->requestedExtensionCount, DEBUG_EXTENSION_NAMES,
+              DEBUG_EXTENSION_COUNT, allExtensionNames);
 
     config->requestedExtensionNames = allExtensionNames;
     config->requestedExtensionCount = allExtensionCount;

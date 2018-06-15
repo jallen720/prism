@@ -14,11 +14,11 @@ using prism::sysRun;
 using prism::sysDestroy;
 using prism::GFXConfig;
 using prism::gfxInit;
-using ctk::YAML_NODE;
-using ctk::yaml_read_file;
-using ctk::yaml_get_s;
-using ctk::yaml_get_i;
-using ctk::yaml_free;
+using ctk::YAMLNode;
+using ctk::yamlReadFile;
+using ctk::yamlGetString;
+using ctk::yamlGetInt;
+using ctk::yamlFree;
 
 int
 main()
@@ -28,15 +28,12 @@ main()
 
     // Create window for new system context.
     SYSContext sysContext = {};
-    YAML_NODE * windowConfig = yaml_read_file("data/window.yaml");
+    YAMLNode * windowConfig = yamlReadFile("data/window.yaml");
 
-    sysCreateWindow(
-        &sysContext,
-        yaml_get_i(windowConfig, "width"),
-        yaml_get_i(windowConfig, "height"),
-        yaml_get_s(windowConfig, "title"));
+    sysCreateWindow(&sysContext, yamlGetInt(windowConfig, "width"), yamlGetInt(windowConfig, "height"),
+                    yamlGetString(windowConfig, "title"));
 
-    yaml_free(windowConfig);
+    yamlFree(windowConfig);
 
     // Initialize graphics context.
     GFXConfig config = {};

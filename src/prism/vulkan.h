@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include "vulkan/vulkan.h"
-#include "prism/memory.h"
+#include "ctk/memory.h"
 
 namespace prism
 {
@@ -13,7 +13,7 @@ namespace prism
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename T, typename Output>
-static Container<Output>
+static ctk::Container<Output>
 createVulkanContainer(VkResult (* vulkanGetFn)(T, uint32_t *, Output *), T arg0)
 {
     uint32_t count = 0;
@@ -24,13 +24,13 @@ createVulkanContainer(VkResult (* vulkanGetFn)(T, uint32_t *, Output *), T arg0)
         return {};
     }
 
-    auto container = memCreateContainer<Output>(count);
+    auto container = ctk::containerCreate<Output>(count);
     vulkanGetFn(arg0, &count, container.data);
     return container;
 }
 
 template<typename T, typename U, typename Output>
-static Container<Output>
+static ctk::Container<Output>
 createVulkanContainer(VkResult (* vulkanGetFn)(T, U, uint32_t *, Output *), T arg0, U arg1)
 {
     uint32_t count = 0;
@@ -41,13 +41,13 @@ createVulkanContainer(VkResult (* vulkanGetFn)(T, U, uint32_t *, Output *), T ar
         return {};
     }
 
-    auto container = memCreateContainer<Output>(count);
+    auto container = ctk::containerCreate<Output>(count);
     vulkanGetFn(arg0, arg1, &count, container.data);
     return container;
 }
 
 template<typename T, typename U, typename V, typename Output>
-static Container<Output>
+static ctk::Container<Output>
 createVulkanContainer(VkResult (* vulkanGetFn)(T, U, V, uint32_t *, Output *), T arg0, U arg1, V arg2)
 {
     uint32_t count = 0;
@@ -58,7 +58,7 @@ createVulkanContainer(VkResult (* vulkanGetFn)(T, U, V, uint32_t *, Output *), T
         return {};
     }
 
-    auto container = memCreateContainer<Output>(count);
+    auto container = ctk::containerCreate<Output>(count);
     vulkanGetFn(arg0, arg1, arg2, &count, container.data);
     return container;
 }

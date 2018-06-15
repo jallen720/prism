@@ -1,15 +1,17 @@
 #include <cstdio>
 #include <cstring>
-#include "ctk/data.h"
 #include "ctk/memory.h"
 #include "prism/graphics.h"
 #include "prism/utilities.h"
 #include "prism/defines.h"
-#include "prism/memory.h"
 #include "prism/vulkan.h"
 
-using ctk::PAIR;
-using ctk::mem_concat;
+using ctk::Pair;
+using ctk::Container;
+using ctk::containerCreate;
+using ctk::containerFree;
+using ctk::memAlloc;
+using ctk::memConcat;
 
 namespace prism
 {
@@ -164,7 +166,7 @@ createInstance(GFXConfig * config)
     extensionInfo.propsNameAccessor = extensionPropsNameAccessor;
     uint32_t availableExtensionCount = 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &availableExtensionCount, nullptr);
-    extensionInfo.availableProps = memCreateContainer<VkExtensionProperties>(availableExtensionCount);
+    extensionInfo.availableProps = containerCreate<VkExtensionProperties>(availableExtensionCount);
     vkEnumerateInstanceExtensionProperties(nullptr, &availableExtensionCount, extensionInfo.availableProps.data);
 
     // Initialize layerInfo with requested layer names and available layer properties.
@@ -175,7 +177,7 @@ createInstance(GFXConfig * config)
     layerInfo.propsNameAccessor = layerPropsNameAccessor;
     uint32_t availableLayerCount = 0;
     vkEnumerateInstanceLayerProperties(&availableLayerCount, nullptr);
-    layerInfo.availableProps = memCreateContainer<VkLayerProperties>(availableLayerCount);
+    layerInfo.availableProps = containerCreate<VkLayerProperties>(availableLayerCount);
     vkEnumerateInstanceLayerProperties(&availableLayerCount, layerInfo.availableProps.data);
 
 #ifdef PRISM_DEBUG
@@ -239,8 +241,8 @@ createInstance(GFXConfig * config)
     }
 
     // Cleanup
-    memFreeContainer(&extensionInfo.availableProps);
-    memFreeContainer(&layerInfo.availableProps);
+    containerFree(&extensionInfo.availableProps);
+    containerFree(&layerInfo.availableProps);
 
     return instance;
 }
@@ -293,7 +295,7 @@ getSwapchainInfo(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, Swapchai
     // Get available surface format info.
     uint32_t availableSurfaceFormatCount = 0;
     vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &availableSurfaceFormatCount, nullptr);
-    auto availableSurfaceFormats = memCreateContainer<VkSurfaceFormatKHR>(availableSurfaceFormatCount);
+    auto availableSurfaceFormats = containerCreate<VkSurfaceFormatKHR>(availableSurfaceFormatCount);
 
     vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &availableSurfaceFormatCount,
                                          availableSurfaceFormats.data);
@@ -301,7 +303,7 @@ getSwapchainInfo(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, Swapchai
     // Get available surface present-mode info.
     uint32_t availableSurfacePresentModeCount = 0;
     vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &availableSurfacePresentModeCount, nullptr);
-    auto availableSurfacePresentModes = memCreateContainer<VkPresentModeKHR>(availableSurfacePresentModeCount);
+    auto availableSurfacePresentModes = containerCreate<VkPresentModeKHR>(availableSurfacePresentModeCount);
 
     vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &availableSurfacePresentModeCount,
                                               availableSurfacePresentModes.data);
@@ -789,16 +791,13 @@ createSwapchain(VkSurfaceKHR surface, VkLogicalDevice logicalDevice, const Queue
 static Container<VkImage>
 getSwapchainImages(VkLogicalDevice logicalDevice, VkSwapchainKHR swapchain)
 {
-    uint32_t count = 0;
-    vkGetSwapchainImagesKHR(logicalDevice, swapchain, &count, nullptr);
+    auto swapchainImages = createVulkanContainer(vkGetSwapchainImagesKHR, logicalDevice, swapchain);
 
-    if(count == 0)
+    if(swapchainImages.count == 0)
     {
         utilErrorExit("VULKAN", nullptr, "failed to get swapchain images\n");
     }
 
-    auto swapchainImages = memCreateContainer<VkImage>(count);
-    vkGetSwapchainImagesKHR(logicalDevice, swapchain, &count, swapchainImages.data);
     return swapchainImages;
 }
 
@@ -836,7 +835,7 @@ createSwapchainImageViews(VkLogicalDevice logicalDevice, const Container<VkImage
         1,
     };
 
-    auto swapchainImageViews = memCreateContainer<VkImageView>(swapchainImages->count);
+    auto swapchainImageViews = containerCreate<VkImageView>(swapchainImages->count);
 
     for(size_t i = 0; i < swapchainImages->count; i++)
     {
@@ -913,7 +912,7 @@ gfxInit(GFXConfig * config)
         createSwapchainImageViews(logicalDevice, &swapchainImages, &swapchainConfig);
 
     // // Cleanup.
-    // memFreeContainer(&swapchainImages);
+    // containerFree(&swapchainImages);
 }
 
 // void
