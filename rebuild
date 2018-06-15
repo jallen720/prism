@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-cpp_clean && ./build
+cc-clean && ./build
