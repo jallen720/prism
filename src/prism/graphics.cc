@@ -161,7 +161,7 @@ createInstance(GFXConfig * config)
     extensionInfo.type = "extension";
     extensionInfo.requestedNames = &config->requestedExtensionNames;
     extensionInfo.getNameFn = getExtensionName;
-    extensionInfo.availableProps = createVulkanContainer<const char *>(vkEnumerateInstanceExtensionProperties, nullptr);
+    extensionInfo.availableProps = createVulkanContainer(vkEnumerateInstanceExtensionProperties, (const char *)nullptr);
 
     // Initialize layerInfo with requested layer names and available layer properties.
     InstanceComponentInfo<VkLayerProperties> layerInfo = {};
