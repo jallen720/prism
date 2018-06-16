@@ -46,6 +46,23 @@ createVulkanContainer(VkResult (* vulkanGetFn)(T, uint32_t *, Output *), T arg0)
     return container;
 }
 
+template<typename T, typename Output>
+static ctk::Container<Output>
+createVulkanContainer(void (* vulkanGetFn)(T, uint32_t *, Output *), T arg0)
+{
+    uint32_t count = 0;
+    vulkanGetFn(arg0, &count, nullptr);
+
+    if(count == 0)
+    {
+        return {};
+    }
+
+    auto container = ctk::containerCreate<Output>(count);
+    vulkanGetFn(arg0, &count, container.data);
+    return container;
+}
+
 template<typename T, typename U, typename Output>
 static ctk::Container<Output>
 createVulkanContainer(VkResult (* vulkanGetFn)(T, U, uint32_t *, Output *), T arg0, U arg1)

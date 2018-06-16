@@ -108,6 +108,4 @@ sysDestroy(SYSContext * context)
     glfwDestroyWindow(context->window);
 }
 
-
-
 } // namespace prism

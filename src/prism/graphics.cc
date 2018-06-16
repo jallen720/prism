@@ -240,34 +240,26 @@ createInstance(GFXConfig * config)
 static bool
 supportsSwapchain(VkPhysicalDevice physicalDevice)
 {
-    uint32_t availableExtensionCount = 0;
-    vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &availableExtensionCount, nullptr);
-
-    if(availableExtensionCount == 0)
-    {
-        return false;
-    }
-
-    auto availableExtensionProps = memAlloc<VkExtensionProperties>(availableExtensionCount);
-    vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &availableExtensionCount, availableExtensionProps);
-
-    // Check for swapchain extension.
     bool result = false;
 
-    for(size_t availableExtensionIndex = 0;
-        availableExtensionIndex < availableExtensionCount;
-        availableExtensionIndex++)
+    auto availableExtensionProps =
+        createVulkanContainer(vkEnumerateDeviceExtensionProperties, physicalDevice, (const char *)nullptr);
+
+    if(availableExtensionProps.count > 0)
     {
-        if(strcmp(availableExtensionProps[availableExtensionIndex].extensionName,
-                  VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
+        // Check for swapchain extension.
+        for(size_t i = 0; i < availableExtensionProps.count; i++)
         {
-            result = true;
-            break;
+            if(strcmp(availableExtensionProps.data[i].extensionName, VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
+            {
+                result = true;
+                break;
+            }
         }
     }
 
     // Cleanup
-    free(availableExtensionProps);
+    containerFree(&availableExtensionProps);
 
     return result;
 }
@@ -283,52 +275,35 @@ getSwapchainInfo(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, Swapchai
 #endif
 
     // Get available surface format info.
-    uint32_t availableSurfaceFormatCount = 0;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &availableSurfaceFormatCount, nullptr);
-    auto availableSurfaceFormats = containerCreate<VkSurfaceFormatKHR>(availableSurfaceFormatCount);
-
-    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &availableSurfaceFormatCount,
-                                         availableSurfaceFormats.data);
+    swapchainInfo->availableSurfaceFormats =
+        createVulkanContainer(vkGetPhysicalDeviceSurfaceFormatsKHR, physicalDevice, surface);
 
     // Get available surface present-mode info.
-    uint32_t availableSurfacePresentModeCount = 0;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &availableSurfacePresentModeCount, nullptr);
-    auto availableSurfacePresentModes = containerCreate<VkPresentModeKHR>(availableSurfacePresentModeCount);
-
-    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &availableSurfacePresentModeCount,
-                                              availableSurfacePresentModes.data);
-
-    swapchainInfo->availableSurfaceFormats = availableSurfaceFormats;
-    swapchainInfo->availableSurfacePresentModes = availableSurfacePresentModes;
+    swapchainInfo->availableSurfacePresentModes =
+        createVulkanContainer(vkGetPhysicalDeviceSurfacePresentModesKHR, physicalDevice, surface);
 }
 
 static VkPhysicalDevice
 getPhysicalDevice(VkInstance instance, VkSurfaceKHR surface, SwapchainInfo * swapchainInfo)
 {
     // Query available physical-devices.
-    uint32_t availablePhysicalDeviceCount = 0;
-    vkEnumeratePhysicalDevices(instance, &availablePhysicalDeviceCount, nullptr);
+    auto availablePhysicalDevices = createVulkanContainer(vkEnumeratePhysicalDevices, instance);
 
-    if(availablePhysicalDeviceCount == 0)
+    if(availablePhysicalDevices.count == 0)
     {
         utilErrorExit("VULKAN", nullptr, "no physical-devices found\n");
     }
 
-    auto availablePhysicalDevices = memAlloc<VkPhysicalDevice>(availablePhysicalDeviceCount);
-    vkEnumeratePhysicalDevices(instance, &availablePhysicalDeviceCount, availablePhysicalDevices);
-
 #ifdef PRISM_DEBUG
-    logAvailablePhysicalDevices(availablePhysicalDeviceCount, availablePhysicalDevices);
+    logAvailablePhysicalDevices(&availablePhysicalDevices);
 #endif
 
     // Find a suitable physical-device for rendering and store handle in context.
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 
-    for(size_t availablePhysicalDeviceIndex = 0;
-        availablePhysicalDeviceIndex < availablePhysicalDeviceCount;
-        availablePhysicalDeviceIndex++)
+    for(size_t i = 0; i < availablePhysicalDevices.count; i++)
     {
-        VkPhysicalDevice availablePhysicalDevice = availablePhysicalDevices[availablePhysicalDeviceIndex];
+        VkPhysicalDevice availablePhysicalDevice = availablePhysicalDevices.data[i];
         VkPhysicalDeviceProperties availablePhysicalDeviceProperties = {};
         vkGetPhysicalDeviceProperties(availablePhysicalDevice, &availablePhysicalDeviceProperties);
 
@@ -370,7 +345,7 @@ getPhysicalDevice(VkInstance instance, VkSurfaceKHR surface, SwapchainInfo * swa
     }
 
     // Cleanup
-    free(availablePhysicalDevices);
+    containerFree(&availablePhysicalDevices);
 
     return physicalDevice;
 }
@@ -378,26 +353,21 @@ getPhysicalDevice(VkInstance instance, VkSurfaceKHR surface, SwapchainInfo * swa
 static void
 getQueueFamilyIndexes(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, QueueInfo * queueInfo)
 {
-    // Ensure queue-families can be found.
-    uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
+    // Get properties for selected physical-device's queue-families.
+    auto queueFamilyPropsArray = createVulkanContainer(vkGetPhysicalDeviceQueueFamilyProperties, physicalDevice);
 
-    if(queueFamilyCount == 0)
+    if(queueFamilyPropsArray.count == 0)
     {
         utilErrorExit("VULKAN", nullptr, "no queue-families found for physical-device\n");
     }
-
-    // Get properties for selected physical-device's queue-families.
-    auto queueFamilyPropsArray = memAlloc<VkQueueFamilyProperties>(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilyPropsArray);
 
     // Find indexes for graphics and present queue-families.
     int graphicsQueueFamilyIndex = -1;
     int presentQueueFamilyIndex = -1;
 
-    for(size_t queueFamilyIndex = 0; queueFamilyIndex < queueFamilyCount; queueFamilyIndex++)
+    for(size_t queueFamilyIndex = 0; queueFamilyIndex < queueFamilyPropsArray.count; queueFamilyIndex++)
     {
-        const VkQueueFamilyProperties * queueFamilyProps = queueFamilyPropsArray + queueFamilyIndex;
+        const VkQueueFamilyProperties * queueFamilyProps = queueFamilyPropsArray.data + queueFamilyIndex;
 
         // Check for graphics-capable queue-family.
         if(graphicsQueueFamilyIndex == -1
@@ -440,11 +410,11 @@ getQueueFamilyIndexes(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, Que
     queueInfo->familyIndexes[QUEUE_FAMILY_INDEX(PRESENT)] = presentQueueFamilyIndex;
 
 #ifdef PRISM_DEBUG
-    logQueueFamilies(queueFamilyCount, queueFamilyPropsArray);
+    logQueueFamilies(&queueFamilyPropsArray);
 #endif
 
     // Cleanup
-    free(queueFamilyPropsArray);
+    containerFree(&queueFamilyPropsArray);
 }
 
 static VkLogicalDevice

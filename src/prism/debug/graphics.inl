@@ -229,7 +229,7 @@ logPhysicalDeviceSurfaceCapabilities(const VkSurfaceCapabilitiesKHR * surfaceCap
 }
 
 static void
-logAvailablePhysicalDevices(uint32_t availablePhysicalDeviceCount, const VkPhysicalDevice * availablePhysicalDevices)
+logAvailablePhysicalDevices(const Container<VkPhysicalDevice> * availablePhysicalDevices)
 {
     static const char * PHYSICAL_DEVICE_TYPE_NAMES[]
     {
@@ -240,9 +240,9 @@ logAvailablePhysicalDevices(uint32_t availablePhysicalDeviceCount, const VkPhysi
         "VK_PHYSICAL_DEVICE_TYPE_CPU",
     };
 
-    for(size_t i = 0; i < availablePhysicalDeviceCount; i++)
+    for(size_t i = 0; i < availablePhysicalDevices->count; i++)
     {
-        VkPhysicalDevice availablePhysicalDevice = availablePhysicalDevices[i];
+        VkPhysicalDevice availablePhysicalDevice = availablePhysicalDevices->data[i];
         VkPhysicalDeviceProperties availablePhysicalDeviceProperties;
         vkGetPhysicalDeviceProperties(availablePhysicalDevice, &availablePhysicalDeviceProperties);
         logDivider();
@@ -262,7 +262,7 @@ logAvailablePhysicalDevices(uint32_t availablePhysicalDeviceCount, const VkPhysi
 }
 
 static void
-logQueueFamilies(uint32_t queueFamilyCount, VkQueueFamilyProperties * queueFamilyPropsArray)
+logQueueFamilies(const Container<VkQueueFamilyProperties> * queueFamilyPropsArray)
 {
     static const QueueFlagName QUEUE_FLAG_NAMES[]
     {
@@ -276,9 +276,9 @@ logQueueFamilies(uint32_t queueFamilyCount, VkQueueFamilyProperties * queueFamil
     static const size_t QUEUE_FLAG_NAME_COUNT = sizeof(QUEUE_FLAG_NAMES) / sizeof(QueueFlagName);
     logDivider();
 
-    for(size_t queueFamilyIndex = 0; queueFamilyIndex < queueFamilyCount; queueFamilyIndex++)
+    for(size_t queueFamilyIndex = 0; queueFamilyIndex < queueFamilyPropsArray->count; queueFamilyIndex++)
     {
-        const VkQueueFamilyProperties * queueFamilyProps = queueFamilyPropsArray + queueFamilyIndex;
+        const VkQueueFamilyProperties * queueFamilyProps = queueFamilyPropsArray->data + queueFamilyIndex;
         VkQueueFlags queueFlags = queueFamilyProps->queueFlags;
         const VkExtent3D * minImageTransferGranularity = &queueFamilyProps->minImageTransferGranularity;
         utilLog("VULKAN", "queue-family (index: %i):\n", queueFamilyIndex);
