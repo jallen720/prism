@@ -5,6 +5,7 @@
 #include <GLFW/glfw3.h>
 
 #include <cstdint>
+#include "ctk/memory.h"
 
 namespace prism
 {
@@ -30,8 +31,8 @@ sysInit();
 void
 sysCreateWindow(SYSContext * context, int width, int height, const char * title);
 
-const char **
-sysGetRequiredExtensions(uint32_t * requiredExtensionCount);
+ctk::List<const char *>
+sysGetRequiredExtensions();
 
 VkSurfaceKHR
 sysCreateSurface(const void * data, VkInstance instance);

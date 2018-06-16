@@ -4,6 +4,7 @@
 #include "prism/system.h"
 #include "prism/graphics.h"
 #include "ctk/yaml.h"
+#include "ctk/memory.h"
 
 using prism::SYSContext;
 using prism::sysInit;
@@ -19,6 +20,8 @@ using ctk::yamlReadFile;
 using ctk::yamlGetString;
 using ctk::yamlGetInt;
 using ctk::yamlFree;
+using ctk::listCreate;
+using ctk::listFree;
 
 int
 main()
@@ -37,10 +40,13 @@ main()
 
     // Initialize graphics context.
     GFXConfig config = {};
-    config.requestedExtensionNames = sysGetRequiredExtensions(&config.requestedExtensionCount);
+    config.requestedExtensionNames = sysGetRequiredExtensions();
+    config.requestedLayerNames = listCreate<const char *>();
     config.createSurfaceFnData = &sysContext;
     config.createSurfaceFn = sysCreateSurface;
     gfxInit(&config);
+    listFree(&config.requestedExtensionNames);
+    listFree(&config.requestedLayerNames);
 
     // Run main loop.
     sysRun(&sysContext);

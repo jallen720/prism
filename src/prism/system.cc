@@ -2,6 +2,9 @@
 #include "prism/utilities.h"
 #include "prism/defines.h"
 
+using ctk::List;
+using ctk::listCreate;
+
 namespace prism
 {
 
@@ -63,11 +66,12 @@ sysCreateWindow(SYSContext * context, int width, int height, const char * title)
     glfwSetKeyCallback(*window, keyCallback);
 }
 
-const char **
-sysGetRequiredExtensions(uint32_t * requiredExtensionCount)
+List<const char *>
+sysGetRequiredExtensions()
 {
-    PRISM_ASSERT(requiredExtensionCount != nullptr);
-    return glfwGetRequiredInstanceExtensions(requiredExtensionCount);
+    uint32_t requiredExtensionCount = 0;
+    const char ** requiredExtensionNames = glfwGetRequiredInstanceExtensions(&requiredExtensionCount);
+    return listCreate(requiredExtensionNames, requiredExtensionCount);
 }
 
 VkSurfaceKHR

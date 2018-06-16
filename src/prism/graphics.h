@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include "vulkan/vulkan.h"
+#include "ctk/memory.h"
 
 namespace prism
 {
@@ -20,10 +21,8 @@ using GFXCreateSurfaceFn = VkSurfaceKHR (*)(const void *, VkInstance);
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 struct GFXConfig
 {
-    const char ** requestedExtensionNames;
-    uint32_t requestedExtensionCount;
-    const char ** requestedLayerNames;
-    uint32_t requestedLayerCount;
+    ctk::List<const char *> requestedExtensionNames;
+    ctk::List<const char *> requestedLayerNames;
     const void * createSurfaceFnData;
     GFXCreateSurfaceFn createSurfaceFn;
 };

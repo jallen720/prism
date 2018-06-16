@@ -1,17 +1,17 @@
 #include <cstdio>
 #include <cstring>
-#include "ctk/memory.h"
 #include "prism/graphics.h"
 #include "prism/utilities.h"
 #include "prism/defines.h"
 #include "prism/vulkan.h"
 
 using ctk::Pair;
+using ctk::List;
 using ctk::Container;
 using ctk::containerCreate;
 using ctk::containerFree;
 using ctk::memAlloc;
-using ctk::memConcat;
+using ctk::listAppend;
 
 namespace prism
 {
@@ -43,8 +43,7 @@ template<typename ComponentProps>
 struct InstanceComponentInfo
 {
     const char * type;
-    const char ** requestedNames;
-    uint32_t requestedCount;
+    const List<const char *> * requestedNames;
     Container<ComponentProps> availableProps;
     ComponentPropsNameAccessor<ComponentProps> propsNameAccessor;
 };
@@ -121,16 +120,15 @@ template<typename ComponentProps>
 static void
 validateInstanceComponentInfo(const InstanceComponentInfo<ComponentProps> * componentInfo)
 {
-    const char ** requestedComponentNames = componentInfo->requestedNames;
-    uint32_t requestedComponentCount = componentInfo->requestedCount;
+    const List<const char *> * requestedComponentNames = componentInfo->requestedNames;
     const Container<ComponentProps> * availableComponentProps = &componentInfo->availableProps;
     ComponentPropsNameAccessor<ComponentProps> accessComponentName = componentInfo->propsNameAccessor;
 
     for(size_t requestedComponentIndex = 0;
-        requestedComponentIndex < requestedComponentCount;
+        requestedComponentIndex < requestedComponentNames->count;
         requestedComponentIndex++)
     {
-        const char * requestedComponentName = requestedComponentNames[requestedComponentIndex];
+        const char * requestedComponentName = requestedComponentNames->data[requestedComponentIndex];
         bool componentAvailable = false;
 
         for(size_t availableComponentIndex = 0;
@@ -161,24 +159,16 @@ createInstance(GFXConfig * config)
     // Initialize extensionInfo with requested extension names and available extension properties.
     InstanceComponentInfo<VkExtensionProperties> extensionInfo = {};
     extensionInfo.type = "extension";
-    extensionInfo.requestedNames = config->requestedExtensionNames;
-    extensionInfo.requestedCount = config->requestedExtensionCount;
+    extensionInfo.requestedNames = &config->requestedExtensionNames;
     extensionInfo.propsNameAccessor = extensionPropsNameAccessor;
-    uint32_t availableExtensionCount = 0;
-    vkEnumerateInstanceExtensionProperties(nullptr, &availableExtensionCount, nullptr);
-    extensionInfo.availableProps = containerCreate<VkExtensionProperties>(availableExtensionCount);
-    vkEnumerateInstanceExtensionProperties(nullptr, &availableExtensionCount, extensionInfo.availableProps.data);
+    extensionInfo.availableProps = createVulkanContainer<const char *>(vkEnumerateInstanceExtensionProperties, nullptr);
 
     // Initialize layerInfo with requested layer names and available layer properties.
     InstanceComponentInfo<VkLayerProperties> layerInfo = {};
     layerInfo.type = "layer";
-    layerInfo.requestedNames = config->requestedLayerNames;
-    layerInfo.requestedCount = config->requestedLayerCount;
+    layerInfo.requestedNames = &config->requestedLayerNames;
     layerInfo.propsNameAccessor = layerPropsNameAccessor;
-    uint32_t availableLayerCount = 0;
-    vkEnumerateInstanceLayerProperties(&availableLayerCount, nullptr);
-    layerInfo.availableProps = containerCreate<VkLayerProperties>(availableLayerCount);
-    vkEnumerateInstanceLayerProperties(&availableLayerCount, layerInfo.availableProps.data);
+    layerInfo.availableProps = createVulkanContainer(vkEnumerateInstanceLayerProperties);
 
 #ifdef PRISM_DEBUG
     logInstanceComponentNames(&extensionInfo);
@@ -226,10 +216,10 @@ createInstance(GFXConfig * config)
     instanceCreateInfo.pNext = nullptr;
     instanceCreateInfo.flags = 0; // Reserved for future use.
     instanceCreateInfo.pApplicationInfo = &appInfo;
-    instanceCreateInfo.enabledLayerCount = layerInfo.requestedCount;
-    instanceCreateInfo.ppEnabledLayerNames = layerInfo.requestedNames;
-    instanceCreateInfo.enabledExtensionCount = extensionInfo.requestedCount;
-    instanceCreateInfo.ppEnabledExtensionNames = extensionInfo.requestedNames;
+    instanceCreateInfo.enabledLayerCount = layerInfo.requestedNames->count;
+    instanceCreateInfo.ppEnabledLayerNames = layerInfo.requestedNames->data;
+    instanceCreateInfo.enabledExtensionCount = extensionInfo.requestedNames->count;
+    instanceCreateInfo.ppEnabledExtensionNames = extensionInfo.requestedNames->data;
 
     // Create Vulkan instance.
     VkInstance instance = VK_NULL_HANDLE;
@@ -885,14 +875,16 @@ gfxInit(GFXConfig * config)
     SwapchainConfig swapchainConfig = {};
 
 #ifdef PRISM_DEBUG
-    concatDebugInstanceComponents(config);
-    VkInstance instance = createInstance(config);
-    freeDebugInstanceComponents(config);
+    // Add extensions and layers for logging.
+    appendDebugInstanceComponents(config);
+#endif
 
+    // Create instance from config.
+    VkInstance instance = createInstance(config);
+
+#ifdef PRISM_DEBUG
     // In debug mode, create a debug callback for logging.
     /*VkDebugReportCallbackEXT debugCallbackHandle = */createDebugCallback(instance);
-#else
-    VkInstance instance = createInstance(config);
 #endif
 
     VkSurfaceKHR surface = config->createSurfaceFn(config->createSurfaceFnData, instance);

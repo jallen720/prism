@@ -74,45 +74,27 @@ debugCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 static void
-concatDebugInstanceComponents(GFXConfig * config)
+appendDebugInstanceComponents(GFXConfig * config)
 {
     PRISM_ASSERT(config != nullptr);
 
-    // Concatenate requested and debug extension names.
+    // Append debug extension names.
     static const char * DEBUG_EXTENSION_NAMES[]
     {
         VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
     };
 
     static const size_t DEBUG_EXTENSION_COUNT = sizeof(DEBUG_EXTENSION_NAMES) / sizeof(void *);
-    const size_t allExtensionCount = DEBUG_EXTENSION_COUNT + config->requestedExtensionCount;
-    auto allExtensionNames = memAlloc<const char *>(allExtensionCount);
+    listAppend(&config->requestedExtensionNames, DEBUG_EXTENSION_NAMES, DEBUG_EXTENSION_COUNT);
 
-    memConcat(config->requestedExtensionNames, config->requestedExtensionCount, DEBUG_EXTENSION_NAMES,
-              DEBUG_EXTENSION_COUNT, allExtensionNames);
-
-    config->requestedExtensionNames = allExtensionNames;
-    config->requestedExtensionCount = allExtensionCount;
-
-    // Concatenate requested and debug layer names.
+    // Append debug layer names.
     static const char * DEBUG_LAYER_NAMES[] =
     {
         "VK_LAYER_LUNARG_standard_validation",
     };
 
     static const size_t DEBUG_LAYER_COUNT = sizeof(DEBUG_LAYER_NAMES) / sizeof(void *);
-    config->requestedLayerNames = DEBUG_LAYER_NAMES;
-    config->requestedLayerCount = DEBUG_LAYER_COUNT;
-}
-
-static void
-freeDebugInstanceComponents(GFXConfig * config)
-{
-    PRISM_ASSERT(config != nullptr);
-
-    // In debug mode, config->requestedExtensionNames points to a dynamically allocated concatenation of the user
-    // requested extension names and built-in debug extension names, so it needs to be freed.
-    free(config->requestedExtensionNames);
+    listAppend(&config->requestedLayerNames, DEBUG_LAYER_NAMES, DEBUG_LAYER_COUNT);
 }
 
 template<typename ComponentProps>
@@ -120,16 +102,15 @@ static void
 logInstanceComponentNames(const InstanceComponentInfo<ComponentProps> * componentInfo)
 {
     const char * componentType = componentInfo->type;
-    const char ** requestedComponentNames = componentInfo->requestedNames;
-    uint32_t requestedComponentCount = componentInfo->requestedCount;
+    const List<const char *> * requestedComponentNames = componentInfo->requestedNames;
     const Container<ComponentProps> * availableComponentProps = &componentInfo->availableProps;
     ComponentPropsNameAccessor<ComponentProps> accessComponentName = componentInfo->propsNameAccessor;
     logDivider();
-    utilLog("VULKAN", "requested %s names (%i):\n", componentType, requestedComponentCount);
+    utilLog("VULKAN", "requested %s names (%i):\n", componentType, requestedComponentNames->count);
 
-    for(size_t i = 0; i < requestedComponentCount; i++)
+    for(size_t i = 0; i < requestedComponentNames->count; i++)
     {
-        utilLog("VULKAN", "    %s\n", requestedComponentNames[i]);
+        utilLog("VULKAN", "    %s\n", requestedComponentNames->data[i]);
     }
 
     utilLog("VULKAN", "available %s names (%i):", componentType, availableComponentProps->count);
