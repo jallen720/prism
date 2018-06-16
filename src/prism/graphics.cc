@@ -30,7 +30,7 @@ namespace prism
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename ComponentProps>
-using ComponentPropsNameAccessor = const char * (*)(const ComponentProps *);
+using GetComponentNameFn = const char * (*)(const ComponentProps *);
 
 using VkLogicalDevice = VkDevice;
 
@@ -45,7 +45,7 @@ struct InstanceComponentInfo
     const char * type;
     const List<const char *> * requestedNames;
     Container<ComponentProps> availableProps;
-    ComponentPropsNameAccessor<ComponentProps> propsNameAccessor;
+    GetComponentNameFn<ComponentProps> getNameFn;
 };
 
 struct SwapchainInfo
@@ -105,13 +105,13 @@ struct QueueInfo
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 static const char *
-layerPropsNameAccessor(const VkLayerProperties * layerProps)
+getLayerName(const VkLayerProperties * layerProps)
 {
     return layerProps->layerName;
 }
 
 static const char *
-extensionPropsNameAccessor(const VkExtensionProperties * extensionProps)
+getExtensionName(const VkExtensionProperties * extensionProps)
 {
     return extensionProps->extensionName;
 }
@@ -122,7 +122,7 @@ validateInstanceComponentInfo(const InstanceComponentInfo<ComponentProps> * comp
 {
     const List<const char *> * requestedComponentNames = componentInfo->requestedNames;
     const Container<ComponentProps> * availableComponentProps = &componentInfo->availableProps;
-    ComponentPropsNameAccessor<ComponentProps> accessComponentName = componentInfo->propsNameAccessor;
+    GetComponentNameFn<ComponentProps> getComponentNameFn = componentInfo->getNameFn;
 
     for(size_t requestedComponentIndex = 0;
         requestedComponentIndex < requestedComponentNames->count;
@@ -136,7 +136,7 @@ validateInstanceComponentInfo(const InstanceComponentInfo<ComponentProps> * comp
             availableComponentIndex++)
         {
             if(strcmp(requestedComponentName,
-                      accessComponentName(availableComponentProps->data + availableComponentIndex)) == 0)
+                      getComponentNameFn(availableComponentProps->data + availableComponentIndex)) == 0)
             {
                 componentAvailable = true;
                 break;
@@ -160,14 +160,14 @@ createInstance(GFXConfig * config)
     InstanceComponentInfo<VkExtensionProperties> extensionInfo = {};
     extensionInfo.type = "extension";
     extensionInfo.requestedNames = &config->requestedExtensionNames;
-    extensionInfo.propsNameAccessor = extensionPropsNameAccessor;
+    extensionInfo.getNameFn = getExtensionName;
     extensionInfo.availableProps = createVulkanContainer<const char *>(vkEnumerateInstanceExtensionProperties, nullptr);
 
     // Initialize layerInfo with requested layer names and available layer properties.
     InstanceComponentInfo<VkLayerProperties> layerInfo = {};
     layerInfo.type = "layer";
     layerInfo.requestedNames = &config->requestedLayerNames;
-    layerInfo.propsNameAccessor = layerPropsNameAccessor;
+    layerInfo.getNameFn = getLayerName;
     layerInfo.availableProps = createVulkanContainer(vkEnumerateInstanceLayerProperties);
 
 #ifdef PRISM_DEBUG

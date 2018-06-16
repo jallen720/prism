@@ -104,7 +104,7 @@ logInstanceComponentNames(const InstanceComponentInfo<ComponentProps> * componen
     const char * componentType = componentInfo->type;
     const List<const char *> * requestedComponentNames = componentInfo->requestedNames;
     const Container<ComponentProps> * availableComponentProps = &componentInfo->availableProps;
-    ComponentPropsNameAccessor<ComponentProps> accessComponentName = componentInfo->propsNameAccessor;
+    GetComponentNameFn<ComponentProps> getComponentNameFn = componentInfo->getNameFn;
     logDivider();
     utilLog("VULKAN", "requested %s names (%i):\n", componentType, requestedComponentNames->count);
 
@@ -125,7 +125,7 @@ logInstanceComponentNames(const InstanceComponentInfo<ComponentProps> * componen
 
         for(uint32_t i = 0; i < availableComponentProps->count; i++)
         {
-            utilLog("VULKAN", "    %s\n", accessComponentName(availableComponentProps->data + i));
+            utilLog("VULKAN", "    %s\n", getComponentNameFn(availableComponentProps->data + i));
         }
     }
 }
