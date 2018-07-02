@@ -27,12 +27,11 @@ main()
     // Initialize graphics context.
     GFXConfig config = {};
     config.requestedExtensionNames = sysGetRequiredExtensions();
-    config.requestedLayerNames = listCreate<const char *>();
+    config.requestedLayerNames = {};
     config.createSurfaceFnData = &sysContext;
     config.createSurfaceFn = sysCreateSurface;
     gfxInit(&config);
-    listFree(&config.requestedExtensionNames);
-    listFree(&config.requestedLayerNames);
+    containerFree(&config.requestedExtensionNames);
 
     // Run main loop.
     sysRun(&sysContext);

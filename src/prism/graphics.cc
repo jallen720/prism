@@ -37,7 +37,7 @@ template<typename ComponentProps>
 struct InstanceComponentInfo
 {
     const char * type;
-    const List<const char *> * requestedNames;
+    const Container<const char *> * requestedNames;
     Container<ComponentProps> availableProps;
     GetComponentNameFn<ComponentProps> getNameFn;
 };
@@ -114,7 +114,7 @@ template<typename ComponentProps>
 static void
 validateInstanceComponentInfo(const InstanceComponentInfo<ComponentProps> * componentInfo)
 {
-    const List<const char *> * requestedComponentNames = componentInfo->requestedNames;
+    const Container<const char *> * requestedComponentNames = componentInfo->requestedNames;
     const Container<ComponentProps> * availableComponentProps = &componentInfo->availableProps;
     GetComponentNameFn<ComponentProps> getComponentNameFn = componentInfo->getNameFn;
 
@@ -146,7 +146,7 @@ validateInstanceComponentInfo(const InstanceComponentInfo<ComponentProps> * comp
 }
 
 static VkInstance
-createInstance(GFXConfig * config)
+createInstance(const GFXConfig * config)
 {
     // Initialize extensionInfo with requested extension names and available extension properties.
     InstanceComponentInfo<VkExtensionProperties> extensionInfo = {};
@@ -829,7 +829,7 @@ createSwapchainImageViews(VkLogicalDevice logicalDevice, const Container<VkImage
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void
-gfxInit(GFXConfig * config)
+gfxInit(const GFXConfig * config)
 {
     PRISM_ASSERT(config != nullptr);
     QueueInfo queueInfo = {};
@@ -837,8 +837,28 @@ gfxInit(GFXConfig * config)
     SwapchainConfig swapchainConfig = {};
 
 #ifdef PRISM_DEBUG
-    // Add extensions and layers for logging.
-    appendDebugInstanceComponents(config);
+    // Add debug extensions and layers for logging.
+    static const char * DEBUG_EXTENSION_NAMES[]
+    {
+        VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
+    };
+
+    static const char * DEBUG_LAYER_NAMES[] =
+    {
+        "VK_LAYER_LUNARG_standard_validation",
+    };
+
+    GFXConfig debugConfig =
+    {
+        containerConcat(&config->requestedExtensionNames, DEBUG_EXTENSION_NAMES,
+                        sizeof(DEBUG_EXTENSION_NAMES) / sizeof(void *)),
+
+        containerConcat(&config->requestedLayerNames, DEBUG_LAYER_NAMES, sizeof(DEBUG_LAYER_NAMES) / sizeof(void *)),
+        config->createSurfaceFnData,
+        config->createSurfaceFn,
+    };
+
+    config = &debugConfig;
 #endif
 
     // Create instance from config.
@@ -866,6 +886,10 @@ gfxInit(GFXConfig * config)
         createSwapchainImageViews(logicalDevice, &swapchainImages, &swapchainConfig);
 
     // Cleanup.
+#ifdef PRISM_DEBUG
+    containerFree(&config->requestedExtensionNames);
+    containerFree(&config->requestedLayerNames);
+#endif
     // containerFree(&swapchainImages);
 }
 

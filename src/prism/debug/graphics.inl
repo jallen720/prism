@@ -73,36 +73,12 @@ debugCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType
 // Debug Utilities
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static void
-appendDebugInstanceComponents(GFXConfig * config)
-{
-    PRISM_ASSERT(config != nullptr);
-
-    // Append debug extension names.
-    static const char * DEBUG_EXTENSION_NAMES[]
-    {
-        VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
-    };
-
-    static const size_t DEBUG_EXTENSION_COUNT = sizeof(DEBUG_EXTENSION_NAMES) / sizeof(void *);
-    listAppend(&config->requestedExtensionNames, DEBUG_EXTENSION_NAMES, DEBUG_EXTENSION_COUNT);
-
-    // Append debug layer names.
-    static const char * DEBUG_LAYER_NAMES[] =
-    {
-        "VK_LAYER_LUNARG_standard_validation",
-    };
-
-    static const size_t DEBUG_LAYER_COUNT = sizeof(DEBUG_LAYER_NAMES) / sizeof(void *);
-    listAppend(&config->requestedLayerNames, DEBUG_LAYER_NAMES, DEBUG_LAYER_COUNT);
-}
-
 template<typename ComponentProps>
 static void
 logInstanceComponentNames(const InstanceComponentInfo<ComponentProps> * componentInfo)
 {
     const char * componentType = componentInfo->type;
-    const List<const char *> * requestedComponentNames = componentInfo->requestedNames;
+    const Container<const char *> * requestedComponentNames = componentInfo->requestedNames;
     const Container<ComponentProps> * availableComponentProps = &componentInfo->availableProps;
     GetComponentNameFn<ComponentProps> getComponentNameFn = componentInfo->getNameFn;
     logDivider();
