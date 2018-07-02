@@ -6,22 +6,8 @@
 #include "ctk/yaml.h"
 #include "ctk/memory.h"
 
-using prism::SYSContext;
-using prism::sysInit;
-using prism::sysCreateSurface;
-using prism::sysGetRequiredExtensions;
-using prism::sysCreateWindow;
-using prism::sysRun;
-using prism::sysDestroy;
-using prism::GFXConfig;
-using prism::gfxInit;
-using ctk::YAMLNode;
-using ctk::yamlReadFile;
-using ctk::yamlGetString;
-using ctk::yamlGetInt;
-using ctk::yamlFree;
-using ctk::listCreate;
-using ctk::listFree;
+using namespace prism;
+using namespace ctk;
 
 int
 main()
@@ -53,9 +39,6 @@ main()
 
     // Destroy system context.
     sysDestroy(&sysContext);
-
-    // Cleanup graphics context.
-    // gfxDestroy(&gfxContext);
 
     return EXIT_SUCCESS;
 }

@@ -1,7 +1,7 @@
 #include "prism/vulkan.h"
 #include "prism/defines.h"
 
-using ctk::Pair;
+using namespace ctk;
 
 namespace prism
 {

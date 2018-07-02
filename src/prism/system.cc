@@ -2,8 +2,7 @@
 #include "prism/utilities.h"
 #include "prism/defines.h"
 
-using ctk::List;
-using ctk::listCreate;
+using namespace ctk;
 
 namespace prism
 {

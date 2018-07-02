@@ -5,13 +5,7 @@
 #include "prism/defines.h"
 #include "prism/vulkan.h"
 
-using ctk::Pair;
-using ctk::List;
-using ctk::Container;
-using ctk::containerCreate;
-using ctk::containerFree;
-using ctk::memAlloc;
-using ctk::listAppend;
+using namespace ctk;
 
 namespace prism
 {
@@ -154,8 +148,6 @@ validateInstanceComponentInfo(const InstanceComponentInfo<ComponentProps> * comp
 static VkInstance
 createInstance(GFXConfig * config)
 {
-    PRISM_ASSERT(config != nullptr);
-
     // Initialize extensionInfo with requested extension names and available extension properties.
     InstanceComponentInfo<VkExtensionProperties> extensionInfo = {};
     extensionInfo.type = "extension";
@@ -873,7 +865,7 @@ gfxInit(GFXConfig * config)
     Container<VkImageView> swapchainImageViews =
         createSwapchainImageViews(logicalDevice, &swapchainImages, &swapchainConfig);
 
-    // // Cleanup.
+    // Cleanup.
     // containerFree(&swapchainImages);
 }
 
