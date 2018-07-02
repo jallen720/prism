@@ -31,7 +31,7 @@ sysInit();
 void
 sysCreateWindow(SYSContext * context, int width, int height, const char * title);
 
-ctk::Container<const char *>
+ctk::Buffer<const char *>
 sysGetRequiredExtensions();
 
 VkSurfaceKHR

@@ -37,8 +37,8 @@ template<typename ComponentProps>
 struct InstanceComponentInfo
 {
     const char * type;
-    const Container<const char *> * requestedNames;
-    Container<ComponentProps> availableProps;
+    const Buffer<const char *> * requestedNames;
+    Buffer<ComponentProps> availableProps;
     GetComponentNameFn<ComponentProps> getNameFn;
 };
 
@@ -58,8 +58,8 @@ struct SwapchainInfo
     // } VkSurfaceCapabilitiesKHR;
     VkSurfaceCapabilitiesKHR surfaceCapabilities;
 
-    Container<VkSurfaceFormatKHR> availableSurfaceFormats;
-    Container<VkPresentModeKHR> availableSurfacePresentModes;
+    Buffer<VkSurfaceFormatKHR> availableSurfaceFormats;
+    Buffer<VkPresentModeKHR> availableSurfacePresentModes;
 };
 
 struct SwapchainConfig
@@ -114,8 +114,8 @@ template<typename ComponentProps>
 static void
 validateInstanceComponentInfo(const InstanceComponentInfo<ComponentProps> * componentInfo)
 {
-    const Container<const char *> * requestedComponentNames = componentInfo->requestedNames;
-    const Container<ComponentProps> * availableComponentProps = &componentInfo->availableProps;
+    const Buffer<const char *> * requestedComponentNames = componentInfo->requestedNames;
+    const Buffer<ComponentProps> * availableComponentProps = &componentInfo->availableProps;
     GetComponentNameFn<ComponentProps> getComponentNameFn = componentInfo->getNameFn;
 
     for(size_t requestedComponentIndex = 0;
@@ -153,14 +153,14 @@ createInstance(const GFXConfig * config)
     extensionInfo.type = "extension";
     extensionInfo.requestedNames = &config->requestedExtensionNames;
     extensionInfo.getNameFn = getExtensionName;
-    extensionInfo.availableProps = createVulkanContainer(vkEnumerateInstanceExtensionProperties, (const char *)nullptr);
+    extensionInfo.availableProps = createVulkanBuffer(vkEnumerateInstanceExtensionProperties, (const char *)nullptr);
 
     // Initialize layerInfo with requested layer names and available layer properties.
     InstanceComponentInfo<VkLayerProperties> layerInfo = {};
     layerInfo.type = "layer";
     layerInfo.requestedNames = &config->requestedLayerNames;
     layerInfo.getNameFn = getLayerName;
-    layerInfo.availableProps = createVulkanContainer(vkEnumerateInstanceLayerProperties);
+    layerInfo.availableProps = createVulkanBuffer(vkEnumerateInstanceLayerProperties);
 
 #ifdef PRISM_DEBUG
     logInstanceComponentNames(&extensionInfo);
@@ -223,8 +223,8 @@ createInstance(const GFXConfig * config)
     }
 
     // Cleanup
-    containerFree(&extensionInfo.availableProps);
-    containerFree(&layerInfo.availableProps);
+    bufferFree(&extensionInfo.availableProps);
+    bufferFree(&layerInfo.availableProps);
 
     return instance;
 }
@@ -235,7 +235,7 @@ supportsSwapchain(VkPhysicalDevice physicalDevice)
     bool result = false;
 
     auto availableExtensionProps =
-        createVulkanContainer(vkEnumerateDeviceExtensionProperties, physicalDevice, (const char *)nullptr);
+        createVulkanBuffer(vkEnumerateDeviceExtensionProperties, physicalDevice, (const char *)nullptr);
 
     if(availableExtensionProps.count > 0)
     {
@@ -251,7 +251,7 @@ supportsSwapchain(VkPhysicalDevice physicalDevice)
     }
 
     // Cleanup
-    containerFree(&availableExtensionProps);
+    bufferFree(&availableExtensionProps);
 
     return result;
 }
@@ -268,18 +268,18 @@ getSwapchainInfo(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, Swapchai
 
     // Get available surface format info.
     swapchainInfo->availableSurfaceFormats =
-        createVulkanContainer(vkGetPhysicalDeviceSurfaceFormatsKHR, physicalDevice, surface);
+        createVulkanBuffer(vkGetPhysicalDeviceSurfaceFormatsKHR, physicalDevice, surface);
 
     // Get available surface present-mode info.
     swapchainInfo->availableSurfacePresentModes =
-        createVulkanContainer(vkGetPhysicalDeviceSurfacePresentModesKHR, physicalDevice, surface);
+        createVulkanBuffer(vkGetPhysicalDeviceSurfacePresentModesKHR, physicalDevice, surface);
 }
 
 static VkPhysicalDevice
 getPhysicalDevice(VkInstance instance, VkSurfaceKHR surface, SwapchainInfo * swapchainInfo)
 {
     // Query available physical-devices.
-    auto availablePhysicalDevices = createVulkanContainer(vkEnumeratePhysicalDevices, instance);
+    auto availablePhysicalDevices = createVulkanBuffer(vkEnumeratePhysicalDevices, instance);
 
     if(availablePhysicalDevices.count == 0)
     {
@@ -337,7 +337,7 @@ getPhysicalDevice(VkInstance instance, VkSurfaceKHR surface, SwapchainInfo * swa
     }
 
     // Cleanup
-    containerFree(&availablePhysicalDevices);
+    bufferFree(&availablePhysicalDevices);
 
     return physicalDevice;
 }
@@ -346,7 +346,7 @@ static void
 getQueueFamilyIndexes(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, QueueInfo * queueInfo)
 {
     // Get properties for selected physical-device's queue-families.
-    auto queueFamilyPropsArray = createVulkanContainer(vkGetPhysicalDeviceQueueFamilyProperties, physicalDevice);
+    auto queueFamilyPropsArray = createVulkanBuffer(vkGetPhysicalDeviceQueueFamilyProperties, physicalDevice);
 
     if(queueFamilyPropsArray.count == 0)
     {
@@ -406,7 +406,7 @@ getQueueFamilyIndexes(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, Que
 #endif
 
     // Cleanup
-    containerFree(&queueFamilyPropsArray);
+    bufferFree(&queueFamilyPropsArray);
 }
 
 static VkLogicalDevice
@@ -591,7 +591,7 @@ createSwapchainConfig(const SwapchainInfo * swapchainInfo, SwapchainConfig * swa
         VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
     };
 
-    const Container<VkSurfaceFormatKHR> * availableSurfaceFormats = &swapchainInfo->availableSurfaceFormats;
+    const Buffer<VkSurfaceFormatKHR> * availableSurfaceFormats = &swapchainInfo->availableSurfaceFormats;
 
     // Default to first available format.
     VkSurfaceFormatKHR selectedSurfaceFormat = availableSurfaceFormats->data[0];
@@ -619,7 +619,7 @@ createSwapchainConfig(const SwapchainInfo * swapchainInfo, SwapchainConfig * swa
 
     // Select best surface present mode for swapchain.
     static const VkPresentModeKHR PREFERRED_PRESENT_MODE = VK_PRESENT_MODE_MAILBOX_KHR;
-    const Container<VkPresentModeKHR> * availableSurfacePresentModes = &swapchainInfo->availableSurfacePresentModes;
+    const Buffer<VkPresentModeKHR> * availableSurfacePresentModes = &swapchainInfo->availableSurfacePresentModes;
 
     // FIFO is guaranteed to be available, so use it as a fallback in-case the preferred mode isn't found.
     VkPresentModeKHR selectedSurfacePresentMode = VK_PRESENT_MODE_FIFO_KHR;
@@ -740,10 +740,10 @@ createSwapchain(VkSurfaceKHR surface, VkLogicalDevice logicalDevice, const Queue
     return swapchain;
 }
 
-static Container<VkImage>
+static Buffer<VkImage>
 getSwapchainImages(VkLogicalDevice logicalDevice, VkSwapchainKHR swapchain)
 {
-    auto swapchainImages = createVulkanContainer(vkGetSwapchainImagesKHR, logicalDevice, swapchain);
+    auto swapchainImages = createVulkanBuffer(vkGetSwapchainImagesKHR, logicalDevice, swapchain);
 
     if(swapchainImages.count == 0)
     {
@@ -753,8 +753,8 @@ getSwapchainImages(VkLogicalDevice logicalDevice, VkSwapchainKHR swapchain)
     return swapchainImages;
 }
 
-static Container<VkImageView>
-createSwapchainImageViews(VkLogicalDevice logicalDevice, const Container<VkImage> * swapchainImages,
+static Buffer<VkImageView>
+createSwapchainImageViews(VkLogicalDevice logicalDevice, const Buffer<VkImage> * swapchainImages,
                           const SwapchainConfig * swapchainConfig)
 {
     // typedef struct VkComponentMapping {
@@ -787,7 +787,7 @@ createSwapchainImageViews(VkLogicalDevice logicalDevice, const Container<VkImage
         1,
     };
 
-    auto swapchainImageViews = containerCreate<VkImageView>(swapchainImages->count);
+    auto swapchainImageViews = bufferCreate<VkImageView>(swapchainImages->count);
 
     for(size_t i = 0; i < swapchainImages->count; i++)
     {
@@ -850,10 +850,10 @@ gfxInit(const GFXConfig * config)
 
     GFXConfig debugConfig =
     {
-        containerConcat(&config->requestedExtensionNames, DEBUG_EXTENSION_NAMES,
-                        sizeof(DEBUG_EXTENSION_NAMES) / sizeof(void *)),
+        bufferConcat(&config->requestedExtensionNames, DEBUG_EXTENSION_NAMES,
+                     sizeof(DEBUG_EXTENSION_NAMES) / sizeof(void *)),
 
-        containerConcat(&config->requestedLayerNames, DEBUG_LAYER_NAMES, sizeof(DEBUG_LAYER_NAMES) / sizeof(void *)),
+        bufferConcat(&config->requestedLayerNames, DEBUG_LAYER_NAMES, sizeof(DEBUG_LAYER_NAMES) / sizeof(void *)),
         config->createSurfaceFnData,
         config->createSurfaceFn,
     };
@@ -880,17 +880,17 @@ gfxInit(const GFXConfig * config)
     // Create swapchain.
     createSwapchainConfig(&swapchainInfo, &swapchainConfig);
     VkSwapchainKHR swapchain = createSwapchain(surface, logicalDevice, &queueInfo, &swapchainConfig);
-    Container<VkImage> swapchainImages = getSwapchainImages(logicalDevice, swapchain);
+    Buffer<VkImage> swapchainImages = getSwapchainImages(logicalDevice, swapchain);
 
-    Container<VkImageView> swapchainImageViews =
+    Buffer<VkImageView> swapchainImageViews =
         createSwapchainImageViews(logicalDevice, &swapchainImages, &swapchainConfig);
 
     // Cleanup.
 #ifdef PRISM_DEBUG
-    containerFree(&config->requestedExtensionNames);
-    containerFree(&config->requestedLayerNames);
+    bufferFree(&config->requestedExtensionNames);
+    bufferFree(&config->requestedLayerNames);
 #endif
-    // containerFree(&swapchainImages);
+    // bufferFree(&swapchainImages);
 }
 
 // void

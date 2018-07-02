@@ -78,8 +78,8 @@ static void
 logInstanceComponentNames(const InstanceComponentInfo<ComponentProps> * componentInfo)
 {
     const char * componentType = componentInfo->type;
-    const Container<const char *> * requestedComponentNames = componentInfo->requestedNames;
-    const Container<ComponentProps> * availableComponentProps = &componentInfo->availableProps;
+    const Buffer<const char *> * requestedComponentNames = componentInfo->requestedNames;
+    const Buffer<ComponentProps> * availableComponentProps = &componentInfo->availableProps;
     GetComponentNameFn<ComponentProps> getComponentNameFn = componentInfo->getNameFn;
     logDivider();
     utilLog("VULKAN", "requested %s names (%i):\n", componentType, requestedComponentNames->count);
@@ -205,7 +205,7 @@ logPhysicalDeviceSurfaceCapabilities(const VkSurfaceCapabilitiesKHR * surfaceCap
 }
 
 static void
-logAvailablePhysicalDevices(const Container<VkPhysicalDevice> * availablePhysicalDevices)
+logAvailablePhysicalDevices(const Buffer<VkPhysicalDevice> * availablePhysicalDevices)
 {
     static const char * PHYSICAL_DEVICE_TYPE_NAMES[]
     {
@@ -238,7 +238,7 @@ logAvailablePhysicalDevices(const Container<VkPhysicalDevice> * availablePhysica
 }
 
 static void
-logQueueFamilies(const Container<VkQueueFamilyProperties> * queueFamilyPropsArray)
+logQueueFamilies(const Buffer<VkQueueFamilyProperties> * queueFamilyPropsArray)
 {
     static const QueueFlagName QUEUE_FLAG_NAMES[]
     {
@@ -587,7 +587,7 @@ logSelectedSwapchainConfig(const SwapchainConfig * swapchainConfig, const Swapch
     utilLog("VULKAN", "    format:     %s\n", surfaceFormatName->value);
     utilLog("VULKAN", "    colorSpace: %s\n", SURFACE_FORMAT_COLOR_SPACE_NAMES[(size_t)surfaceFormat->colorSpace]);
     utilLog("VULKAN", "available surface present modes:\n");
-    const Container<VkPresentModeKHR> * availableSurfacePresentModes = &swapchainInfo->availableSurfacePresentModes;
+    const Buffer<VkPresentModeKHR> * availableSurfacePresentModes = &swapchainInfo->availableSurfacePresentModes;
 
     for(size_t i = 0; i < availableSurfacePresentModes->count; i++)
     {

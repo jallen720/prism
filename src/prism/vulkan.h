@@ -13,8 +13,8 @@ namespace prism
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename Output>
-static ctk::Container<Output>
-createVulkanContainer(VkResult (* vulkanGetFn)(uint32_t *, Output *))
+static ctk::Buffer<Output>
+createVulkanBuffer(VkResult (* vulkanGetFn)(uint32_t *, Output *))
 {
     uint32_t count = 0;
     vulkanGetFn(&count, nullptr);
@@ -24,14 +24,14 @@ createVulkanContainer(VkResult (* vulkanGetFn)(uint32_t *, Output *))
         return {};
     }
 
-    auto container = ctk::containerCreate<Output>(count);
-    vulkanGetFn(&count, container.data);
-    return container;
+    auto buffer = ctk::bufferCreate<Output>(count);
+    vulkanGetFn(&count, buffer.data);
+    return buffer;
 }
 
 template<typename T, typename Output>
-static ctk::Container<Output>
-createVulkanContainer(VkResult (* vulkanGetFn)(T, uint32_t *, Output *), T arg0)
+static ctk::Buffer<Output>
+createVulkanBuffer(VkResult (* vulkanGetFn)(T, uint32_t *, Output *), T arg0)
 {
     uint32_t count = 0;
     vulkanGetFn(arg0, &count, nullptr);
@@ -41,14 +41,14 @@ createVulkanContainer(VkResult (* vulkanGetFn)(T, uint32_t *, Output *), T arg0)
         return {};
     }
 
-    auto container = ctk::containerCreate<Output>(count);
-    vulkanGetFn(arg0, &count, container.data);
-    return container;
+    auto buffer = ctk::bufferCreate<Output>(count);
+    vulkanGetFn(arg0, &count, buffer.data);
+    return buffer;
 }
 
 template<typename T, typename Output>
-static ctk::Container<Output>
-createVulkanContainer(void (* vulkanGetFn)(T, uint32_t *, Output *), T arg0)
+static ctk::Buffer<Output>
+createVulkanBuffer(void (* vulkanGetFn)(T, uint32_t *, Output *), T arg0)
 {
     uint32_t count = 0;
     vulkanGetFn(arg0, &count, nullptr);
@@ -58,14 +58,14 @@ createVulkanContainer(void (* vulkanGetFn)(T, uint32_t *, Output *), T arg0)
         return {};
     }
 
-    auto container = ctk::containerCreate<Output>(count);
-    vulkanGetFn(arg0, &count, container.data);
-    return container;
+    auto buffer = ctk::bufferCreate<Output>(count);
+    vulkanGetFn(arg0, &count, buffer.data);
+    return buffer;
 }
 
 template<typename T, typename U, typename Output>
-static ctk::Container<Output>
-createVulkanContainer(VkResult (* vulkanGetFn)(T, U, uint32_t *, Output *), T arg0, U arg1)
+static ctk::Buffer<Output>
+createVulkanBuffer(VkResult (* vulkanGetFn)(T, U, uint32_t *, Output *), T arg0, U arg1)
 {
     uint32_t count = 0;
     vulkanGetFn(arg0, arg1, &count, nullptr);
@@ -75,14 +75,14 @@ createVulkanContainer(VkResult (* vulkanGetFn)(T, U, uint32_t *, Output *), T ar
         return {};
     }
 
-    auto container = ctk::containerCreate<Output>(count);
-    vulkanGetFn(arg0, arg1, &count, container.data);
-    return container;
+    auto buffer = ctk::bufferCreate<Output>(count);
+    vulkanGetFn(arg0, arg1, &count, buffer.data);
+    return buffer;
 }
 
 template<typename T, typename U, typename V, typename Output>
-static ctk::Container<Output>
-createVulkanContainer(VkResult (* vulkanGetFn)(T, U, V, uint32_t *, Output *), T arg0, U arg1, V arg2)
+static ctk::Buffer<Output>
+createVulkanBuffer(VkResult (* vulkanGetFn)(T, U, V, uint32_t *, Output *), T arg0, U arg1, V arg2)
 {
     uint32_t count = 0;
     vulkanGetFn(arg0, arg1, arg2, &count, nullptr);
@@ -92,9 +92,9 @@ createVulkanContainer(VkResult (* vulkanGetFn)(T, U, V, uint32_t *, Output *), T
         return {};
     }
 
-    auto container = ctk::containerCreate<Output>(count);
-    vulkanGetFn(arg0, arg1, arg2, &count, container.data);
-    return container;
+    auto buffer = ctk::bufferCreate<Output>(count);
+    vulkanGetFn(arg0, arg1, arg2, &count, buffer.data);
+    return buffer;
 }
 
 const char *

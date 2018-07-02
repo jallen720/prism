@@ -65,12 +65,12 @@ sysCreateWindow(SYSContext * context, int width, int height, const char * title)
     glfwSetKeyCallback(*window, keyCallback);
 }
 
-Container<const char *>
+Buffer<const char *>
 sysGetRequiredExtensions()
 {
     uint32_t requiredExtensionCount = 0;
     const char ** requiredExtensionNames = glfwGetRequiredInstanceExtensions(&requiredExtensionCount);
-    return containerCreate(requiredExtensionNames, requiredExtensionCount);
+    return bufferCreate(requiredExtensionNames, requiredExtensionCount);
 }
 
 VkSurfaceKHR

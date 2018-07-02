@@ -21,8 +21,8 @@ using GFXCreateSurfaceFn = VkSurfaceKHR (*)(const void *, VkInstance);
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 struct GFXConfig
 {
-    ctk::Container<const char *> requestedExtensionNames;
-    ctk::Container<const char *> requestedLayerNames;
+    ctk::Buffer<const char *> requestedExtensionNames;
+    ctk::Buffer<const char *> requestedLayerNames;
     const void * createSurfaceFnData;
     GFXCreateSurfaceFn createSurfaceFn;
 };

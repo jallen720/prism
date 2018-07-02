@@ -31,7 +31,7 @@ main()
     config.createSurfaceFnData = &sysContext;
     config.createSurfaceFn = sysCreateSurface;
     gfxInit(&config);
-    containerFree(&config.requestedExtensionNames);
+    bufferFree(&config.requestedExtensionNames);
 
     // Run main loop.
     sysRun(&sysContext);
