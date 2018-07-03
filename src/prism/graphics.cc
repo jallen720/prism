@@ -139,7 +139,7 @@ validateInstanceComponentInfo(const InstanceComponentInfo<ComponentProps> * comp
 
         if(!componentAvailable)
         {
-            utilErrorExit("VULKAN", nullptr, "requested %s \"%s\" is not available\n", componentInfo->type,
+            utilErrorExit("VULKAN", nullptr, "requested %s '%s' is not available\n", componentInfo->type,
                           requestedComponentName);
         }
     }
