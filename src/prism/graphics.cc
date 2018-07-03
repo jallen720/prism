@@ -823,6 +823,64 @@ createSwapchainImageViews(VkLogicalDevice logicalDevice, const Buffer<VkImage> *
     return swapchainImageViews;
 }
 
+static Buffer<uint8_t>
+readShader(const char * path)
+{
+    FILE * file = fopen(path, "rb");
+
+    if(file == nullptr)
+    {
+        utilErrorExit("VULKAN", nullptr, "failed to open file '%s'\n", path);
+    }
+
+    // Get file length.
+    fseek(file, 0, SEEK_END);
+    size_t fileLength = ftell(file);
+    rewind(file);
+
+    // Read file into buffer.
+    auto buffer = bufferCreate<uint8_t>(fileLength);
+    fread(buffer.data, fileLength, 1, file);
+
+    // Cleanup
+    fclose(file);
+
+    return buffer;
+}
+
+static VkShaderModule
+createShaderModule(VkLogicalDevice logicalDevice, const char * shaderPath)
+{
+    Buffer<uint8_t> shader = readShader(shaderPath);
+
+    // typedef struct VkShaderModuleCreateInfo {
+    //     VkStructureType              sType;
+    //     const void*                  pNext;
+    //     VkShaderModuleCreateFlags    flags;
+    //     size_t                       codeSize;
+    //     const uint32_t*              pCode;
+    // } VkShaderModuleCreateInfo;
+    VkShaderModuleCreateInfo shaderModuleCreateInfo = {};
+    shaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    shaderModuleCreateInfo.pNext = nullptr;
+    shaderModuleCreateInfo.flags = 0; // Reserved for future use.
+    shaderModuleCreateInfo.codeSize = shader.count;
+    shaderModuleCreateInfo.pCode = (const uint32_t *)shader.data;
+
+    VkShaderModule shaderModule = VK_NULL_HANDLE;
+    VkResult result = vkCreateShaderModule(logicalDevice, &shaderModuleCreateInfo, nullptr, &shaderModule);
+
+    if(result != VK_SUCCESS)
+    {
+        utilErrorExit("VULKAN", getVkResultName(result), "failed to create shader module from '%s'\n", shaderPath);
+    }
+
+    // Cleanup
+    bufferFree(&shader);
+
+    return shaderModule;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Interface
@@ -884,6 +942,10 @@ gfxInit(const GFXConfig * config)
 
     Buffer<VkImageView> swapchainImageViews =
         createSwapchainImageViews(logicalDevice, &swapchainImages, &swapchainConfig);
+
+    // Shader Pipeline
+    VkShaderModule vertShaderModule = createShaderModule(logicalDevice, "./data/shaders/bin/tutorial.vert.spv");
+    VkShaderModule fragShaderModule = createShaderModule(logicalDevice, "./data/shaders/bin/tutorial.frag.spv");
 
     // Cleanup.
     // bufferFree(&swapchainImages);

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+SHADER_DIR=./data/shaders
+OUTPUT_DIR=$SHADER_DIR/bin
+glslangValidator -V $SHADER_DIR/tutorial.vert -o $OUTPUT_DIR/tutorial.vert.spv
+glslangValidator -V $SHADER_DIR/tutorial.frag -o $OUTPUT_DIR/tutorial.frag.spv
