@@ -886,11 +886,12 @@ gfxInit(const GFXConfig * config)
         createSwapchainImageViews(logicalDevice, &swapchainImages, &swapchainConfig);
 
     // Cleanup.
+    // bufferFree(&swapchainImages);
+
 #ifdef PRISM_DEBUG
     bufferFree(&config->requestedExtensionNames);
     bufferFree(&config->requestedLayerNames);
 #endif
-    // bufferFree(&swapchainImages);
 }
 
 // void
